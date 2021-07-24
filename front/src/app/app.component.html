@@ -1,0 +1,18 @@
+<mat-toolbar color="primary" class="mat-elevation-z8">
+  <span>まんリマ</span>
+  <span class="spacer"></span>
+  <span><mat-icon (click)="openInfoDialog()" class="can-click-icon">info</mat-icon></span>
+</mat-toolbar>
+<div class="contents">
+  <router-outlet></router-outlet>
+</div>
+<div class="footer">
+  <mat-toolbar class="mat-elevation-z8">
+    <span>
+    </span>
+    <span class="spacer"></span>
+    <span class="link-field">
+      <a href="https://webservice.rakuten.co.jp/" target="_blank">Supported by Rakuten Developers</a>
+    </span>
+  </mat-toolbar>
+</div>
