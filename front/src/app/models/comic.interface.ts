@@ -1,3 +1,5 @@
+import { SafeHtml, SafeUrl } from "@angular/platform-browser";
+
 export interface ComicInterface {
   isbn: string;
   title: string;
@@ -8,7 +10,9 @@ export interface ComicInterface {
   authorKana: string;
   publisherName: string;
   salesDate: Date;
-  scheduleStatus: ScheduleStatusType
+  scheduleStatus: ScheduleStatusType;
+  imageBase64: string;
+  imageBase64Sanitize: SafeUrl;
 }
 
 export const scheduleStatus = {

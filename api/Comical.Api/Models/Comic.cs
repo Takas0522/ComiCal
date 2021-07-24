@@ -16,6 +16,7 @@ namespace Comical.Api.Models
         public string PublisherName { get; set; }
         public DateTime SalesDate { get; set; }
         public int ScheduleStatus { get; set; }
+        public string ImageBase64 { get; set; }
     }
 
     public enum ScheduleStatus

@@ -72,6 +72,8 @@
     <Build Include="Programmability\Types\UserDefinedTableType\ComicImageTableType.sql" />
     <Build Include="Programmability\StoredProcedures\GetUpdateImageTarget.sql" />
     <Build Include="Programmability\StoredProcedures\RegisterComicImage.sql" />
+    <Build Include="Programmability\Types\UserDefinedTableType\IsbnListTableType.sql" />
+    <Build Include="Programmability\StoredProcedures\GetComicImages.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Comical.Database.refactorlog" />

@@ -28,3 +28,9 @@ mat-chip {
 mat-chip {
   justify-content: space-between;
 }
+.inner-field {
+  width: 125px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

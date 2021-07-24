@@ -12,6 +12,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { MockInterceptor } from './_mock/mock.inteeceptor';
 import { SalesDatePipe } from './components/comic-list/sales-date.pipe';
 import { LicenseDialogComponent } from './components/license-dialog/license-dialog.component';
+import { ImageSrcPipe } from './components/comic-list/image-src.pipe';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ import { LicenseDialogComponent } from './components/license-dialog/license-dial
     SearchKeywordsComponent,
     ComicListComponent,
     SalesDatePipe,
-    LicenseDialogComponent
+    LicenseDialogComponent,
+    ImageSrcPipe
   ],
   imports: [
     BrowserModule,

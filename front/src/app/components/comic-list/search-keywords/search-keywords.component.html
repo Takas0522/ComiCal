@@ -5,13 +5,15 @@
         [selectable]="true"
         [removable]="true"
         (removed)="removeKeyword(keyword)">
-        {{keyword}}
+        <div class="inner-field">
+          {{keyword}}
+        </div>
         <mat-icon matChipRemove >cancel</mat-icon>
       </mat-chip>
     </mat-chip-list>
   </div>
   <div class="key-word-edit">
-    <form [formGroup]="keywordForm" (ngSubmit)="submit()">
+    <form [formGroup]="keywordForm" (ngSubmit)="submit()" autocomplete="off">
       <div>
           <mat-form-field>
               <input formControlName="keyword" matInput placeholder="追加キーワード"/>

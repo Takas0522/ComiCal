@@ -81,7 +81,7 @@ namespace ComiCal.Batch.Functions
 
         [FunctionName("TimerStart")]
         public static async Task Run(
-            [TimerTrigger("0 0 0 * * *", RunOnStartup = true)] TimerInfo myTimer,
+            [TimerTrigger("0 0 0 * * *")] TimerInfo myTimer,
             [DurableClient] IDurableOrchestrationClient starter,
             ILogger log)
         {

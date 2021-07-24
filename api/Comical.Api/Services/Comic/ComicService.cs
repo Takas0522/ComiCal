@@ -34,7 +34,17 @@ namespace Comical.Api.Services
                 });
                 res.AddRange(d);
             }
-            return res.Distinct().OrderBy(o => o.SalesDate);
+            var resData = res.Distinct().OrderBy(o => o.SalesDate).ToList();
+            var isbns = res.Select(s => s.Isbn);
+            var images = await _comicRepository.GetComicImagessAsync(isbns);
+            resData.ForEach(f => {
+                var i = images.Where(w => w.Isbn == f.Isbn);
+                if (i.Any())
+                {
+                    f.ImageBase64 = i.First().ImageBase64;
+                }
+            });
+            return resData;
         }
     }
 }
