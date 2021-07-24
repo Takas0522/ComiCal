@@ -15,7 +15,6 @@ env:
 
 jobs:
   build-and-deploy:
-    needs: pre-build-job
     runs-on: windows-latest
     steps:
     - name: 'Checkout Github Action'
