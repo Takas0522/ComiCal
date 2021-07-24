@@ -1,0 +1,45 @@
+name: DatabaseDeploy
+
+on:
+  push:
+    branches:
+      - master
+      - feature/init
+    paths:
+      - database/**
+
+jobs:
+  pre-build-job:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+
+  build-and-deploy:
+    needs: pre-build-job
+    runs-on: windows-latest
+    steps:
+    - name: 'Checkout Github Action'
+      uses: actions/checkout@main
+    - name: 'msbuild setup'
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: 'build'
+      shell: pwsh
+      run: |
+        ls
+        msbuild database\Comical.Database\Comical.Database.sqlproj
+        Move-Item database\Comical.Database\bin\Debug\Comical.Database.dacpac Comical.Database.dacpac
+        ls
+        (Invoke-WebRequest -Uri "inet-ip.info/ip").Content
+    - name: 'Azure Login'
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    - name: 'SQL Database Deploy'
+      uses: azure/sql-action@v1
+      with:
+        server-name: comical-db-server.database.windows.net
+        connection-string: ${{ secrets.AZURE_SQL_CONNECTION_STRING }}
+        dacpac-package: './Comical.Database.dacpac'
+    - name: logout
+      run: |
+        az logout

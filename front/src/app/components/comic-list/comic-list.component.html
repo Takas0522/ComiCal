@@ -1,0 +1,19 @@
+<div class="contents">
+  <div class="item-field">
+    <div class="list-contents">
+      <ng-container *ngFor="let comic of comicList$ | async">
+        <mat-card class="comic-card">
+          <div class="card-contents">
+            <div class="pix">NO IMAGE</div>
+            <div class="text-contents title">{{comic.title}}</div>
+            <div class="text-contents author">{{comic.author}}</div>
+            <div class="text-contents sales-date">{{comic.salesDate | salesDate: comic.scheduleStatus}}</div>
+          </div>
+        </mat-card>
+      </ng-container>
+    </div>
+  </div>
+  <div class="search-filed">
+    <app-search-keywords></app-search-keywords>
+  </div>
+</div>
