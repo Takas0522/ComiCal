@@ -6,3 +6,8 @@ body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 .can-click-icon {
   cursor: pointer;
 }
+.keyword-field {
+  .mat-chip-list-wrapper {
+    width: 100%;
+  }
+}

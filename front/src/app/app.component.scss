@@ -10,3 +10,11 @@
 .link-field {
   font-size: 10px
 }
+
+/* Safari用のハックは、Chromeに適用されないようにする */
+@supports (-webkit-touch-callout: none) {
+  .contents {
+    /* Safari用のハック */
+    height: -webkit-fill-available;
+  }
+}

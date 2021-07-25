@@ -1,21 +1,21 @@
 .contents {
-  display: grid;
-  grid-template-columns: 1fr 200px;
   height: 100%;
 }
 .item-field {
   grid-area: 1/1/2/2;
   height: calc(100% - 10px);
   padding: 5px;
-  overflow-y: auto;
 }
 .search-filed {
   grid-area: 1/2/2/3;
   height: 100%;
 }
 .list-contents {
+  margin-top: 5px;
   display: flex;
   flex-wrap: wrap;
+  height: calc(100% - 25px);
+  overflow-y: auto;
 }
 .comic-card {
   width: 350px;
@@ -57,4 +57,21 @@
 }
 .text-contents {
   padding-left: 5px;
+}
+mat-drawer-container {
+  height: 100%;
+}
+mat-drawer-content {
+  overflow: hidden;
+  height: calc(100% - 10px);
+}
+.search-kwyword-field {
+  height: 100%;
+}
+.hide-button {
+  width: 100%;
+  text-align: right;
+}
+.open-close-button {
+  text-align: right;
 }
