@@ -1,5 +1,5 @@
 import { Injectable } from "@angular/core";
-import { BehaviorSubject, fromEvent, Observable } from "rxjs";
+import { BehaviorSubject, fromEvent, Observable, Subject } from "rxjs";
 import { displayStatus, DisplayStatusType } from "./models/display-mode-type";
 
 @Injectable(
@@ -11,9 +11,21 @@ export class AppService {
   get displayModeState$(): Observable<DisplayStatusType> {
     return this.displayModeState.asObservable();
   }
+  private isApiAccess: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  get isApiAccess$() {
+    return this.isApiAccess.asObservable();
+  }
 
   constructor() {
     this.applicationinit();
+  }
+
+  startApiAccess() {
+    this.isApiAccess.next(true);
+  }
+
+  exitApiAccess() {
+    this.isApiAccess.next(false);
   }
 
   private applicationinit(): void {

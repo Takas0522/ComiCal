@@ -1,5 +1,5 @@
 .contents {
-  height: calc(100vh - 65px);
+  height: calc(100vh - 70px);
 }
 .spacer {
   flex: 1 1 auto;
@@ -9,4 +9,7 @@
 }
 .link-field {
   font-size: 10px
+}
+.progress {
+  height: 3px;
 }

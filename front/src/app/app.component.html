@@ -3,6 +3,9 @@
   <span class="spacer"></span>
   <span><mat-icon (click)="openInfoDialog()" class="can-click-icon">info</mat-icon></span>
 </mat-toolbar>
+<div class="progress">
+  <mat-progress-bar *ngIf="isApiAccess$ | async" mode="indeterminate"></mat-progress-bar>
+</div>
 <div class="contents">
   <router-outlet></router-outlet>
 </div>

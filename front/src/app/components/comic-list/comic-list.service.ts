@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
+import { AppService } from 'src/app/app.service';
 import { ComicInterface } from 'src/app/models/comic.interface';
 import { CalendarRegisterInterface } from '../event-register-dialog/models/calendar-register.interface';
 import { ComicListQuery } from './comic-list.query';
@@ -14,7 +15,8 @@ export class ComicListService {
   constructor(
     private httpClient: HttpClient,
     private query: ComicListQuery,
-    private sanitizer: DomSanitizer
+    private sanitizer: DomSanitizer,
+    private appService: AppService
   ) {}
 
   fetch(keywords: string[]): void {
@@ -25,6 +27,7 @@ export class ComicListService {
     const reqData = {
       searchList: keywords
     };
+    this.appService.startApiAccess();
     this.httpClient.post<ComicInterface[]>('/api/ComicData', reqData).subscribe(x => {
       this.baseData = x;
       this.baseData.forEach(f => {
@@ -33,6 +36,7 @@ export class ComicListService {
         f.salesDate = new Date(f.salesDate);
       })
       this.query.updateComicList(this.baseData);
+      this.appService.exitApiAccess();
     });
   }
 
