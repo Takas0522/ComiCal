@@ -1,0 +1,21 @@
+<div class="contents">
+  <div>
+    {{registerDataCount}}個の漫画が選択されています。
+  </div>
+  <div class="events-register-filed">
+    <mat-stepper class="step" #stepper>
+      <mat-step class="step">
+        <ng-template matStepLabel>登録サービス選択</ng-template>
+        <app-select-service #selectServiceComponent></app-select-service>
+      </mat-step>
+      <mat-step class="step" *ngIf="selectService === 0">
+        <ng-template matStepLabel>登録カレンダー選択</ng-template>
+        <app-select-google-calendar #selectGoogleClendar></app-select-google-calendar>
+      </mat-step>
+      <mat-step class="step" *ngIf="selectService === 0">
+        <ng-template matStepLabel>登録</ng-template>
+        <app-register-google-calendar #registerGoogleCalendar></app-register-google-calendar>
+      </mat-step>
+    </mat-stepper>
+  </div>
+</div>

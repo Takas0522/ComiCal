@@ -8,6 +8,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatCardModule } from '@angular/material/card';
 import { MatDialogModule } from '@angular/material/dialog';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatStepperModule } from '@angular/material/stepper';
 
 @NgModule({
   imports: [
@@ -20,7 +22,9 @@ import { MatSidenavModule } from '@angular/material/sidenav';
     MatIconModule,
     MatCardModule,
     MatDialogModule,
-    MatSidenavModule
+    MatSidenavModule,
+    MatCheckboxModule,
+    MatStepperModule
   ],
   exports: [
     MatToolbarModule,
@@ -31,7 +35,9 @@ import { MatSidenavModule } from '@angular/material/sidenav';
     MatIconModule,
     MatCardModule,
     MatDialogModule,
-    MatSidenavModule
+    MatSidenavModule,
+    MatCheckboxModule,
+    MatStepperModule
   ]
 })
 export class MaterialModule {}

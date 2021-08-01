@@ -3,7 +3,10 @@ import { RouterModule, Routes } from '@angular/router';
 import { ComicListComponent } from './components/comic-list/comic-list.component';
 
 const routes: Routes = [
-  { path: '', component: ComicListComponent }
+  {
+    path: '',
+    component: ComicListComponent
+  }
 ];
 
 @NgModule({

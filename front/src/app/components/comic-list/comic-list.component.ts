@@ -1,9 +1,15 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
+import { FormArray, FormControl, FormGroup } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { MatDrawer } from '@angular/material/sidenav';
 import { Observable } from 'rxjs';
+import { tap } from 'rxjs/operators';
+
 import { AppService } from 'src/app/app.service';
 import { ComicInterface } from 'src/app/models/comic.interface';
 import { displayStatus } from 'src/app/models/display-mode-type';
+import { EventRegisterDialogComponent } from '../event-register-dialog/event-register-dialog.component';
+import { ComicListCheckedInterface } from './comic-list-data.interface';
 import { ComicListQuery } from './comic-list.query';
 import { ComicListService } from './comic-list.service';
 import { SearchKeywordsQuery } from './search-keywords/search-keywords.query';
@@ -16,14 +22,22 @@ import { SearchKeywordsQuery } from './search-keywords/search-keywords.query';
 export class ComicListComponent implements OnInit {
 
   comicList$!: Observable<ComicInterface[]>;
+
   @ViewChild('drawer', { static: true })
   private matDrawer!: MatDrawer;
+
+  someCheckboxChecked = false;
+
+  fg: FormGroup = new FormGroup({
+    checkedItems: new FormArray([])
+  });
 
   constructor(
     private service: ComicListService,
     private query: ComicListQuery,
     private searchKeywordQuery: SearchKeywordsQuery,
-    private appService: AppService
+    private appService: AppService,
+    private dialog: MatDialog
   ) { }
 
   ngOnInit(): void {
@@ -36,6 +50,41 @@ export class ComicListComponent implements OnInit {
     this.searchKeywordQuery.keywords$.subscribe(x => {
       this.service.fetch(x);
     });
+    this.comicList$.subscribe(x => {
+      this.formArraySettings(x);
+    });
+    this.fg.valueChanges.subscribe(x => {
+      this.checkCheckedStatus(x);
+    });
+  }
+
+  private formArraySettings(datas: ComicInterface[]) {
+    const control = this.fg.get('checkedItems') as FormArray;
+    if (control == null) {
+      return;
+    }
+    while (control.length !== 0) {
+      control.removeAt(0);
+    }
+    datas.forEach(f => {
+      const form = new FormGroup({
+        isbn: new FormControl(f.isbn),
+        checkedItem: new FormControl(false)
+      });
+      control.push(form);
+    });
+  }
+
+  private checkCheckedStatus(data: ComicListCheckedInterface) {
+    if (data == null) {
+      this.someCheckboxChecked = false;
+      return;
+    }
+    if (data.checkedItems.length === 0) {
+      this.someCheckboxChecked = false;
+      return;
+    }
+    this.someCheckboxChecked = data.checkedItems.some(s => s.checkedItem === true);
   }
 
   private displayinit(): void {
@@ -46,6 +95,15 @@ export class ComicListComponent implements OnInit {
         this.matDrawer.close();
       }
     })
+  }
+
+  openEventRegisterDialog() {
+    const selectDatas = (this.fg.value.checkedItems as { isbn: string, checkedItem: boolean }[]).filter(f => f.checkedItem);
+    const isbns = selectDatas.map(m => { return m.isbn });
+    const res = this.service.getCheckedItem(isbns);
+    this.dialog.open(EventRegisterDialogComponent, {
+      data: res
+    });
   }
 
 }

@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ComicInterface } from 'src/app/models/comic.interface';
+import { CalendarRegisterInterface } from '../event-register-dialog/models/calendar-register.interface';
 import { ComicListQuery } from './comic-list.query';
 
 @Injectable({
@@ -29,8 +30,22 @@ export class ComicListService {
       this.baseData.forEach(f => {
         const url = `data:image;base64,${f.imageBase64}`;
         f.imageBase64Sanitize = this.sanitizer.bypassSecurityTrustUrl(url);
+        f.salesDate = new Date(f.salesDate);
       })
       this.query.updateComicList(this.baseData);
+    });
+  }
+
+  getCheckedItem(checkedIsbns: string[]): CalendarRegisterInterface[] {
+    const filData = this.baseData.filter(f => {
+      return checkedIsbns.includes(f.isbn);
+    });
+    return filData.map(m => {
+      return {
+        title: m.title,
+        author: m.author,
+        salesDate: m.salesDate
+      };
     });
   }
 }

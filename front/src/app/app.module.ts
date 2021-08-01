@@ -13,6 +13,10 @@ import { MockInterceptor } from './_mock/mock.inteeceptor';
 import { SalesDatePipe } from './components/comic-list/sales-date.pipe';
 import { LicenseDialogComponent } from './components/license-dialog/license-dialog.component';
 import { ImageSrcPipe } from './components/comic-list/image-src.pipe';
+import { EventRegisterDialogComponent } from './components/event-register-dialog/event-register-dialog.component';
+import { SelectServiceComponent } from './components/event-register-dialog/select-service/select-calendar.component';
+import { SelectGoogleCalendarComponent } from './components/event-register-dialog/google/select-google-calendar/select-google-calendar.component';
+import { RegisterGoogleCalendarComponent } from './components/event-register-dialog/google/register-google-calendar/register-google-calendar.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +25,11 @@ import { ImageSrcPipe } from './components/comic-list/image-src.pipe';
     ComicListComponent,
     SalesDatePipe,
     LicenseDialogComponent,
-    ImageSrcPipe
+    ImageSrcPipe,
+    EventRegisterDialogComponent,
+    SelectServiceComponent,
+    SelectGoogleCalendarComponent,
+    RegisterGoogleCalendarComponent
   ],
   imports: [
     BrowserModule,

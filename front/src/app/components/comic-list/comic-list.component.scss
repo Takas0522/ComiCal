@@ -23,10 +23,10 @@
 }
 .card-contents {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: 20px 110px 1fr;
 }
 .pix {
-  grid-area: 1/1/2/2;
+  grid-area: 1/2/2/3;
   height: 150px;
   img {
     width: 100px;
@@ -35,7 +35,7 @@
   align-self: center;
 }
 .info {
-  grid-area: 1/2/2/3;
+  grid-area: 1/3/2/4;
   width: 100%;
   overflow: hidden;
   align-self: center;
@@ -71,6 +71,13 @@ mat-drawer-content {
 .hide-button {
   width: 100%;
   text-align: right;
+}
+.header {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.action-field {
+  justify-items: start;
 }
 .open-close-button {
   text-align: right;
