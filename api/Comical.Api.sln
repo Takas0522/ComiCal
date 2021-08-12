@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31512.422
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Comical.Api", "Comical.Api\Comical.Api.csproj", "{2BF8A5A1-584D-43D0-8FA0-91F3827CF5AD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Comical.Api", "Comical.Api\Comical.Api.csproj", "{2BF8A5A1-584D-43D0-8FA0-91F3827CF5AD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

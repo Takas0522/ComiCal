@@ -15,6 +15,8 @@ namespace ComiCal.Api
         {
             builder.Services.AddSingleton<IComicRepository, ComicRepository>();
             builder.Services.AddSingleton<IComicService, ComicService>();
+            builder.Services.AddSingleton<IConfigMigrationRepository, ConfigMigrationRepository>();
+            builder.Services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
         }
     }
 }

@@ -8,6 +8,9 @@ import { tap } from 'rxjs/operators';
 import { AppService } from 'src/app/app.service';
 import { ComicInterface } from 'src/app/models/comic.interface';
 import { displayStatus } from 'src/app/models/display-mode-type';
+import { CodeGeneratorComponent } from '../data-migration/code-generator/code-generator.component';
+import { CodeRegisterComponent } from '../data-migration/code-register/code-register.component';
+import { MigrationGetResponseInterface } from '../data-migration/models/migration-model.interface';
 import { EventRegisterDialogComponent } from '../event-register-dialog/event-register-dialog.component';
 import { ComicListCheckedInterface } from './comic-list-data.interface';
 import { ComicListQuery } from './comic-list.query';
@@ -25,6 +28,7 @@ export class ComicListComponent implements OnInit {
 
   @ViewChild('drawer', { static: true })
   private matDrawer!: MatDrawer;
+  private searchKeywords: string[] = [];
 
   someCheckboxChecked = false;
 
@@ -48,6 +52,8 @@ export class ComicListComponent implements OnInit {
   private valueInit(): void {
     this.comicList$ = this.query.comicList$;
     this.searchKeywordQuery.keywords$.subscribe(x => {
+      this.searchKeywords = x;
+      console.log({sk: this.searchKeywords})
       this.service.fetch(x);
     });
     this.comicList$.subscribe(x => {
@@ -103,6 +109,20 @@ export class ComicListComponent implements OnInit {
     const res = this.service.getCheckedItem(isbns);
     this.dialog.open(EventRegisterDialogComponent, {
       data: res
+    });
+  }
+
+  openCodeGeneratorDialog() {
+    this.dialog.open(CodeGeneratorComponent, { data: this.searchKeywords });
+  }
+
+  openCodeRegisterDialog() {
+    const ref = this.dialog.open(CodeRegisterComponent, { data: this.searchKeywords });
+    ref.afterClosed().subscribe((x: MigrationGetResponseInterface | undefined) => {
+      if (typeof(x) === 'undefined') {
+        return;
+      }
+      this.searchKeywordQuery.keywordsUpdate(x.data);
     });
   }
 

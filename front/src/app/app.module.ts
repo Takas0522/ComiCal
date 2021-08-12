@@ -17,6 +17,8 @@ import { EventRegisterDialogComponent } from './components/event-register-dialog
 import { SelectServiceComponent } from './components/event-register-dialog/select-service/select-calendar.component';
 import { SelectGoogleCalendarComponent } from './components/event-register-dialog/google/select-google-calendar/select-google-calendar.component';
 import { RegisterGoogleCalendarComponent } from './components/event-register-dialog/google/register-google-calendar/register-google-calendar.component';
+import { CodeGeneratorComponent } from './components/data-migration/code-generator/code-generator.component';
+import { CodeRegisterComponent } from './components/data-migration/code-register/code-register.component';
 
 @NgModule({
   declarations: [
@@ -29,7 +31,9 @@ import { RegisterGoogleCalendarComponent } from './components/event-register-dia
     EventRegisterDialogComponent,
     SelectServiceComponent,
     SelectGoogleCalendarComponent,
-    RegisterGoogleCalendarComponent
+    RegisterGoogleCalendarComponent,
+    CodeGeneratorComponent,
+    CodeRegisterComponent
   ],
   imports: [
     BrowserModule,

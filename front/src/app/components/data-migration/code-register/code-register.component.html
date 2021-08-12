@@ -1,0 +1,8 @@
+<form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
+  <mat-form-field>
+    <input matInput placeholder="コード入力" formControlName="id">
+  </mat-form-field>
+  <button mat-flat-button color="primary" type="submit">
+    データ取得
+  </button>
+</form>

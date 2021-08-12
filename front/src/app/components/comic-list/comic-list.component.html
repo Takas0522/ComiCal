@@ -12,6 +12,14 @@
             <mat-icon>event</mat-icon>
             カレンダーに登録
           </button>
+          <button mat-stroked-button color="primary" [matMenuTriggerFor]="migrationMenu">
+            <mat-icon>event</mat-icon>
+            他ブラウザと連携
+          </button>
+          <mat-menu #migrationMenu>
+            <button mat-menu-item (click)="openCodeGeneratorDialog()">連携コードを生成</button>
+            <button mat-menu-item (click)="openCodeRegisterDialog()">連携コードを入力</button>
+          </mat-menu>
         </div>
         <div class="open-close-button">
           <button mat-flat-button (click)="drawer.toggle()">
