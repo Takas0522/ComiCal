@@ -25,7 +25,7 @@ namespace Comical.Api.Functions
 
         [FunctionName("ConfigMigrationGet")]
         public async Task<IActionResult> GetConfigData(
-            [HttpTrigger(AuthorizationLevel.System, "get", Route = "ConfigMigration")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ConfigMigration")] HttpRequest req,
             ILogger log)
         {
             string id = req.Query["id"];
@@ -36,7 +36,7 @@ namespace Comical.Api.Functions
 
         [FunctionName("ConfigMigrationPost")]
         public async Task<IActionResult> RegisterConfigData(
-            [HttpTrigger(AuthorizationLevel.System, "post", Route = "ConfigMigration")] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ConfigMigration")] HttpRequest req,
             ILogger log
         )
         {
