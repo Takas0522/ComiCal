@@ -27,7 +27,6 @@ export class CodeRegisterComponent {
     }
     const id = this.formGroup.value.id;
     this.service.registerMigrationCode(id).subscribe(x => {
-      console.log(this.data)
       if (!x) {
         alert('入力された連携コードのデータは存在しませんでした。\n再度コードを生成してください。');
         this.dialogRef.close();

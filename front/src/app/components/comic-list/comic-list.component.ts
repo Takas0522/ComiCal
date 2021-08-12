@@ -53,7 +53,6 @@ export class ComicListComponent implements OnInit {
     this.comicList$ = this.query.comicList$;
     this.searchKeywordQuery.keywords$.subscribe(x => {
       this.searchKeywords = x;
-      console.log({sk: this.searchKeywords})
       this.service.fetch(x);
     });
     this.comicList$.subscribe(x => {
