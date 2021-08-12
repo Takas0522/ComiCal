@@ -25,7 +25,7 @@ namespace Comical.Api
 
         [FunctionName("ComicData")]
         public async Task<IActionResult> GetComicData(
-            [HttpTrigger(AuthorizationLevel.System, "post", Route = null)] HttpRequest req,
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
 
