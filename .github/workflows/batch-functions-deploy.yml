@@ -3,8 +3,7 @@ name: BatchFunctions CI/CD
 on:
   push:
     branches:
-      - master
-      - feature/init
+      - main
     paths:
       - batch/**
 

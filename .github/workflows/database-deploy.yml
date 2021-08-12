@@ -3,8 +3,7 @@ name: DatabaseDeploy
 on:
   push:
     branches:
-      - master
-      - feature/init
+      - main
     paths:
       - database/**
 
