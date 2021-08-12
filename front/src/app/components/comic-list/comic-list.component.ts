@@ -16,6 +16,7 @@ import { ComicListCheckedInterface } from './comic-list-data.interface';
 import { ComicListQuery } from './comic-list.query';
 import { ComicListService } from './comic-list.service';
 import { SearchKeywordsQuery } from './search-keywords/search-keywords.query';
+import { SearchKeywordsService } from './search-keywords/search-keywords.service';
 
 @Component({
   selector: 'app-comic-list',
@@ -40,6 +41,7 @@ export class ComicListComponent implements OnInit {
     private service: ComicListService,
     private query: ComicListQuery,
     private searchKeywordQuery: SearchKeywordsQuery,
+    private searchKeywordService: SearchKeywordsService,
     private appService: AppService,
     private dialog: MatDialog
   ) { }
@@ -121,7 +123,7 @@ export class ComicListComponent implements OnInit {
       if (typeof(x) === 'undefined') {
         return;
       }
-      this.searchKeywordQuery.keywordsUpdate(x.data);
+      this.searchKeywordService.updateKeyword(x.data);
     });
   }
 

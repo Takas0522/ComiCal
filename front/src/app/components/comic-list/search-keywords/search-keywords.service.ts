@@ -47,5 +47,10 @@ export class SearchKeywordsService {
     this.query.keywordsUpdate(this.keyWords);
   }
 
+  updateKeyword(value: string[]): void {
+    this.keyWords = value;
+    this.saveKeywords();
+    this.query.keywordsUpdate(this.keyWords);
+  }
 
 }
