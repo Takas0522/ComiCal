@@ -40,7 +40,7 @@ namespace Comical.Api.Services
             var images = await _comicRepository.GetComicImagessAsync(isbns);
             resData.ForEach(f => {
                 var i = images.Where(w => w.Isbn == f.Isbn);
-                if (i.Any())
+                if (i.Any() && i.First().ImageStorageUrl != "")
                 {
                     f.ImageStorageUrl = _baserUrl + i.First().ImageStorageUrl;
                 }
