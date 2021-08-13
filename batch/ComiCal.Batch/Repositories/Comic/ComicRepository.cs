@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ComiCal.Batch.Util.Extensions;
 using System.Data;
+using System.Linq;
 
 namespace ComiCal.Batch.Repositories
 {
@@ -70,7 +71,12 @@ namespace ComiCal.Batch.Repositories
             using (var connection = new SqlConnection(_ConnectionString))
             {
                 connection.Open();
-                return await connection.QueryFirstAsync<ComicImage>("GetComicImage", param, commandType: CommandType.StoredProcedure);
+                IEnumerable<ComicImage> data = await connection.QueryAsync<ComicImage>("GetComicImage", param, commandType: CommandType.StoredProcedure);
+                if (data.Any())
+                {
+                    return data.First();
+                }
+                return null;
             }
         }
     }
