@@ -21,8 +21,8 @@ export class ComicsApiMock {
         seriesNameKana: ``,
         title: `${m}なタイトル`,
         titleKana: ``,
-        imageBase64: '',
-        imageBase64Sanitize: ''
+        imageStorageUrl: '',
+        imageStorageUrlSanitize: ''
       };
       return data;
     });

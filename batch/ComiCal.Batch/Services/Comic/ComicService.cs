@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
 using ComiCal.Batch.Util.Common;
+using System.IO;
 
 namespace ComiCal.Batch.Services
 {
@@ -13,14 +14,17 @@ namespace ComiCal.Batch.Services
     {
         private readonly IRakutenComicRepository _rakutenComicRepository;
         private readonly IComicRepository _comicRepository;
+        private readonly IComicImageRepository _comicImageRepository;
 
         public ComicService(
             IRakutenComicRepository rakutenComicRepository,
-            IComicRepository comicRepository
+            IComicRepository comicRepository,
+            IComicImageRepository comicImageRepository
         )
         {
             _rakutenComicRepository = rakutenComicRepository;
             _comicRepository = comicRepository;
+            _comicImageRepository = comicImageRepository;
         }
 
         public async Task<int> GetPageCountAsync()
@@ -39,13 +43,28 @@ namespace ComiCal.Batch.Services
             RakutenComicResponse baseData = await _rakutenComicRepository.Fetch(requestPage);
             IEnumerable<Comic> comics = GenRegistData(baseData);
             IEnumerable<ComicImage> comicImages = GenRegistImageData(baseData);
+
+            foreach (var comicImage in comicImages)
+            {
+                var comigImageInfo = await _comicRepository.GetComicImageInfo(comicImage.Isbn);
+                if (comigImageInfo != null && comigImageInfo.ImageBaseUrl != null && comigImageInfo.ImageBaseUrl != comicImage.ImageBaseUrl)
+                {
+                    Uri baseUri = new Uri(comigImageInfo.ImageBaseUrl);
+                    await _comicImageRepository.DeleteImageAsync(baseUri.LocalPath);
+                }
+            }
+
             await _comicRepository.RegisterComicsAsync(comics, comicImages);
         }
 
         public async Task UpdateImageDataAsync(ComicImage data)
         {
-            string base64St = await _rakutenComicRepository.FetchImageAndConvertBase64(data.ImageUrl);
-            await _comicRepository.RegisterComicImageAsync(data.Isbn, base64St);
+            BinaryData streamData = await _rakutenComicRepository.FetchImageAndConvertStream(data.ImageBaseUrl);
+            Uri uri = new Uri(data.ImageBaseUrl);
+            string path = uri.LocalPath;
+
+            await _comicImageRepository.UploadImageAsync(path, streamData);
+            await _comicRepository.RegisterComicImageUrlAsync(data.Isbn, path);
         }
 
         private IEnumerable<Comic> GenRegistData(RakutenComicResponse data)
@@ -75,7 +94,7 @@ namespace ComiCal.Batch.Services
                 return new ComicImage
                 {
                     Isbn = x.Info.Isbn,
-                    ImageUrl = x.Info.LargeImageUrl
+                    ImageBaseUrl = x.Info.LargeImageUrl
                 };
             });
         }

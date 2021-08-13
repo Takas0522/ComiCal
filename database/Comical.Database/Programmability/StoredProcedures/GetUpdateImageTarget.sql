@@ -2,8 +2,8 @@
 AS
     SELECT
         [Isbn],
-        [ImageUrl]
+        [ImageBaseUrl]
     FROM
         [dbo].[ComicImage]
     Where
-        [ImageBase64] = '';
+        [ImageStorageUrl] = '';

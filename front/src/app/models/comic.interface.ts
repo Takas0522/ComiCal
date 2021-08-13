@@ -11,8 +11,8 @@ export interface ComicInterface {
   publisherName: string;
   salesDate: Date;
   scheduleStatus: ScheduleStatusType;
-  imageBase64: string;
-  imageBase64Sanitize: SafeUrl;
+  imageStorageUrl: string;
+  imageStorageUrlSanitize: SafeUrl;
 }
 
 export const scheduleStatus = {

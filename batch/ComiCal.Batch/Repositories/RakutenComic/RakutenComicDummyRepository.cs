@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Text;
@@ -13,6 +14,15 @@ namespace ComiCal.Batch.Repositories
 {
     public class RakutenComicDummyRepository : IRakutenComicRepository
     {
+        private readonly HttpClient _httpClient;
+
+        public RakutenComicDummyRepository(
+            HttpClient httpClient
+        )
+        {
+            _httpClient = httpClient;
+        }
+
         public async Task<RakutenComicResponse> Fetch(int requestPage)
         {
             var json = "{" +
@@ -26,7 +36,7 @@ namespace ComiCal.Batch.Repositories
                 "        \"listPrice\": 0," +
                 "        \"itemCaption\": \"\"," +
                 "        \"publisherName\": \"少年画報社\"," +
-                "        \"isbn\": \"9784785966850\"," +
+                "        \"isbn\": \"9784785966851\"," +
                 "        \"largeImageUrl\": \"https://thumbnail.image.rakuten.co.jp/@0_mall/book/cabinet/6850/9784785966850.jpg?_ex=200x200\"," +
                 "        \"jan\": \"\"," +
                 "        \"mediumImageUrl\": \"https://thumbnail.image.rakuten.co.jp/@0_mall/book/cabinet/6850/9784785966850.jpg?_ex=120x120\"," +
@@ -58,12 +68,27 @@ namespace ComiCal.Batch.Repositories
                 "  \"GenreInformation\": []," +
                 "  \"first\": 1" +
                 "}";
-            return JsonSerializer.Deserialize<RakutenComicResponse>(json);
+            return await Task.Run(() =>
+            {
+                return JsonSerializer.Deserialize<RakutenComicResponse>(json);
+            });
         }
 
-        public Task<string> FetchImageAndConvertBase64(string imageUrl)
+        async Task<BinaryData> IRakutenComicRepository.FetchImageAndConvertStream(string imageUrl)
         {
-            throw new NotImplementedException();
+            var requestMessage = new HttpRequestMessage(HttpMethod.Get, imageUrl);
+            var res = await _httpClient.SendAsync(requestMessage);
+            if (res.StatusCode != HttpStatusCode.OK)
+            {
+                var errorMessage = await res.Content.ReadAsStringAsync();
+                throw new Exception($"RakutenImageFetch Error\n{errorMessage}");
+            }
+            Stream data = await res.Content.ReadAsStreamAsync();
+            using (MemoryStream ms = new MemoryStream())
+            {
+                data.CopyTo(ms);
+                return new BinaryData(ms.ToArray());
+            }
         }
     }
 }

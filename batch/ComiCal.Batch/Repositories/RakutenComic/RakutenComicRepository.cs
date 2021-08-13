@@ -41,7 +41,7 @@ namespace ComiCal.Batch.Repositories
             return JsonSerializer.Deserialize<RakutenComicResponse>(content);
         }
 
-        public async Task<string> FetchImageAndConvertBase64(string imageUrl)
+        public async Task<BinaryData> FetchImageAndConvertStream(string imageUrl)
         {
             var requestMessage = new HttpRequestMessage(HttpMethod.Get, imageUrl);
             var res = await _httpClient.SendAsync(requestMessage);
@@ -54,7 +54,7 @@ namespace ComiCal.Batch.Repositories
             using (MemoryStream ms = new MemoryStream())
             {
                 data.CopyTo(ms);
-                return Convert.ToBase64String(ms.ToArray());
+                return new BinaryData(ms.ToArray());
             }
         }
     }

@@ -78,6 +78,7 @@
     <Build Include="Programmability\StoredProcedures\RegisterConfigMigrationData.sql" />
     <Build Include="Programmability\StoredProcedures\GetConfigMigration.sql" />
     <Build Include="Programmability\StoredProcedures\DeleteConfigMigration.sql" />
+    <Build Include="Programmability\StoredProcedures\GetComicImage.sql" />
   </ItemGroup>
   <ItemGroup>
     <RefactorLog Include="Comical.Database.refactorlog" />

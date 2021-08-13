@@ -3,7 +3,7 @@
 AS
     SELECT
         C.Isbn,
-        C.ImageBase64
+        C.ImageStorageUrl
     FROM
         [dbo].[ComicImage] C
     WHERE

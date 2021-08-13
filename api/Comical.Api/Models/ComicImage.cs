@@ -7,6 +7,6 @@ namespace Comical.Api.Models
     public class ComicImage
     {
         public string Isbn { get; set; }
-        public string ImageBase64 { get; set; }
+        public string ImageStorageUrl { get; set; }
     }
 }

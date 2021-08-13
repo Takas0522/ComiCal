@@ -40,8 +40,8 @@
                     <input hidden formControlName="isbn"/>
                   </div>
                   <div class="pix">
-                    <img [src]="comic.imageBase64Sanitize" *ngIf="comic.imageBase64 !== ''" />
-                    <span *ngIf="comic.imageBase64 === ''">NO IMAGE</span>
+                    <img [src]="comic.imageStorageUrlSanitize" *ngIf="comic.imageStorageUrlSanitize !== ''" />
+                    <span *ngIf="comic.imageStorageUrl === ''">NO IMAGE</span>
                   </div>
                   <div class="text-contents info">
                     <div class="title">{{comic.title}}</div>

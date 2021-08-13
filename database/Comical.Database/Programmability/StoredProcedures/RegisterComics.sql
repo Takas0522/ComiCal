@@ -42,17 +42,17 @@ AS
 
     UPDATE [dbo].[ComicImage]
     SET
-        [ImageUrl] = C.[ImageUrl],
-        [ImageBase64] = ''
+        [ImageBaseUrl] = C.[ImageBaseUrl],
+        [ImageStorageUrl] = ''
     FROM
         @comicsImage C
     LEFT JOIN [dbo].[ComicImage] I On (C.Isbn = I.Isbn)
     Where
-        EXISTS (SELECT * FROM [ComicImage] CC WHERE CC.Isbn = C.Isbn AND CC.ImageUrl <> C.ImageUrl)
+        EXISTS (SELECT * FROM [ComicImage] CC WHERE CC.Isbn = C.Isbn AND CC.ImageBaseUrl <> C.ImageBaseUrl)
 
-    INSERT INTO [dbo].[ComicImage] (Isbn, ImageUrl, ImageBase64)
+    INSERT INTO [dbo].[ComicImage] (Isbn, ImageBaseUrl, ImageStorageUrl)
     SELECT
-        C.Isbn, C.ImageUrl, ''
+        C.Isbn, C.ImageBaseUrl, ''
     FROM
         @comicsImage C
     Where

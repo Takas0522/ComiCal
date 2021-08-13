@@ -9,6 +9,7 @@ namespace ComiCal.Batch.Repositories
         Task<IEnumerable<Comic>> GetComicsAsync();
         Task RegisterComicsAsync(IEnumerable<Comic> datas, IEnumerable<ComicImage> comicImages);
         Task<IEnumerable<ComicImage>> GetUpdateImageTargetAsync();
-        Task RegisterComicImageAsync(string isbn, string base64Text);
+        Task<ComicImage> GetComicImageInfo(string isbn);
+        Task RegisterComicImageUrlAsync(string isbn, string imageStorageUrl);
     }
 }

@@ -39,7 +39,7 @@ namespace ComiCal.Batch.Functions
 
             log.LogInformation($"Data Get Complete");
             var updateIageUrls = await context.CallActivityAsync<IEnumerable<ComicImage>>("GetUpdateImageTarget", "");
-            log.LogInformation($"Update Image ${updateIageUrls.Count()}");
+            log.LogInformation($"Update Image {updateIageUrls.Count()}");
 
             foreach (var updateIageUrl in updateIageUrls)
             {
@@ -81,7 +81,12 @@ namespace ComiCal.Batch.Functions
 
         [FunctionName("TimerStart")]
         public static async Task Run(
-            [TimerTrigger("0 0 0 * * *")] TimerInfo myTimer,
+            [TimerTrigger(
+                "0 0 0 * * *"
+#if DEBUG
+            , RunOnStartup=true
+#endif
+            )] TimerInfo myTimer,
             [DurableClient] IDurableOrchestrationClient starter,
             ILogger log)
         {

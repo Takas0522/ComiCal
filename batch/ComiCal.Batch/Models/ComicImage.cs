@@ -7,6 +7,6 @@ namespace ComiCal.Batch.Models
     public class ComicImage
     {
         public string Isbn { get; set; }
-        public string ImageUrl { get; set; }
+        public string ImageBaseUrl { get; set; }
     }
 }

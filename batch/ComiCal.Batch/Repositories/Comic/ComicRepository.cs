@@ -51,15 +51,26 @@ namespace ComiCal.Batch.Repositories
             }
         }
 
-        public async Task RegisterComicImageAsync(string isbn, string base64Text)
+        public async Task RegisterComicImageUrlAsync(string isbn, string storgaeUrl)
         {
             var param = new DynamicParameters();
             param.Add("@isbn", isbn);
-            param.Add("@imageBase64Value", base64Text);
+            param.Add("@imageStorageUrl", storgaeUrl);
             using (var connection = new SqlConnection(_ConnectionString))
             {
                 connection.Open();
                 await connection.ExecuteAsync("RegisterComicImage", param, commandType: CommandType.StoredProcedure);
+            }
+        }
+
+        public async Task<ComicImage> GetComicImageInfo(string isbn)
+        {
+            var param = new DynamicParameters();
+            param.Add("@isbn", isbn);
+            using (var connection = new SqlConnection(_ConnectionString))
+            {
+                connection.Open();
+                return await connection.QueryFirstAsync<ComicImage>("GetComicImage", param, commandType: CommandType.StoredProcedure);
             }
         }
     }

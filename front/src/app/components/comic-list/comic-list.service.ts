@@ -31,8 +31,8 @@ export class ComicListService {
     this.httpClient.post<ComicInterface[]>('/api/ComicData', reqData).subscribe(x => {
       this.baseData = x;
       this.baseData.forEach(f => {
-        const url = `data:image;base64,${f.imageBase64}`;
-        f.imageBase64Sanitize = this.sanitizer.bypassSecurityTrustUrl(url);
+        const url = f.imageStorageUrl;
+        f.imageStorageUrlSanitize = this.sanitizer.bypassSecurityTrustUrl(url);
         f.salesDate = new Date(f.salesDate);
       })
       this.query.updateComicList(this.baseData);

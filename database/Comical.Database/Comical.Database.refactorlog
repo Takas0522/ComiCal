@@ -21,4 +21,18 @@
     <Property Name="ParentElementType" Value="SqlTable" />
     <Property Name="NewName" Value="Isbn" />
   </Operation>
+  <Operation Name="Rename Refactor" Key="2c1bc938-81eb-4b6b-97d5-051886e2dd76" ChangeDateTime="08/13/2021 01:47:47">
+    <Property Name="ElementName" Value="[dbo].[ComicImage].[ImageBase64]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[ComicImage]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="ImageStorageUrl" />
+  </Operation>
+  <Operation Name="Rename Refactor" Key="0cf1e244-c1b9-4c0e-916e-19fc5c80ece1" ChangeDateTime="08/13/2021 01:47:52">
+    <Property Name="ElementName" Value="[dbo].[ComicImage].[ImageUrl]" />
+    <Property Name="ElementType" Value="SqlSimpleColumn" />
+    <Property Name="ParentElementName" Value="[dbo].[ComicImage]" />
+    <Property Name="ParentElementType" Value="SqlTable" />
+    <Property Name="NewName" Value="ImageBaseUrl" />
+  </Operation>
 </Operations>

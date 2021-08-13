@@ -11,6 +11,7 @@ namespace Comical.Api.Services
     public class ComicService : IComicService
     {
         private readonly IComicRepository _comicRepository;
+        private readonly string _baserUrl = "https://stmanrim.blob.core.windows.net/image";
 
         public ComicService(
             IComicRepository comicRepository
@@ -41,7 +42,7 @@ namespace Comical.Api.Services
                 var i = images.Where(w => w.Isbn == f.Isbn);
                 if (i.Any())
                 {
-                    f.ImageBase64 = i.First().ImageBase64;
+                    f.ImageStorageUrl = _baserUrl + i.First().ImageStorageUrl;
                 }
             });
             return resData;

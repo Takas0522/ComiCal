@@ -17,6 +17,7 @@ namespace ComiCal.Batch
             builder.Services.AddSingleton<IRakutenComicRepository, RakutenComicRepository>();
             builder.Services.AddSingleton<IComicRepository, ComicRepository>();
             builder.Services.AddSingleton<IComicService, ComicService>();
+            builder.Services.AddSingleton<IComicImageRepository, ComicImageRepository>();
         }
     }
 }
