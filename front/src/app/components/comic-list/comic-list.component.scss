@@ -14,7 +14,7 @@
   margin-top: 5px;
   display: flex;
   flex-wrap: wrap;
-  height: calc(100vh - 120px);
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
 }
 .comic-card {
@@ -81,4 +81,7 @@ mat-drawer-content {
 }
 .open-close-button {
   text-align: right;
+}
+mat-card {
+  height: 150px;
 }
