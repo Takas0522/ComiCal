@@ -40,7 +40,7 @@ namespace Comical.Api.Models
             {
                 var image = comicImages.FirstOrDefault(c => c.Isbn == comic.Isbn);
 
-                if (image != null && !string.IsNullOrEmpty(image.ImageStorageUrl))
+                if (!string.IsNullOrEmpty(image?.ImageStorageUrl))
                 {
                     comic.ImageStorageUrl = BaserUrl + image.ImageStorageUrl;
                 }
