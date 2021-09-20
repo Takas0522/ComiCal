@@ -7,7 +7,6 @@ namespace Comical.Api.Util.Common
 {
     public static class SimplifiedId
     {
-        private static readonly char[] Punctuations = "!@#$%^&*()_-+=[{]};:>|./?".ToCharArray();
         public static string Generate(int length, int numberOfNonAlphanumericCharacters)
         {
             if (length < 1 || length > 128)
@@ -26,12 +25,11 @@ namespace Comical.Api.Util.Common
 
                 rng.GetBytes(byteBuffer);
 
-                var count = 0;
                 var characterBuffer = new char[length];
 
                 for (var iter = 0; iter < length; iter++)
                 {
-                    var i = byteBuffer[iter] % 87;
+                    var i = byteBuffer[iter] % 62;
 
                     if (i < 10)
                     {
@@ -41,35 +39,10 @@ namespace Comical.Api.Util.Common
                     {
                         characterBuffer[iter] = (char)('A' + i - 10);
                     }
-                    else if (i < 62)
+                    else
                     {
                         characterBuffer[iter] = (char)('a' + i - 36);
                     }
-                    else
-                    {
-                        characterBuffer[iter] = Punctuations[i - 62];
-                        count++;
-                    }
-                }
-
-                if (count >= numberOfNonAlphanumericCharacters)
-                {
-                    return new string(characterBuffer);
-                }
-
-                int j;
-                var rand = new Random();
-
-                for (j = 0; j < numberOfNonAlphanumericCharacters - count; j++)
-                {
-                    int k;
-                    do
-                    {
-                        k = rand.Next(0, length);
-                    }
-                    while (!char.IsLetterOrDigit(characterBuffer[k]));
-
-                    characterBuffer[k] = Punctuations[rand.Next(0, Punctuations.Length)];
                 }
 
                 return new string(characterBuffer);
