@@ -39,7 +39,9 @@ namespace Comical.Api.Repositories
             using (var connection = new SqlConnection(_ConnectionString))
             {
                 connection.Open();
-                var res = await connection.QueryAsync<ConfigMigration>("GetConfigMigration", commandType: CommandType.StoredProcedure);
+                var param = new DynamicParameters();
+                param.Add("@id", id);
+                var res = await connection.QueryAsync<ConfigMigration>("GetConfigMigration", param, commandType: CommandType.StoredProcedure);
                 if (res.Any())
                 {
                     return res.First();
