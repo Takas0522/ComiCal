@@ -15,7 +15,7 @@ https://manrem.devtakas.jp/
 ## 開発環境
 
 - @angular/cli
-  - ^12.1.0
+  - ^13.0.0
 - Azure Functions Core Tools
 - @azure/static-web-apps-cli
 - VisualStudio
