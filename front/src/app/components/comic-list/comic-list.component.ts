@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
-import { FormArray, FormControl, FormGroup } from '@angular/forms';
+import { UntypedFormArray, UntypedFormControl, UntypedFormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { MatDrawer } from '@angular/material/sidenav';
 import { Observable } from 'rxjs';
@@ -33,8 +33,8 @@ export class ComicListComponent implements OnInit {
 
   someCheckboxChecked = false;
 
-  fg: FormGroup = new FormGroup({
-    checkedItems: new FormArray([])
+  fg: UntypedFormGroup = new UntypedFormGroup({
+    checkedItems: new UntypedFormArray([])
   });
 
   constructor(
@@ -66,7 +66,7 @@ export class ComicListComponent implements OnInit {
   }
 
   private formArraySettings(datas: ComicInterface[]) {
-    const control = this.fg.get('checkedItems') as FormArray;
+    const control = this.fg.get('checkedItems') as UntypedFormArray;
     if (control == null) {
       return;
     }
@@ -74,9 +74,9 @@ export class ComicListComponent implements OnInit {
       control.removeAt(0);
     }
     datas.forEach(f => {
-      const form = new FormGroup({
-        isbn: new FormControl(f.isbn),
-        checkedItem: new FormControl(false)
+      const form = new UntypedFormGroup({
+        isbn: new UntypedFormControl(f.isbn),
+        checkedItem: new UntypedFormControl(false)
       });
       control.push(form);
     });

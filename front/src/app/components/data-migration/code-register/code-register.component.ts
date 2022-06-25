@@ -1,5 +1,5 @@
 import { Component, Inject, OnInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { DataMigrationSerivce } from '../data-migration.service';
 
@@ -11,8 +11,8 @@ import { DataMigrationSerivce } from '../data-migration.service';
 export class CodeRegisterComponent {
 
 
-  formGroup = new FormGroup({
-    id: new FormControl('', Validators.required)
+  formGroup = new UntypedFormGroup({
+    id: new UntypedFormControl('', Validators.required)
   });
 
   constructor(
