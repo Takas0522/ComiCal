@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { SearchKeywordsQuery } from './search-keywords.query';
 import { SearchKeywordsService } from './search-keywords.service';
@@ -12,8 +12,8 @@ import { SearchKeywordsService } from './search-keywords.service';
 export class SearchKeywordsComponent implements OnInit {
 
   keywords$!: Observable<string[]>;
-  keywordForm: FormGroup = new FormGroup({
-    keyword: new FormControl('', Validators.required)
+  keywordForm: UntypedFormGroup = new UntypedFormGroup({
+    keyword: new UntypedFormControl('', Validators.required)
   });
 
   constructor(
