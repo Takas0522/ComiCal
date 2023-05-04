@@ -6,11 +6,12 @@ on:
       - main
     paths:
       - api/**
+      - .github/workflows/api-functions-deploy.yml
 
 env:
   AZURE_FUNCTIONAPP_NAME: 'comical-api'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'api'
-  DOTNET_VERSION: '3.1'
+  DOTNET_VERSION: '6'
 
 jobs:
   build-and-deploy:

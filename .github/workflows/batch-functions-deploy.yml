@@ -6,11 +6,12 @@ on:
       - main
     paths:
       - batch/**
+      - .github/workflows/batch-functions-deploy.yml
 
 env:
   AZURE_FUNCTIONAPP_NAME: 'comical-batch'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'batch'
-  DOTNET_VERSION: '3.1'
+  DOTNET_VERSION: '6'
 
 jobs:
   build-and-deploy:
