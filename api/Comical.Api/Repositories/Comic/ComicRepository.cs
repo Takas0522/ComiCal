@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
-using Comical.Api.Models;
 using System.Data;
-using Comical.Api.Util.Extensions;
+using ComiCal.Shared.Util.Extensions;
 using System.Linq;
+using ComiCal.Shared.Models;
 
 namespace Comical.Api.Repositories
 {

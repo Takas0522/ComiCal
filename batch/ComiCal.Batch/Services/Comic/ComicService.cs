@@ -8,6 +8,7 @@ using System.Linq;
 using ComiCal.Batch.Util.Common;
 using System.IO;
 using Castle.Core.Logging;
+using ComiCal.Shared.Models;
 
 namespace ComiCal.Batch.Services
 {

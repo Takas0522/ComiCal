@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace ComiCal.Batch.Util.Extensions
+namespace ComiCal.Shared.Util.Extensions
 {
     public static class IEnumerableExtensions
     {

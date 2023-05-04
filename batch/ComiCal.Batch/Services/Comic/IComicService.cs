@@ -1,4 +1,5 @@
 ﻿using ComiCal.Batch.Models;
+using ComiCal.Shared.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

@@ -1,14 +1,12 @@
-﻿using ComiCal.Batch.Models;
-using Dapper;
+﻿using Dapper;
 using Microsoft.Extensions.Configuration;
-using System;
 using System.Collections.Generic;
 using System.Data.SqlClient;
-using System.Text;
 using System.Threading.Tasks;
-using ComiCal.Batch.Util.Extensions;
 using System.Data;
 using System.Linq;
+using ComiCal.Shared.Models;
+using ComiCal.Shared.Util.Extensions;
 
 namespace ComiCal.Batch.Repositories
 {
