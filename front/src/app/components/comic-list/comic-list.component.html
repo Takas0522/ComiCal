@@ -33,7 +33,7 @@
       <form [formGroup]="fg">
         <div class="list-contents" formArrayName="checkedItems">
             <ng-container *ngFor="let comic of comicList$ | async; let i = index">
-              <mat-card class="comic-card">
+              <mat-card appearance="outlined" class="comic-card">
                 <div class="card-contents">
                   <div class="checkbox" [formGroupName]="i">
                     <mat-checkbox formControlName="checkedItem"></mat-checkbox>

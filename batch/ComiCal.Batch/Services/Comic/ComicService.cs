@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Linq;
 using ComiCal.Batch.Util.Common;
 using System.IO;
+using Castle.Core.Logging;
 
 namespace ComiCal.Batch.Services
 {
@@ -60,6 +61,10 @@ namespace ComiCal.Batch.Services
         public async Task UpdateImageDataAsync(ComicImage data)
         {
             BinaryData streamData = await _rakutenComicRepository.FetchImageAndConvertStream(data.ImageBaseUrl);
+            if (streamData == null)
+            {
+                return;
+            }
             Uri uri = new Uri(data.ImageBaseUrl);
             string path = uri.LocalPath;
 
