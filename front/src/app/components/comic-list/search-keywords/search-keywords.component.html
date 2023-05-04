@@ -1,7 +1,7 @@
 <div class="contents">
   <div class="keyword-field">
-    <mat-chip-list>
-      <mat-chip *ngFor="let keyword of keywords$ | async"
+    <mat-chip-listbox>
+      <mat-chip-option *ngFor="let keyword of keywords$ | async"
         [selectable]="true"
         [removable]="true"
         (removed)="removeKeyword(keyword)">
@@ -9,8 +9,8 @@
           {{keyword}}
         </div>
         <mat-icon matChipRemove >cancel</mat-icon>
-      </mat-chip>
-    </mat-chip-list>
+      </mat-chip-option>
+    </mat-chip-listbox>
   </div>
   <div class="key-word-edit">
     <form [formGroup]="keywordForm" (ngSubmit)="submit()" autocomplete="off">

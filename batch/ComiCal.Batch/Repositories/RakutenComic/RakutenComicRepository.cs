@@ -1,5 +1,7 @@
-﻿using ComiCal.Batch.Models;
+﻿using Castle.Core.Logging;
+using ComiCal.Batch.Models;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -16,14 +18,17 @@ namespace ComiCal.Batch.Repositories
     {
         private readonly HttpClient _httpClient;
         private readonly string _applicationId;
+        private readonly ILogger<RakutenComicRepository> _logger;
 
         public RakutenComicRepository(
             HttpClient httpClient,
-            IConfiguration configuration
+            IConfiguration configuration,
+            ILogger<RakutenComicRepository> logger
         )
         {
             _httpClient = httpClient;
             _applicationId = configuration["applicationid"];
+            _logger = logger;
         }
 
         public async Task<RakutenComicResponse> Fetch(int requestPage)
@@ -47,8 +52,8 @@ namespace ComiCal.Batch.Repositories
             var res = await _httpClient.SendAsync(requestMessage);
             if (res.StatusCode != HttpStatusCode.OK)
             {
-                var errorMessage = await res.Content.ReadAsStringAsync();
-                throw new Exception($"RakutenImageFetch Error\n{errorMessage}");
+                _logger.LogError($"ErrorCode:{res.StatusCode}/URL:{imageUrl}");
+                return null;
             }
             Stream data = await res.Content.ReadAsStreamAsync();
             using (MemoryStream ms = new MemoryStream())

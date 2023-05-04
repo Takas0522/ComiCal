@@ -1,4 +1,5 @@
-﻿using ComiCal.Batch.Models;
+﻿using Castle.Core.Logging;
+using ComiCal.Batch.Models;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -15,12 +16,15 @@ namespace ComiCal.Batch.Repositories
     public class RakutenComicDummyRepository : IRakutenComicRepository
     {
         private readonly HttpClient _httpClient;
+        private readonly ILogger _logger;
 
         public RakutenComicDummyRepository(
-            HttpClient httpClient
+            HttpClient httpClient,
+            ILogger logger
         )
         {
             _httpClient = httpClient;
+            _logger = logger;
         }
 
         public async Task<RakutenComicResponse> Fetch(int requestPage)

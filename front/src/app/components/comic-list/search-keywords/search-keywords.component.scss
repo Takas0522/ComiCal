@@ -24,6 +24,7 @@ mat-form-field {
   margin: 6px;
   overflow-y: auto;
 }
+/* TODO(mdc-migration): The following rule targets internal classes of chips that may no longer apply for the MDC version. */
 mat-chip {
   justify-content: space-between;
 }
@@ -33,6 +34,7 @@ mat-chip {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* TODO(mdc-migration): The following rule targets internal classes of chips that may no longer apply for the MDC version. */
 mat-chip-list {
   width: calc(100% - 10px);
 }
