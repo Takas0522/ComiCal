@@ -13,17 +13,15 @@ namespace ComiCal.Batch.Repositories
 {
     public class ComicImageRepository : IComicImageRepository
     {
-        private readonly string _connectionString;
         private readonly BlobServiceClient _client;
         private readonly string _containerName = "image";
         private readonly BlobContainerClient _containerClient;
 
         public ComicImageRepository(
-            IConfiguration config
+            BlobServiceClient client
         )
         {
-            _connectionString = config["StorageConnectionString"];
-            _client = new BlobServiceClient(_connectionString);
+            _client = client;
             _containerClient = _client.GetBlobContainerClient(_containerName);
         }
 
