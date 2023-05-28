@@ -27,27 +27,23 @@ namespace Comical.Api.Repositories
             param.Add("@id", id);
             param.Add("@value", settings);
 
-            using (var connection = new SqlConnection(_ConnectionString))
-            {
-                connection.Open();
-                await connection.ExecuteAsync("RegisterConfigMigrationData", param, commandType: CommandType.StoredProcedure);
-            }
+            using var connection = new SqlConnection(_ConnectionString);
+            connection.Open();
+            await connection.ExecuteAsync("RegisterConfigMigrationData", param, commandType: CommandType.StoredProcedure);
         }
 
-        public async Task<ConfigMigration> GetConfigSettings(string id)
+        public async Task<ConfigMigration?> GetConfigSettings(string id)
         {
-            using (var connection = new SqlConnection(_ConnectionString))
+            using var connection = new SqlConnection(_ConnectionString);
+            connection.Open();
+            var param = new DynamicParameters();
+            param.Add("@id", id);
+            var res = await connection.QueryAsync<ConfigMigration>("GetConfigMigration", param, commandType: CommandType.StoredProcedure);
+            if (res.Any())
             {
-                connection.Open();
-                var param = new DynamicParameters();
-                param.Add("@id", id);
-                var res = await connection.QueryAsync<ConfigMigration>("GetConfigMigration", param, commandType: CommandType.StoredProcedure);
-                if (res.Any())
-                {
-                    return res.First();
-                }
-                return null;
+                return res.First();
             }
+            return null;
         }
 
         public async Task DeleteConfigSettings(string id)
@@ -55,11 +51,9 @@ namespace Comical.Api.Repositories
             var param = new DynamicParameters();
             param.Add("@id", id);
 
-            using (var connection = new SqlConnection(_ConnectionString))
-            {
-                connection.Open();
-                await connection.ExecuteAsync("DeleteConfigMigration", param, commandType: CommandType.StoredProcedure);
-            }
+            using var connection = new SqlConnection(_ConnectionString);
+            connection.Open();
+            await connection.ExecuteAsync("DeleteConfigMigration", param, commandType: CommandType.StoredProcedure);
         }
     }
 }

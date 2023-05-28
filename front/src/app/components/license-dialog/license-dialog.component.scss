@@ -3,7 +3,7 @@
 }
 .detail {
   textarea {
-    width: 60vw;
+    width: calc(60vw - 6px);
     height: 50vh;
   }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using ComiCal.Shared.Models;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace Comical.Api.Models

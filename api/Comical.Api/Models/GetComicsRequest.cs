@@ -8,6 +8,6 @@ namespace Comical.Api.Models
     public class GetComicsRequest
     {
         [DataMember(Name = "searchList")]
-        public IEnumerable<string> SearchList { get; set; }
+        public IEnumerable<string>? SearchList { get; set; }
     }
 }

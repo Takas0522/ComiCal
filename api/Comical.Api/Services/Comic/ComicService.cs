@@ -1,9 +1,7 @@
 ﻿using Comical.Api.Models;
 using Comical.Api.Repositories;
-using System;
+using ComiCal.Shared.Models;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace Comical.Api.Services
@@ -21,6 +19,10 @@ namespace Comical.Api.Services
 
         public async Task<IEnumerable<Comic>> GetComics(GetComicsRequest req)
         {
+            if (req.SearchList == null)
+            {
+                return new List<Comic>();
+            }
             IEnumerable<Comic> data = await _comicRepository.GetComicsAsync();
 
             var comics = new ComicList(data);
