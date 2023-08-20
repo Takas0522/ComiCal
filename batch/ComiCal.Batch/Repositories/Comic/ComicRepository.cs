@@ -22,7 +22,22 @@ namespace ComiCal.Batch.Repositories
         public async Task RegisterComicsAsync(IEnumerable<Comic> datas, IEnumerable<ComicImage> comicImages)
         {
             var param = new DynamicParameters();
-            var dt = datas.ToDataTable();
+            // 応急処置
+            var regData = datas.Select(x => {
+                return new {
+                    x.Isbn,
+                    x.Title,
+                    x.TitleKana,
+                    x.SeriesName,
+                    x.SeriesNameKana,
+                    x.Author,
+                    x.AuthorKana,
+                    x.PublisherName,
+                    x.SalesDate,
+                    x.ScheduleStatus
+                };
+            });
+            var dt = regData.ToDataTable();
             var dtImage = comicImages.ToDataTable();
             param.Add("@comics", dt.AsTableValuedParameter("[dbo].[ComicTableType]"));
             param.Add("@comicsImage", dtImage.AsTableValuedParameter("[dbo].[ComicImageTableType]"));
