@@ -37,8 +37,15 @@ namespace ComiCal.Batch.Repositories
                     x.ScheduleStatus
                 };
             });
+            var regImageData = comicImages.Select(x => {
+                return new
+                {
+                    x.Isbn,
+                    x.ImageBaseUrl
+                };
+            });
             var dt = regData.ToDataTable();
-            var dtImage = comicImages.ToDataTable();
+            var dtImage = regImageData.ToDataTable();
             param.Add("@comics", dt.AsTableValuedParameter("[dbo].[ComicTableType]"));
             param.Add("@comicsImage", dtImage.AsTableValuedParameter("[dbo].[ComicImageTableType]"));
             using (var connection = _factory())
