@@ -1,7 +1,6 @@
 ﻿CREATE PROCEDURE [dbo].[GetComics]
+    @fromDate DATETIME2
 AS
-DECLARE @selectDate DATETIME2;
-SET @selectDate = CAST(CAST(DATEADD(MONTH, -1, GETDATE()) as INT) as DATETIME);
     SELECT
         [Isbn],
         [Title],
@@ -15,4 +14,4 @@ SET @selectDate = CAST(CAST(DATEADD(MONTH, -1, GETDATE()) as INT) as DATETIME);
     FROM
         [dbo].[Comic]
     Where
-        [SalesDate] >= @selectDate;
+        [SalesDate] >= @fromDate;

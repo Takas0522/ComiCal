@@ -12,6 +12,8 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatStepperModule } from '@angular/material/stepper';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MAT_DATE_LOCALE, MatNativeDateModule } from '@angular/material/core';
 
 @NgModule({
   imports: [
@@ -28,7 +30,9 @@ import { MatMenuModule } from '@angular/material/menu';
     MatCheckboxModule,
     MatStepperModule,
     MatProgressBarModule,
-    MatMenuModule
+    MatMenuModule,
+    MatDatepickerModule,
+    MatNativeDateModule
   ],
   exports: [
     MatToolbarModule,
@@ -43,7 +47,12 @@ import { MatMenuModule } from '@angular/material/menu';
     MatCheckboxModule,
     MatStepperModule,
     MatProgressBarModule,
-    MatMenuModule
+    MatMenuModule,
+    MatDatepickerModule,
+    MatNativeDateModule
+  ],
+  providers: [
+    { provide: MAT_DATE_LOCALE, useValue: 'ja' }
   ]
 })
 export class MaterialModule {}

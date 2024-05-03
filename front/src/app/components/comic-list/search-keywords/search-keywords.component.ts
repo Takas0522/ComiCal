@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core';
-import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
+import { FormControl, UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms';
 import { Observable } from 'rxjs';
 import { SearchKeywordsQuery } from './search-keywords.query';
 import { SearchKeywordsService } from './search-keywords.service';
@@ -16,6 +16,8 @@ export class SearchKeywordsComponent implements OnInit {
     keyword: new UntypedFormControl('', Validators.required)
   });
 
+  fromDateControl = new FormControl('');
+
   constructor(
     private query: SearchKeywordsQuery,
     private service: SearchKeywordsService
@@ -23,6 +25,11 @@ export class SearchKeywordsComponent implements OnInit {
 
   ngOnInit(): void {
     this.keywords$ = this.query.keywords$;
+    this.fromDateControl.valueChanges.subscribe(x => {
+      if (x) {
+        this.query.fromDateUpdate(new Date(x));
+      }
+    });
   }
 
   submit(): void {

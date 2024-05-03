@@ -19,7 +19,7 @@ export class ComicListService {
     private appService: AppService
   ) {}
 
-  fetch(keywords: string[]): void {
+  fetch(keywords: string[], fromDate: Date | null): void {
     if (keywords.length < 1) {
       this.query.updateComicList([]);
       return;
@@ -27,8 +27,10 @@ export class ComicListService {
     const reqData = {
       searchList: keywords
     };
+    
+    const fromDateString = fromDate ? `?fromdate=${fromDate.toISOString()}` : '';
     this.appService.startApiAccess();
-    this.httpClient.post<ComicInterface[]>('/api/ComicData', reqData).subscribe(x => {
+    this.httpClient.post<ComicInterface[]>(`/api/ComicData${fromDateString}`, reqData).subscribe(x => {
       this.baseData = x;
       this.baseData.forEach(f => {
         if (f.imageStorageUrl == null) {

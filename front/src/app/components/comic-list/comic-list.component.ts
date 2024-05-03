@@ -55,7 +55,12 @@ export class ComicListComponent implements OnInit {
     this.comicList$ = this.query.comicList$;
     this.searchKeywordQuery.keywords$.subscribe(x => {
       this.searchKeywords = x;
-      this.service.fetch(x);
+      const fromDate = this.searchKeywordQuery.fromDateUpdateValue;
+      this.service.fetch(x, fromDate);
+    });
+    this.searchKeywordQuery.fromDateUpdate$.subscribe(x => {
+      const value = this.searchKeywordQuery.keywordsValue
+      this.service.fetch(value, x);
     });
     this.comicList$.subscribe(x => {
       this.formArraySettings(x);

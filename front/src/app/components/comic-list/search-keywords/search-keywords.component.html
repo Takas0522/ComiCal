@@ -1,4 +1,14 @@
 <div class="contents">
+  <div class="date-field">
+    <mat-form-field>
+      <mat-label>検索開始日</mat-label>
+      <input matInput [matDatepicker]="picker" placeholder="取得開始日"
+        [formControl]="fromDateControl"/>
+      <mat-hint>YYYY/MM/DD</mat-hint>
+      <mat-datepicker-toggle matIconSuffix [for]="picker"></mat-datepicker-toggle>
+      <mat-datepicker #picker></mat-datepicker>
+    </mat-form-field>
+  </div>
   <div class="keyword-field">
     <mat-chip-listbox>
       <mat-chip-option *ngFor="let keyword of keywords$ | async"

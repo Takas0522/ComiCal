@@ -23,13 +23,16 @@
 }
 .card-contents {
   display: grid;
-  grid-template-columns: 20px 110px 1fr;
+  grid-template-columns: 40px 110px 1fr;
+  height: 150px;
 }
 .pix {
   grid-area: 1/2/2/3;
   height: 150px;
+  place-items: center;
+  display: grid;
   img {
-    width: 100px;
+    height: 140px;
   }
   padding-right: 5px;
   align-self: center;
