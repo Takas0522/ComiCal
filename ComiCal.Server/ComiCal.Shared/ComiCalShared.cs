@@ -19,7 +19,7 @@ namespace ComiCal.Shared
         {
 
             // Database Factory
-            DbConnection ConnectionFactory(string accessKey)
+            static DbConnection ConnectionFactory(string accessKey)
             {
                 return new SqlConnection(accessKey);
             }
