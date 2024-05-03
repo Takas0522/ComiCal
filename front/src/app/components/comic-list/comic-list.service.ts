@@ -27,7 +27,7 @@ export class ComicListService {
     const reqData = {
       searchList: keywords
     };
-    
+
     const fromDateString = fromDate ? `?fromdate=${fromDate.toISOString()}` : '';
     this.appService.startApiAccess();
     this.httpClient.post<ComicInterface[]>(`/api/ComicData${fromDateString}`, reqData).subscribe(x => {
