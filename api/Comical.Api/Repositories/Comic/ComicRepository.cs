@@ -35,12 +35,13 @@ namespace Comical.Api.Repositories
             }
         }
 
-        public async Task<IEnumerable<Comic>> GetComicsAsync()
+        public async Task<IEnumerable<Comic>> GetComicsAsync(DateTime fromDate)
         {
             using (var connection = _factory())
             {
                 connection.Open();
-                return await connection.QueryAsync<Comic>("GetComics", commandType: CommandType.StoredProcedure);
+                var param = new { fromDate };
+                return await connection.QueryAsync<Comic>("GetComics", param, commandType: CommandType.StoredProcedure);
             }
         }
     }

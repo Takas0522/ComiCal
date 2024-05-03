@@ -28,11 +28,16 @@ namespace Comical.Api
             [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
             ILogger log)
         {
-
+            var query = req.Query["fromdate"];
+            var fromdate = DateTime.Now.AddMonths(-1);
+            if (query.Count !=0 && query != string.Empty)
+            {
+                fromdate = DateTime.Parse(query);
+            }
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var data = JsonSerializer.Deserialize<GetComicsRequest>(requestBody);
 
-            var d = await _comicService.GetComics(data);
+            var d = await _comicService.GetComicsAsync(data, fromdate);
 
             return new OkObjectResult(d);
         }
