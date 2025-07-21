@@ -10,5 +10,11 @@
       "logLevel": {
         "ComiCal.Batch.Repositories.RakutenComicRepository": "Error"
       }
+    },
+    "functionTimeout": "00:30:00",
+    "extensions": {
+      "durableTask": {
+        "hubName": "ComiCalBatch"
+      }
     }
 }

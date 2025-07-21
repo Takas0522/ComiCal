@@ -2,7 +2,6 @@
 using Azure.Storage.Blobs.Models;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.Extensions.Configuration;
-using Microsoft.WindowsAzure.Storage.Blob;
 using System;
 using System.Collections.Generic;
 using System.IO;

@@ -1,10 +1,9 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Comical.Api.Services;
 using System.Collections.Generic;
@@ -23,20 +22,27 @@ namespace Comical.Api.Functions
             _configMigrationService = configMigrationService;
         }
 
-        [FunctionName("ConfigMigrationGet")]
-        public async Task<IActionResult> GetConfigData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ConfigMigration")] HttpRequest req,
+        [Function("ConfigMigrationGet")]
+        public async Task<HttpResponseData> GetConfigData(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ConfigMigration")] HttpRequestData req,
             ILogger log)
         {
-            string id = req.Query["id"];
+            var query = req.Query;
+            string id = query["id"] ?? string.Empty;
+            
             IEnumerable<string> resValue = await _configMigrationService.LoadMigrationSetting(id);
             var res = new ConfigMigrationGetResponse { Data = resValue };
-            return new OkObjectResult(res);
+            
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            await response.WriteStringAsync(JsonSerializer.ToJsonString(res));
+            
+            return response;
         }
 
-        [FunctionName("ConfigMigrationPost")]
-        public async Task<IActionResult> RegisterConfigData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ConfigMigration")] HttpRequest req,
+        [Function("ConfigMigrationPost")]
+        public async Task<HttpResponseData> RegisterConfigData(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ConfigMigration")] HttpRequestData req,
             ILogger log
         )
         {
@@ -44,7 +50,12 @@ namespace Comical.Api.Functions
             var regData = JsonSerializer.Deserialize<IEnumerable<string>>(requestBody);
             string id = await _configMigrationService.RegisterMigrationSetting(regData);
             var res = new ConfigMigrationPostResponse { Id = id };
-            return new OkObjectResult(res);
+            
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            await response.WriteStringAsync(JsonSerializer.ToJsonString(res));
+            
+            return response;
         }
     }
 }

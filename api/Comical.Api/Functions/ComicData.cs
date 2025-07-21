@@ -1,10 +1,9 @@
 using System;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Comical.Api.Services;
 using Utf8Json;
@@ -23,23 +22,32 @@ namespace Comical.Api
             _comicService = comicService;
         }
 
-        [FunctionName("ComicData")]
-        public async Task<IActionResult> GetComicData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
+        [Function("ComicData")]
+        public async Task<HttpResponseData> GetComicData(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequestData req,
             ILogger log)
         {
-            var query = req.Query["fromdate"];
             var fromdate = DateTime.Now.AddMonths(-1);
-            if (query.Count !=0 && query != string.Empty)
+            
+            // Parse query parameters
+            var query = req.Query;
+            var fromdateQuery = query["fromdate"];
+            if (!string.IsNullOrEmpty(fromdateQuery))
             {
-                fromdate = DateTime.Parse(query);
+                fromdate = DateTime.Parse(fromdateQuery);
             }
+
+            // Read request body
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var data = JsonSerializer.Deserialize<GetComicsRequest>(requestBody);
 
             var d = await _comicService.GetComicsAsync(data, fromdate);
 
-            return new OkObjectResult(d);
+            var response = req.CreateResponse(HttpStatusCode.OK);
+            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            await response.WriteStringAsync(JsonSerializer.ToJsonString(d));
+            
+            return response;
         }
     }
 }

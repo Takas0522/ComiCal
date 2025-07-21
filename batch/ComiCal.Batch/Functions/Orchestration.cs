@@ -3,8 +3,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using ComiCal.Batch.Services;
 using ComiCal.Shared.Models;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.DurableTask;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Extensions.DurableTask;
+using Microsoft.DurableTask;
+using Microsoft.DurableTask.Client;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Functions
@@ -19,14 +21,13 @@ namespace ComiCal.Batch.Functions
             _comicService = comicService;
         }
 
-        [FunctionName("Orchestration")]
-        public static async Task RunOrchestrator(
-            [OrchestrationTrigger] IDurableOrchestrationContext context,
-            ILogger log
-        )
+        [Function("Orchestration")]
+        public static async Task RunOrchestrator([OrchestrationTrigger] TaskOrchestrationContext context)
         {
+            var logger = context.CreateReplaySafeLogger("Orchestration");
+            
             var pageCount = await context.CallActivityAsync<int>("GetPageCount", "");
-            log.LogInformation($"Get PageCount Result={pageCount}");
+            logger.LogInformation($"Get PageCount Result={pageCount}");
 
             for (int i = 1; i <= pageCount; i++)
             {
@@ -34,49 +35,49 @@ namespace ComiCal.Batch.Functions
                 await context.CallActivityAsync("Register", i);
             }
 
-            log.LogInformation($"Data Get Complete");
-            var updateIageUrls = await context.CallActivityAsync<IEnumerable<ComicImage>>("GetUpdateImageTarget", "");
-            log.LogInformation($"Update Image {updateIageUrls.Count()}");
+            logger.LogInformation($"Data Get Complete");
+            var updateImageUrls = await context.CallActivityAsync<IEnumerable<ComicImage>>("GetUpdateImageTarget", "");
+            logger.LogInformation($"Update Image {updateImageUrls.Count()}");
 
-            foreach (var updateIageUrl in updateIageUrls)
+            foreach (var updateImageUrl in updateImageUrls)
             {
                 await context.CallActivityAsync("WaitTime", 5);
-                await context.CallActivityAsync("UpdateImage", updateIageUrl);
+                await context.CallActivityAsync("UpdateImage", updateImageUrl);
             }
         }
 
-        [FunctionName("GetPageCount")]
-        public async Task<int> GetPageCount ([ActivityTrigger] string val, ILogger log)
+        [Function("GetPageCount")]
+        public async Task<int> GetPageCount([ActivityTrigger] string val, ILogger log)
         {
             return await _comicService.GetPageCountAsync();
         }
 
-        [FunctionName("GetUpdateImageTarget")]
+        [Function("GetUpdateImageTarget")]
         public async Task<IEnumerable<ComicImage>> GetUpdateImageTarget([ActivityTrigger] string val, ILogger log)
         {
             return await _comicService.GetUpdateImageTargetAsync();
         }
 
-        [FunctionName("UpdateImage")]
+        [Function("UpdateImage")]
         public async Task UpdateImage([ActivityTrigger] ComicImage val, ILogger log)
         {
             await _comicService.UpdateImageDataAsync(val);
         }
 
-        [FunctionName("WaitTime")]
+        [Function("WaitTime")]
         public async Task WaitTime([ActivityTrigger] int waitTimeSec, ILogger log)
         {
             await Task.Delay(waitTimeSec * 1000);
         }
 
-        [FunctionName("Register")]
+        [Function("Register")]
         public async Task Register([ActivityTrigger] int pageCount, ILogger log)
         {
             log.LogInformation($"Run Page: {pageCount}");
             await _comicService.RegitoryAsync(pageCount);
         }
 
-        [FunctionName("TimerStart")]
+        [Function("TimerStart")]
         public static async Task Run(
             [TimerTrigger(
                 "0 0 0 * * *"
@@ -84,10 +85,10 @@ namespace ComiCal.Batch.Functions
             , RunOnStartup=true
 #endif
             )] TimerInfo myTimer,
-            [DurableClient] IDurableOrchestrationClient starter,
+            [DurableClient] DurableTaskClient starter,
             ILogger log)
         {
-            string instanceId = await starter.StartNewAsync("Orchestration", null);
+            string instanceId = await starter.ScheduleNewOrchestrationInstanceAsync("Orchestration");
             log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
         }
     }
