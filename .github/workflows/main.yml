@@ -4,6 +4,8 @@ on:
     branches:
       - main
 
+permissions: read-all 
+
 jobs:
   sample:
     name: Microsoft Security DevOps
