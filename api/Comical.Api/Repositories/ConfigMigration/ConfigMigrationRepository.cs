@@ -1,59 +1,61 @@
 ﻿using Comical.Api.Models;
-using Dapper;
-using Microsoft.Extensions.Configuration;
+using ComiCal.Shared.Providers;
+using Microsoft.Azure.Cosmos;
 using System;
-using System.Collections.Generic;
-using System.Data.SqlClient;
-using System.Data;
-using System.Text;
+using System.Net;
 using System.Threading.Tasks;
-using System.Linq;
-using static Dapper.SqlMapper;
 
 namespace Comical.Api.Repositories
 {
     public class ConfigMigrationRepository : IConfigMigrationRepository
     {
-        private readonly string _ConnectionString;
-        public ConfigMigrationRepository(IConfiguration config)
-        {
-            _ConnectionString = config.GetConnectionString("DefaultConnection");
-        }
+        private readonly CosmosClient _cosmosClient;
+        private readonly Container _container;
+        private const string DatabaseName = "ComiCalDB";
+        private const string ContainerName = "config-migrations";
 
+        public ConfigMigrationRepository(CosmosClientFactory cosmosClientFactory)
+        {
+            _cosmosClient = cosmosClientFactory();
+            _container = _cosmosClient.GetContainer(DatabaseName, ContainerName);
+        }
 
         public async Task RegisterConfig(string id, string settings)
         {
-            var param = new DynamicParameters();
-            param.Add("@id", id);
-            param.Add("@value", settings);
+            var configMigration = new ConfigMigration
+            {
+                id = id,
+                Value = settings
+            };
 
-            using var connection = new SqlConnection(_ConnectionString);
-            connection.Open();
-            await connection.ExecuteAsync("RegisterConfigMigrationData", param, commandType: CommandType.StoredProcedure);
+            // Upsert operation - creates if not exists, updates if exists
+            await _container.UpsertItemAsync(configMigration, new PartitionKey(id));
         }
 
         public async Task<ConfigMigration?> GetConfigSettings(string id)
         {
-            using var connection = new SqlConnection(_ConnectionString);
-            connection.Open();
-            var param = new DynamicParameters();
-            param.Add("@id", id);
-            var res = await connection.QueryAsync<ConfigMigration>("GetConfigMigration", param, commandType: CommandType.StoredProcedure);
-            if (res.Any())
+            try
             {
-                return res.First();
+                // Point read - most efficient operation (1 RU)
+                var response = await _container.ReadItemAsync<ConfigMigration>(id, new PartitionKey(id));
+                return response.Resource;
             }
-            return null;
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                return null;
+            }
         }
 
         public async Task DeleteConfigSettings(string id)
         {
-            var param = new DynamicParameters();
-            param.Add("@id", id);
-
-            using var connection = new SqlConnection(_ConnectionString);
-            connection.Open();
-            await connection.ExecuteAsync("DeleteConfigMigration", param, commandType: CommandType.StoredProcedure);
+            try
+            {
+                await _container.DeleteItemAsync<ConfigMigration>(id, new PartitionKey(id));
+            }
+            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
+            {
+                // Item doesn't exist, which is fine for delete operation
+            }
         }
     }
 }
