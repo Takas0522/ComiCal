@@ -26,9 +26,9 @@ namespace Comical.Api.Repositories
         {
             var results = new List<Comic>();
             
-            // Build query: WHERE c.type = "comic" AND c.salesDate >= @fromDate
+            // Build query: WHERE c.type = "comic" AND c.SalesDate >= @fromDate
             var queryDefinition = new QueryDefinition(
-                "SELECT * FROM c WHERE c.type = @type AND c.salesDate >= @fromDate")
+                "SELECT * FROM c WHERE c.type = @type AND c.SalesDate >= @fromDate")
                 .WithParameter("@type", "comic")
                 .WithParameter("@fromDate", fromDate);
 
