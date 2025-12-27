@@ -14,7 +14,6 @@ namespace ComiCal.Batch.Repositories
         private const string DatabaseName = "ComiCalDB";
         private const string ContainerName = "comics";
         private const int MaxItemCount = 100;
-        private const int MaxDegreeOfParallelism = 10;
 
         public ComicRepository(CosmosClientFactory cosmosClientFactory)
         {
@@ -57,7 +56,8 @@ namespace ComiCal.Batch.Repositories
                 return;
             }
 
-            // Use Bulk execution mode for better performance
+            // Create concurrent tasks for parallel upsert execution
+            // Note: Cosmos DB SDK v3+ automatically optimizes concurrent operations
             var tasks = new List<Task>();
             
             foreach (var comic in comics)
@@ -72,15 +72,14 @@ namespace ComiCal.Batch.Repositories
                     comic.type = "comic";
                 }
 
-                // Upsert each comic using bulk operations
+                // Create upsert task - will be executed concurrently with others
                 tasks.Add(_container.UpsertItemAsync(
                     comic,
-                    new PartitionKey(comic.type),
-                    new ItemRequestOptions { }
+                    new PartitionKey(comic.type)
                 ));
             }
 
-            // Execute all upserts in parallel
+            // Execute all upserts concurrently
             await Task.WhenAll(tasks);
         }
     }
