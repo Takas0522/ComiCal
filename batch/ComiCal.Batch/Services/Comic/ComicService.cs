@@ -13,6 +13,7 @@ using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ComiCal.Shared.Util;
 using System.Net.Http;
+using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Services
 {
@@ -22,19 +23,22 @@ namespace ComiCal.Batch.Services
         private readonly IComicRepository _comicRepository;
         private readonly BlobServiceClient _blobServiceClient;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ComicService> _logger;
         private const string ContainerName = "images";
 
         public ComicService(
             IRakutenComicRepository rakutenComicRepository,
             IComicRepository comicRepository,
             BlobServiceClient blobServiceClient,
-            IHttpClientFactory httpClientFactory
+            IHttpClientFactory httpClientFactory,
+            ILogger<ComicService> logger
         )
         {
             _rakutenComicRepository = rakutenComicRepository;
             _comicRepository = comicRepository;
             _blobServiceClient = blobServiceClient;
             _httpClientFactory = httpClientFactory;
+            _logger = logger;
         }
 
         public async Task<int> GetPageCountAsync()
@@ -92,17 +96,13 @@ namespace ComiCal.Batch.Services
                     continue;
                 }
                 
-                // Check if any image exists for this ISBN in blob storage
-                // We check for common extensions: .jpg, .png, .gif, .webp
-                var extensions = new[] { ".jpg", ".png", ".gif", ".webp" };
+                // Check if any image exists for this ISBN in blob storage using prefix search
+                // This is more efficient than checking each extension individually
                 var hasImage = false;
-                
-                foreach (var ext in extensions)
+                await foreach (var blob in containerClient.GetBlobsAsync(prefix: comic.Isbn))
                 {
-                    var blobName = $"{comic.Isbn}{ext}";
-                    var blobClient = containerClient.GetBlobClient(blobName);
-                    
-                    if (await blobClient.ExistsAsync())
+                    // Check if the blob name matches the expected pattern: {isbn}.{ext}
+                    if (blob.Name.StartsWith(comic.Isbn + "."))
                     {
                         hasImage = true;
                         break;
@@ -162,12 +162,12 @@ namespace ComiCal.Batch.Services
             catch (HttpRequestException ex)
             {
                 // Log error but don't throw - allow batch to continue with other images
-                Console.WriteLine($"Failed to download image for ISBN {isbn} from {imageUrl}: {ex.Message}");
+                _logger.LogError(ex, "Failed to download image for ISBN {Isbn} from {ImageUrl}", isbn, imageUrl);
             }
             catch (Exception ex)
             {
                 // Log error but don't throw - allow batch to continue with other images
-                Console.WriteLine($"Failed to upload image for ISBN {isbn}: {ex.Message}");
+                _logger.LogError(ex, "Failed to upload image for ISBN {Isbn}", isbn);
             }
         }
     }
