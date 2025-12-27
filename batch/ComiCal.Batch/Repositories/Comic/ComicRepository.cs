@@ -1,104 +1,86 @@
-﻿using Dapper;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Azure.Cosmos;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Threading.Tasks;
-using System.Data;
 using System.Linq;
 using ComiCal.Shared.Models;
-using ComiCal.Shared.Util.Extensions;
 using ComiCal.Shared.Providers;
 
 namespace ComiCal.Batch.Repositories
 {
     public class ComicRepository : IComicRepository
     {
-        private readonly DefaultConnectionFactory _factory;
-        public ComicRepository(DefaultConnectionFactory factory)
-        {
-            _factory = factory;
-        }
+        private readonly CosmosClient _cosmosClient;
+        private readonly Container _container;
+        private const string DatabaseName = "ComiCalDB";
+        private const string ContainerName = "comics";
+        private const int MaxItemCount = 100;
 
-        public async Task RegisterComicsAsync(IEnumerable<Comic> datas, IEnumerable<ComicImage> comicImages)
+        public ComicRepository(CosmosClientFactory cosmosClientFactory)
         {
-            var param = new DynamicParameters();
-            // 応急処置
-            var regData = datas.Select(x => {
-                return new {
-                    x.Isbn,
-                    x.Title,
-                    x.TitleKana,
-                    x.SeriesName,
-                    x.SeriesNameKana,
-                    x.Author,
-                    x.AuthorKana,
-                    x.PublisherName,
-                    x.SalesDate,
-                    x.ScheduleStatus
-                };
-            });
-            var regImageData = comicImages.Select(x => {
-                return new
-                {
-                    x.Isbn,
-                    x.ImageBaseUrl
-                };
-            });
-            var dt = regData.ToDataTable();
-            var dtImage = regImageData.ToDataTable();
-            param.Add("@comics", dt.AsTableValuedParameter("[dbo].[ComicTableType]"));
-            param.Add("@comicsImage", dtImage.AsTableValuedParameter("[dbo].[ComicImageTableType]"));
-            using (var connection = _factory())
-            {
-                connection.Open();
-                await connection.ExecuteAsync("RegisterComics", param, commandType: CommandType.StoredProcedure);
-            }
+            _cosmosClient = cosmosClientFactory();
+            _container = _cosmosClient.GetContainer(DatabaseName, ContainerName);
         }
 
         public async Task<IEnumerable<Comic>> GetComicsAsync()
         {
-            using (var connection = _factory())
+            var results = new List<Comic>();
+            
+            // Query all comics with type = "comic"
+            var queryDefinition = new QueryDefinition(
+                "SELECT * FROM c WHERE c.type = @type")
+                .WithParameter("@type", "comic");
+
+            var queryRequestOptions = new QueryRequestOptions
             {
-                connection.Open();
-                return await connection.QueryAsync<Comic>("GetComics", commandType: CommandType.StoredProcedure);
+                MaxItemCount = MaxItemCount
+            };
+
+            using FeedIterator<Comic> feedIterator = _container.GetItemQueryIterator<Comic>(
+                queryDefinition,
+                continuationToken: null,
+                queryRequestOptions);
+
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Comic> response = await feedIterator.ReadNextAsync();
+                results.AddRange(response);
             }
+
+            return results;
         }
 
-        public async Task<IEnumerable<ComicImage>> GetUpdateImageTargetAsync()
+        public async Task UpsertComicsAsync(IEnumerable<Comic> comics)
         {
-            using (var connection = _factory())
+            if (comics == null || !comics.Any())
             {
-                connection.Open();
-                return await connection.QueryAsync<ComicImage>("GetUpdateImageTarget", commandType: CommandType.StoredProcedure);
+                return;
             }
-        }
 
-        public async Task RegisterComicImageUrlAsync(string isbn, string storgaeUrl)
-        {
-            var param = new DynamicParameters();
-            param.Add("@isbn", isbn);
-            param.Add("@imageStorageUrl", storgaeUrl);
-            using (var connection = _factory())
+            // Create concurrent tasks for parallel upsert execution
+            // Note: Cosmos DB SDK v3+ automatically optimizes concurrent operations
+            var tasks = new List<Task>();
+            
+            foreach (var comic in comics)
             {
-                connection.Open();
-                await connection.ExecuteAsync("RegisterComicImage", param, commandType: CommandType.StoredProcedure);
-            }
-        }
-
-        public async Task<ComicImage> GetComicImageInfo(string isbn)
-        {
-            var param = new DynamicParameters();
-            param.Add("@isbn", isbn);
-            using (var connection = _factory())
-            {
-                connection.Open();
-                IEnumerable<ComicImage> data = await connection.QueryAsync<ComicImage>("GetComicImage", param, commandType: CommandType.StoredProcedure);
-                if (data.Any())
+                // Ensure required fields are set
+                if (string.IsNullOrWhiteSpace(comic.id))
                 {
-                    return data.First();
+                    comic.id = comic.Isbn; // Use ISBN as ID
                 }
-                return null;
+                if (string.IsNullOrWhiteSpace(comic.type))
+                {
+                    comic.type = "comic";
+                }
+
+                // Create upsert task - will be executed concurrently with others
+                tasks.Add(_container.UpsertItemAsync(
+                    comic,
+                    new PartitionKey(comic.type)
+                ));
             }
+
+            // Execute all upserts concurrently
+            await Task.WhenAll(tasks);
         }
     }
 }
