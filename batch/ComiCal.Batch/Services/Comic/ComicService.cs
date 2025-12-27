@@ -99,14 +99,11 @@ namespace ComiCal.Batch.Services
                 // Check if any image exists for this ISBN in blob storage using prefix search
                 // This is more efficient than checking each extension individually
                 var hasImage = false;
-                await foreach (var blob in containerClient.GetBlobsAsync(prefix: comic.Isbn))
+                await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{comic.Isbn}."))
                 {
-                    // Check if the blob name matches the expected pattern: {isbn}.{ext}
-                    if (blob.Name.StartsWith(comic.Isbn + "."))
-                    {
-                        hasImage = true;
-                        break;
-                    }
+                    // If any blob with prefix "{isbn}." exists, the comic has an image
+                    hasImage = true;
+                    break;
                 }
                 
                 if (!hasImage)
