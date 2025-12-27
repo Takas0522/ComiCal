@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
+using Microsoft.Azure.Cosmos;
 
 namespace ComiCal.Shared
 {
@@ -29,6 +30,13 @@ namespace ComiCal.Shared
             var blobConnection = config["StorageConnectionString"];
             service.AddAzureClients(clientBuilder => {
                 clientBuilder.AddBlobServiceClient(blobConnection);
+            });
+
+            // CosmosClient Factory
+            service.AddSingleton<CosmosClientFactory>(() =>
+            {
+                var cosmosConnection = config[ConnectionName.CosmosConnection];
+                return new CosmosClient(cosmosConnection);
             });
         }
     }
