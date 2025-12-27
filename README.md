@@ -104,6 +104,8 @@ export const environment = {
 | `DefaultConnection` | SQL Server 接続文字列（オプション） | `Server=(localdb)\\mssqllocaldb;...` |
 | `blobBaseUrl` | Blob Storage の画像ベースURL | `https://<account>.blob.core.windows.net/images` |
 
+> **セキュリティ注意**: 本番環境では、接続文字列に AccountKey を使用するのではなく、Azure Managed Identity や Azure AD 認証の使用を推奨します。これにより、設定ファイルに機密情報を保存する必要がなくなります。
+
 #### 4. ローカル開発実行
 
 1. apiデバッグ実行/apiディレクトリで`func start`
