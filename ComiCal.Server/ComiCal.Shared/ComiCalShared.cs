@@ -36,6 +36,10 @@ namespace ComiCal.Shared
             service.AddSingleton<CosmosClientFactory>(() =>
             {
                 var cosmosConnection = config[ConnectionName.CosmosConnection];
+                if (string.IsNullOrWhiteSpace(cosmosConnection))
+                {
+                    throw new InvalidOperationException($"Cosmos DB connection string '{ConnectionName.CosmosConnection}' is not configured.");
+                }
                 return new CosmosClient(cosmosConnection);
             });
         }
