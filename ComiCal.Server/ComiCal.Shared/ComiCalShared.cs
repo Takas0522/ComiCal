@@ -32,8 +32,8 @@ namespace ComiCal.Shared
                 clientBuilder.AddBlobServiceClient(blobConnection);
             });
 
-            // CosmosClient Factory
-            service.AddSingleton<CosmosClientFactory>(() =>
+            // CosmosClient as Singleton
+            service.AddSingleton<CosmosClient>(sp =>
             {
                 var cosmosConnection = config[ConnectionName.CosmosConnection];
                 if (string.IsNullOrWhiteSpace(cosmosConnection))
@@ -42,6 +42,9 @@ namespace ComiCal.Shared
                 }
                 return new CosmosClient(cosmosConnection);
             });
+
+            // CosmosClient Factory (for backward compatibility)
+            service.AddSingleton<CosmosClientFactory>(sp => () => sp.GetRequiredService<CosmosClient>());
         }
     }
 }
