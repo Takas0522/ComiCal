@@ -3,6 +3,7 @@ using Comical.Api.Repositories;
 using ComiCal.Shared.Models;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Comical.Api.Services
@@ -20,17 +21,9 @@ namespace Comical.Api.Services
 
         public async Task<IEnumerable<Comic>> GetComicsAsync(GetComicsRequest req, DateTime fromDate)
         {
-            if (req.SearchList == null)
-            {
-                return new List<Comic>();
-            }
-            IEnumerable<Comic> data = await _comicRepository.GetComicsAsync(fromDate);
-
-            var comics = new ComicList(data);
-
-            var searchComics = comics.Search(req.SearchList);
-
-            return searchComics.GetComics();
+            // Pass keywords directly to repository for Cosmos DB query
+            var keywords = req.SearchList?.Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
+            return await _comicRepository.GetComicsAsync(fromDate, keywords);
         }
     }
 }

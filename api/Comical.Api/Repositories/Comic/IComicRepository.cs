@@ -7,6 +7,6 @@ namespace Comical.Api.Repositories
 {
     public interface IComicRepository
     {
-        Task<IEnumerable<Comic>> GetComicsAsync(DateTime fromDate);
+        Task<IEnumerable<Comic>> GetComicsAsync(DateTime fromDate, IEnumerable<string>? keywords = null);
     }
 }
