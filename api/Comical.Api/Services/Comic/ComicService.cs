@@ -30,13 +30,7 @@ namespace Comical.Api.Services
 
             var searchComics = comics.Search(req.SearchList);
 
-            var isbns = searchComics.GetIsbns();
-
-            var images = await _comicRepository.GetComicImagessAsync(isbns);
-
-            var comicsWithImage = searchComics.GetComicsWithImage(images);
-
-            return comicsWithImage.GetComics();
+            return searchComics.GetComics();
         }
     }
 }
