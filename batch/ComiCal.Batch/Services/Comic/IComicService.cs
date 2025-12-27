@@ -9,7 +9,5 @@ namespace ComiCal.Batch.Services
     {
         Task RegitoryAsync(int requestPage);
         Task<int> GetPageCountAsync();
-        Task<IEnumerable<ComicImage>> GetUpdateImageTargetAsync();
-        Task UpdateImageDataAsync(ComicImage data);
     }
 }

@@ -35,32 +35,12 @@ namespace ComiCal.Batch.Functions
             }
 
             log.LogInformation($"Data Get Complete");
-            var updateIageUrls = await context.CallActivityAsync<IEnumerable<ComicImage>>("GetUpdateImageTarget", "");
-            log.LogInformation($"Update Image {updateIageUrls.Count()}");
-
-            foreach (var updateIageUrl in updateIageUrls)
-            {
-                await context.CallActivityAsync("WaitTime", 5);
-                await context.CallActivityAsync("UpdateImage", updateIageUrl);
-            }
         }
 
         [FunctionName("GetPageCount")]
         public async Task<int> GetPageCount ([ActivityTrigger] string val, ILogger log)
         {
             return await _comicService.GetPageCountAsync();
-        }
-
-        [FunctionName("GetUpdateImageTarget")]
-        public async Task<IEnumerable<ComicImage>> GetUpdateImageTarget([ActivityTrigger] string val, ILogger log)
-        {
-            return await _comicService.GetUpdateImageTargetAsync();
-        }
-
-        [FunctionName("UpdateImage")]
-        public async Task UpdateImage([ActivityTrigger] ComicImage val, ILogger log)
-        {
-            await _comicService.UpdateImageDataAsync(val);
         }
 
         [FunctionName("WaitTime")]
