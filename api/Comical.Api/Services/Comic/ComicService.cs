@@ -28,10 +28,10 @@ namespace Comical.Api.Services
             }
             
             // Filter out null/whitespace keywords
-            var keywords = req.SearchList.Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
+            var keywords = req.SearchList.Where(k => !string.IsNullOrWhiteSpace(k)).ToArray();
             
             // Return empty list if all keywords were null/whitespace
-            if (!keywords.Any())
+            if (keywords.Length == 0)
             {
                 return new List<Comic>();
             }
