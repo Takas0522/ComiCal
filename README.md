@@ -48,7 +48,21 @@ cd scripts
 - コンテナ: `comics`（パーティションキー: `/id`、インデックス最適化済み）
 - コンテナ: `config-migrations`（パーティションキー: `/id`）
 
-スクリプト実行後、表示される接続文字列を `api/Comical.Api/local.settings.json` に設定してください：
+スクリプト実行後、表示される接続文字列を設定ファイルに追加してください。
+
+#### 2. Blob Storage のセットアップ
+
+Azure Portal または Azure CLI で Blob Storage アカウントを作成し、コンテナ `images` を作成してください。
+
+#### 3. 設定ファイルのセットアップ
+
+テンプレートファイルをコピーして、実際の接続文字列を設定します：
+
+**API層の設定** (`api/local.settings.json`):
+```bash
+# テンプレートからコピー
+cp api/local.settings.json.template api/local.settings.json
+```
 
 ```json
 {
@@ -56,24 +70,41 @@ cd scripts
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "CosmosConnectionString": "<表示された接続文字列>"
+    "CosmosConnectionString": "AccountEndpoint=https://<account-name>.documents.azure.com:443/;AccountKey=<your-key>;",
+    "StorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=<storage-account>;AccountKey=<your-key>;EndpointSuffix=core.windows.net"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=ComiCalDB;Trusted_Connection=True;"
   }
 }
 ```
 
-#### 2. Blob Storage のセットアップ
+**Batch層の設定** (`batch/local.settings.json`):
+```bash
+# テンプレートからコピー
+cp batch/local.settings.json.template batch/local.settings.json
+```
+設定内容は API 層と同じです。
 
-Azure Portal または Azure CLI で Blob Storage アカウントを作成し、接続文字列を `local.settings.json` に追加してください：
-
-```json
-{
-  "Values": {
-    "StorageConnectionString": "<your-blob-storage-connection-string>"
-  }
-}
+**フロントエンド環境設定** (`front/src/environments/environment.ts`):
+```typescript
+export const environment = {
+  production: false,
+  gapiClientId: '<your-google-client-id>',
+  blobBaseUrl: 'https://<storage-account>.blob.core.windows.net/images'
+};
 ```
 
-### ローカル開発実行
+**環境変数一覧**:
+
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `CosmosConnectionString` | Cosmos DB 接続文字列 | `AccountEndpoint=https://...;AccountKey=...;` |
+| `StorageConnectionString` | Blob Storage 接続文字列 | `DefaultEndpointsProtocol=https;AccountName=...` |
+| `DefaultConnection` | SQL Server 接続文字列（オプション） | `Server=(localdb)\\mssqllocaldb;...` |
+| `blobBaseUrl` | Blob Storage の画像ベースURL | `https://<account>.blob.core.windows.net/images` |
+
+#### 4. ローカル開発実行
 
 1. apiデバッグ実行/apiディレクトリで`func start`
 2. frontディレクトリで`npm run start`
