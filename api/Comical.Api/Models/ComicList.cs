@@ -6,8 +6,6 @@ namespace Comical.Api.Models
 {
     public class ComicList
     {
-        private const string BaserUrl = "https://stmanrim.blob.core.windows.net/image";
-
         private readonly IEnumerable<Comic> _comics;
 
         public ComicList(IEnumerable<Comic> comics)
@@ -33,21 +31,6 @@ namespace Comical.Api.Models
         public IEnumerable<string> GetIsbns()
         {
             return _comics.Select(c => c.Isbn).ToList();
-        }
-
-        public ComicList GetComicsWithImage(IEnumerable<ComicImage> comicImages)
-        {
-            foreach (var comic in _comics)
-            {
-                var image = comicImages.FirstOrDefault(c => c.Isbn == comic.Isbn);
-
-                if (!string.IsNullOrEmpty(image?.ImageStorageUrl))
-                {
-                    comic.ImageStorageUrl = BaserUrl + image.ImageStorageUrl;
-                }
-            }
-
-            return new ComicList(_comics);
         }
     }
 }
