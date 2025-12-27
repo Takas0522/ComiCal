@@ -156,8 +156,8 @@ if ($comicsExists -eq "true") {
     if ($LASTEXITCODE -eq 0) {
         Write-Host "✓ comics コンテナを作成しました" -ForegroundColor Green
         Write-Host "  パーティションキー: /id" -ForegroundColor Gray
-        Write-Host "  インデックスポリシー: /salesDate, /title, /author に範囲インデックス" -ForegroundColor Gray
-        Write-Host "  除外パス: /imageBaseUrl" -ForegroundColor Gray
+        Write-Host "  インデックスポリシー: すべてのプロパティに範囲インデックス" -ForegroundColor Gray
+        Write-Host "  除外パス: /imageBaseUrl, /_etag" -ForegroundColor Gray
     } else {
         Write-Error "comics コンテナの作成に失敗しました"
         exit 1
