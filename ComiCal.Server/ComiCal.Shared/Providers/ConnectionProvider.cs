@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using Microsoft.Azure.Cosmos;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -12,9 +13,11 @@ namespace ComiCal.Shared.Providers
     {
         public static string DefaultConnection = "DefaultConnection";
         public static string BlobConnection = "StorageConnectionString";
+        public static string CosmosConnection = "CosmosConnectionString";
     } 
 
     public delegate DbConnection DefaultConnectionFactory();
     public delegate BlobServiceClient BlobClientFactory();
+    public delegate CosmosClient CosmosClientFactory();
 
 }
