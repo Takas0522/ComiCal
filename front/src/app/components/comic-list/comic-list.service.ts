@@ -34,7 +34,7 @@ export class ComicListService {
     this.httpClient.post<ComicInterface[]>(`/api/ComicData${fromDateString}`, reqData).subscribe(x => {
       this.baseData = x;
       this.baseData.forEach(f => {
-        // Generate image URL dynamically: ${blobBaseUrl}/images/${isbn}.jpg
+        // Generate image URL dynamically: ${blobBaseUrl}/${isbn}.jpg
         const imageUrl = `${environment.blobBaseUrl}/${f.isbn}.jpg`;
         f.imageUrl = imageUrl;
         f.imageUrlSanitize = this.sanitizer.bypassSecurityTrustUrl(imageUrl);
