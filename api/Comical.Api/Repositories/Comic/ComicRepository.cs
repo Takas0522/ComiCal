@@ -22,7 +22,7 @@ namespace Comical.Api.Repositories
             _container = _cosmosClient.GetContainer(DatabaseName, ContainerName);
         }
 
-        public async Task<IEnumerable<Comic>> GetComicsAsync(DateTime fromDate, IEnumerable<string>? keywords = null)
+        public async Task<IEnumerable<Comic>> GetComicsAsync(DateTime fromDate, IReadOnlyList<string>? keywords = null)
         {
             var results = new List<Comic>();
             
@@ -30,10 +30,9 @@ namespace Comical.Api.Repositories
             var queryText = "SELECT * FROM c WHERE c.type = @type AND c.SalesDate >= @fromDate";
             
             // Add keyword search conditions (AND logic for multiple keywords)
-            var keywordList = keywords?.ToList();
-            if (keywordList != null && keywordList.Any())
+            if (keywords != null && keywords.Any())
             {
-                for (int i = 0; i < keywordList.Count; i++)
+                for (int i = 0; i < keywords.Count; i++)
                 {
                     var paramName = $"@keyword{i}";
                     queryText += $" AND (CONTAINS(c.Title, {paramName}) OR CONTAINS(c.Author, {paramName}))";
@@ -48,11 +47,11 @@ namespace Comical.Api.Repositories
                 .WithParameter("@type", "comic")
                 .WithParameter("@fromDate", fromDate);
             
-            if (keywordList != null && keywordList.Any())
+            if (keywords != null && keywords.Any())
             {
-                for (int i = 0; i < keywordList.Count; i++)
+                for (int i = 0; i < keywords.Count; i++)
                 {
-                    queryDefinition.WithParameter($"@keyword{i}", keywordList[i]);
+                    queryDefinition.WithParameter($"@keyword{i}", keywords[i]);
                 }
             }
 

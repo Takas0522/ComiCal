@@ -21,8 +21,22 @@ namespace Comical.Api.Services
 
         public async Task<IEnumerable<Comic>> GetComicsAsync(GetComicsRequest req, DateTime fromDate)
         {
+            // Return empty list if no search keywords provided (preserving original behavior)
+            if (req.SearchList == null || !req.SearchList.Any())
+            {
+                return new List<Comic>();
+            }
+            
+            // Filter out null/whitespace keywords
+            var keywords = req.SearchList.Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
+            
+            // Return empty list if all keywords were null/whitespace
+            if (!keywords.Any())
+            {
+                return new List<Comic>();
+            }
+            
             // Pass keywords directly to repository for Cosmos DB query
-            var keywords = req.SearchList?.Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
             return await _comicRepository.GetComicsAsync(fromDate, keywords);
         }
     }
