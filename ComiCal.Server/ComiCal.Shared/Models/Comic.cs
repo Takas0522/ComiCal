@@ -8,6 +8,8 @@ namespace ComiCal.Shared.Models
 {
     public class Comic
     {
+        public string id { get; set; } = "";
+        public string type { get; set; } = "comic";
         public string Isbn { get; set; } = "";
         public string Title { get; set; } = "";
         public string TitleKana { get; set; } = "";
@@ -18,7 +20,6 @@ namespace ComiCal.Shared.Models
         public string PublisherName { get; set; } = "";
         public DateTime SalesDate { get; set; }
         public int ScheduleStatus { get; set; }
-        public string? ImageStorageUrl { get; set; }
     }
 
     public enum ScheduleStatus
