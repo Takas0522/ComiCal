@@ -20,6 +20,12 @@
 .PARAMETER TestFrontend
     フロントエンドのテストのみ実行
 
+.PARAMETER ConsistencyWaitSeconds
+    Cosmos DB の整合性確認の待機時間（秒）。デフォルト: 2秒
+
+.PARAMETER ResponseTimeThresholdMs
+    API レスポンスタイムの閾値（ミリ秒）。デフォルト: 2000ms
+
 .EXAMPLE
     .\test-integration.ps1 -Environment Local -RunAllTests
     ローカル環境ですべてのテストを実行
@@ -27,6 +33,10 @@
 .EXAMPLE
     .\test-integration.ps1 -Environment Dev -TestApi
     開発環境でAPIテストのみ実行
+
+.EXAMPLE
+    .\test-integration.ps1 -Environment Local -TestApi -ResponseTimeThresholdMs 1000
+    ローカル環境でAPIテストを実行（レスポンスタイム閾値1秒）
 #>
 
 param(
@@ -44,7 +54,13 @@ param(
     [switch]$TestBatch,
 
     [Parameter()]
-    [switch]$TestFrontend
+    [switch]$TestFrontend,
+
+    [Parameter()]
+    [int]$ConsistencyWaitSeconds = 2,
+
+    [Parameter()]
+    [int]$ResponseTimeThresholdMs = 2000
 )
 
 # 色付きログ出力関数
@@ -240,7 +256,8 @@ function Test-ConfigMigration {
         }
 
         # 設定を取得
-        Start-Sleep -Seconds 2  # Cosmos DB の整合性のため少し待機
+        # Wait for Cosmos DB eventual consistency
+        Start-Sleep -Seconds $ConsistencyWaitSeconds
 
         $getResponse = Invoke-RestMethod -Uri "$apiUrl/ConfigMigration?id=$migrationId" `
             -Method GET `
@@ -285,13 +302,13 @@ function Test-ApiResponseTime {
         $stopwatch.Stop()
         $responseTime = $stopwatch.ElapsedMilliseconds
 
-        if ($responseTime -lt 2000) {
+        if ($responseTime -lt $ResponseTimeThresholdMs) {
             $testResults.Passed++
-            Write-TestResult "API レスポンスタイム" $true "レスポンスタイム: ${responseTime}ms"
+            Write-TestResult "API レスポンスタイム" $true "レスポンスタイム: ${responseTime}ms (閾値: ${ResponseTimeThresholdMs}ms)"
             return $true
         } else {
             $testResults.Failed++
-            Write-TestResult "API レスポンスタイム" $false "レスポンスタイムが遅すぎます: ${responseTime}ms"
+            Write-TestResult "API レスポンスタイム" $false "レスポンスタイムが閾値を超えています: ${responseTime}ms (閾値: ${ResponseTimeThresholdMs}ms)"
             return $false
         }
     }

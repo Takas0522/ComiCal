@@ -32,10 +32,12 @@ Cosmos DB Emulator のダウンロードとインストール:
 # https://localhost:8081/_explorer/index.html にアクセス
 ```
 
-エミュレータ接続文字列:
+エミュレータ接続文字列（ローカル開発専用）:
 ```
 AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
 ```
+
+> **重要**: この接続文字列は Cosmos DB Emulator のデフォルトキーです。ローカル開発専用であり、**絶対に本番環境では使用しないでください**。本番環境では Azure Portal から取得した実際の接続文字列を使用してください。
 
 #### 2. 設定ファイルの準備
 
