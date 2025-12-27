@@ -6,7 +6,12 @@ namespace Comical.Api.Models
 {
     public class ConfigMigration
     {
-        public string Id { get; set; } = "";
+        public string id { get; set; } = "";
+        public string Id
+        {
+            get => id;
+            set => id = value;
+        }
         public string Value { get; set; } = "";
     }
 }
