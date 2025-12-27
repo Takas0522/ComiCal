@@ -14,6 +14,7 @@ namespace Comical.Api.Repositories
         private readonly Container _container;
         private const string DatabaseName = "ComiCalDB";
         private const string ContainerName = "comics";
+        private const int MaxItemCount = 100;
 
         public ComicRepository(CosmosClientFactory cosmosClientFactory)
         {
@@ -31,27 +32,21 @@ namespace Comical.Api.Repositories
                 .WithParameter("@type", "comic")
                 .WithParameter("@fromDate", fromDate);
 
-            string? continuationToken = null;
-
-            do
+            var queryRequestOptions = new QueryRequestOptions
             {
-                var queryRequestOptions = new QueryRequestOptions
-                {
-                    MaxItemCount = 100
-                };
+                MaxItemCount = MaxItemCount
+            };
 
-                using FeedIterator<Comic> feedIterator = _container.GetItemQueryIterator<Comic>(
-                    queryDefinition,
-                    continuationToken,
-                    queryRequestOptions);
+            using FeedIterator<Comic> feedIterator = _container.GetItemQueryIterator<Comic>(
+                queryDefinition,
+                continuationToken: null,
+                queryRequestOptions);
 
-                while (feedIterator.HasMoreResults)
-                {
-                    FeedResponse<Comic> response = await feedIterator.ReadNextAsync();
-                    results.AddRange(response);
-                    continuationToken = response.ContinuationToken;
-                }
-            } while (continuationToken != null);
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<Comic> response = await feedIterator.ReadNextAsync();
+                results.AddRange(response);
+            }
 
             return results;
         }
