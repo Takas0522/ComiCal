@@ -30,7 +30,7 @@ namespace Comical.Api.Repositories
             var queryText = "SELECT * FROM c WHERE c.type = @type AND c.SalesDate >= @fromDate";
             
             // Add keyword search conditions (AND logic for multiple keywords)
-            var keywordList = keywords?.Where(k => !string.IsNullOrWhiteSpace(k)).ToList();
+            var keywordList = keywords?.ToList();
             if (keywordList != null && keywordList.Any())
             {
                 for (int i = 0; i < keywordList.Count; i++)
