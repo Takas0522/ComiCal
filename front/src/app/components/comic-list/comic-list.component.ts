@@ -132,4 +132,9 @@ export class ComicListComponent implements OnInit {
     });
   }
 
+  onImageError(event: Event): void {
+    const imgElement = event.target as HTMLImageElement;
+    imgElement.style.display = 'none';
+  }
+
 }

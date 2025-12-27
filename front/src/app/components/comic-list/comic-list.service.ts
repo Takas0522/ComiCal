@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import { AppService } from 'src/app/app.service';
 import { ComicInterface } from 'src/app/models/comic.interface';
+import { environment } from 'src/environments/environment';
 import { CalendarRegisterInterface } from '../event-register-dialog/models/calendar-register.interface';
 import { ComicListQuery } from './comic-list.query';
 
@@ -33,13 +34,10 @@ export class ComicListService {
     this.httpClient.post<ComicInterface[]>(`/api/ComicData${fromDateString}`, reqData).subscribe(x => {
       this.baseData = x;
       this.baseData.forEach(f => {
-        if (f.imageStorageUrl == null) {
-          f.imageStorageUrl = '';
-          f.imageStorageUrlSanitize = '';
-        } else {
-          const url = f.imageStorageUrl;
-          f.imageStorageUrlSanitize = this.sanitizer.bypassSecurityTrustUrl(url);
-        }
+        // Generate image URL dynamically: ${blobBaseUrl}/images/${isbn}.jpg
+        const imageUrl = `${environment.blobBaseUrl}/${f.isbn}.jpg`;
+        f.imageUrl = imageUrl;
+        f.imageUrlSanitize = this.sanitizer.bypassSecurityTrustUrl(imageUrl);
         f.salesDate = new Date(f.salesDate);
       })
       this.query.updateComicList(this.baseData);
