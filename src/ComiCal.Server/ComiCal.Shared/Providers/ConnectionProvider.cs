@@ -13,11 +13,12 @@ namespace ComiCal.Shared.Providers
     {
         public static string DefaultConnection = "DefaultConnection";
         public static string BlobConnection = "StorageConnectionString";
-        public static string CosmosConnection = "CosmosConnectionString";
+        public static string PostgresConnection = "DefaultConnection";
+        public static string CosmosConnection = "CosmosConnectionString"; // Deprecated - use PostgresConnection
     } 
 
     public delegate DbConnection DefaultConnectionFactory();
     public delegate BlobServiceClient BlobClientFactory();
-    public delegate CosmosClient CosmosClientFactory();
+    public delegate CosmosClient CosmosClientFactory(); // Deprecated - to be removed after PostgreSQL migration
 
 }
