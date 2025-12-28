@@ -29,10 +29,10 @@ namespace Comical.Api
             ILogger log)
         {
             var query = req.Query["fromdate"];
-            var fromdate = DateTime.Now.AddMonths(-1);
+            var fromdate = DateTime.UtcNow.AddMonths(-1);
             if (query.Count !=0 && query != string.Empty)
             {
-                fromdate = DateTime.Parse(query);
+                fromdate = DateTime.Parse(query).ToUniversalTime();
             }
             string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
             var data = JsonSerializer.Deserialize<GetComicsRequest>(requestBody);

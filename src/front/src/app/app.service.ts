@@ -21,11 +21,15 @@ export class AppService {
   }
 
   startApiAccess() {
-    this.isApiAccess.next(true);
+    setTimeout(() => {
+      this.isApiAccess.next(true);
+    });
   }
 
   exitApiAccess() {
-    this.isApiAccess.next(false);
+    setTimeout(() => {
+      this.isApiAccess.next(false);
+    });
   }
 
   private applicationinit(): void {

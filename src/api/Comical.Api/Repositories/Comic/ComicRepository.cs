@@ -28,18 +28,17 @@ namespace Comical.Api.Repositories
                 queryBuilder.Append(@"
                     SELECT 
                         isbn as Isbn,
-                        type,
                         title as Title,
-                        title_kana as TitleKana,
-                        series_name as SeriesName,
-                        series_name_kana as SeriesNameKana,
+                        titlekana as TitleKana,
+                        seriesname as SeriesName,
+                        seriesnamekana as SeriesNameKana,
                         author as Author,
-                        author_kana as AuthorKana,
-                        publisher_name as PublisherName,
-                        sales_date as SalesDate,
-                        schedule_status as ScheduleStatus
-                    FROM comics 
-                    WHERE type = @type AND sales_date >= @fromDate");
+                        authorkana as AuthorKana,
+                        publishername as PublisherName,
+                        salesdate as SalesDate,
+                        schedulestatus as ScheduleStatus
+                    FROM comic 
+                    WHERE salesdate >= @fromDate");
                 
                 // Add keyword search conditions (AND logic for multiple keywords)
                 // Using ILIKE for case-insensitive pattern matching with wildcards
@@ -52,12 +51,11 @@ namespace Comical.Api.Repositories
                 }
                 
                 // Add ORDER BY and pagination
-                queryBuilder.Append(" ORDER BY sales_date DESC");
+                queryBuilder.Append(" ORDER BY salesdate DESC");
                 queryBuilder.Append(" LIMIT @limit");
 
                 // Build dynamic parameters
                 var parameters = new DynamicParameters();
-                parameters.Add("type", "comic");
                 parameters.Add("fromDate", fromDate);
                 parameters.Add("limit", MaxItemCount);
                 
