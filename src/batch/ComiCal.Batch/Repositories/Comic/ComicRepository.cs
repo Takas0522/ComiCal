@@ -4,16 +4,20 @@ using System.Linq;
 using ComiCal.Shared.Models;
 using Npgsql;
 using Dapper;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace ComiCal.Batch.Repositories
 {
     public class ComicRepository : IComicRepository
     {
         private readonly NpgsqlDataSource _dataSource;
+        private readonly ILogger<ComicRepository> _logger;
 
-        public ComicRepository(NpgsqlDataSource dataSource)
+        public ComicRepository(NpgsqlDataSource dataSource, ILogger<ComicRepository> logger)
         {
             _dataSource = dataSource;
+            _logger = logger;
         }
 
         public async Task<IEnumerable<Comic>> GetComicsAsync()
@@ -107,9 +111,12 @@ namespace ComiCal.Batch.Repositories
                 // Execute batch upsert in a single transaction
                 await connection.ExecuteAsync(sql, comicsToUpsert, transaction);
                 await transaction.CommitAsync();
+                
+                _logger.LogInformation("Successfully upserted {Count} comics", comicsToUpsert.Count);
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to upsert comics. Rolling back transaction. Count: {Count}", comicsToUpsert.Count);
                 await transaction.RollbackAsync();
                 throw;
             }
