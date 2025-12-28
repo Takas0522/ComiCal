@@ -24,9 +24,15 @@ namespace Comical.Api.Providers
         /// Gets the PostgreSQL connection string from configuration
         /// </summary>
         /// <returns>PostgreSQL connection string</returns>
+        /// <exception cref="InvalidOperationException">Thrown when connection string is not configured</exception>
         public string GetPostgresConnectionString()
         {
-            return _configuration.GetConnectionString(PostgresConnection);
+            var connectionString = _configuration.GetConnectionString(PostgresConnection);
+            if (string.IsNullOrEmpty(connectionString))
+            {
+                throw new InvalidOperationException($"Connection string '{PostgresConnection}' is not configured.");
+            }
+            return connectionString;
         }
     }
 }
