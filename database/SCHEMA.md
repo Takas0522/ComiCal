@@ -21,9 +21,9 @@ CREATE TABLE comics (
     title_kana TEXT,
     series_name TEXT,
     series_name_kana TEXT,
-    author TEXT,
+    author TEXT NOT NULL,
     author_kana TEXT,
-    publisher_name TEXT,
+    publisher_name TEXT NOT NULL,
     sales_date DATE NOT NULL,
     schedule_status INTEGER NOT NULL
 );
@@ -39,9 +39,9 @@ CREATE TABLE comics (
 | title_kana | TEXT | NULL | タイトルのカナ読み |
 | series_name | TEXT | NULL | シリーズ名 |
 | series_name_kana | TEXT | NULL | シリーズ名のカナ読み |
-| author | TEXT | NULL | 著者名 |
+| author | TEXT | NOT NULL | 著者名 |
 | author_kana | TEXT | NULL | 著者名のカナ読み |
-| publisher_name | TEXT | NULL | 出版社名 |
+| publisher_name | TEXT | NOT NULL | 出版社名 |
 | sales_date | DATE | NOT NULL | 発売日 |
 | schedule_status | INTEGER | NOT NULL | 発売スケジュールステータス（0-9） |
 

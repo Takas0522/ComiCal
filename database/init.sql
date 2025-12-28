@@ -12,9 +12,9 @@ CREATE TABLE IF NOT EXISTS comics (
     title_kana TEXT,
     series_name TEXT,
     series_name_kana TEXT,
-    author TEXT,
+    author TEXT NOT NULL,
     author_kana TEXT,
-    publisher_name TEXT,
+    publisher_name TEXT NOT NULL,
     sales_date DATE NOT NULL,
     schedule_status INTEGER NOT NULL
 );
