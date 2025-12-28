@@ -3,10 +3,9 @@
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "CosmosConnectionString": "<your-cosmos-db-connection-string>",
-    "StorageConnectionString": "<your-blob-storage-connection-string>"
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "<your-sql-server-connection-string-if-needed>"
+    "PostgresConnectionString": "Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
+    "StorageConnectionString": "<your-blob-storage-connection-string>",
+    "_Comment_PostgresConnectionString": "Sample: Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
+    "_Comment_ManagedIdentity": "For Azure deployment with Managed Identity, use: Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>"
   }
 }
