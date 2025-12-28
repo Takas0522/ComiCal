@@ -25,17 +25,16 @@ namespace ComiCal.Batch.Repositories
             const string sql = @"
                 SELECT 
                     isbn as Isbn,
-                    type,
                     title as Title,
-                    title_kana as TitleKana,
-                    series_name as SeriesName,
-                    series_name_kana as SeriesNameKana,
+                    titlekana as TitleKana,
+                    seriesname as SeriesName,
+                    seriesnamekana as SeriesNameKana,
                     author as Author,
-                    author_kana as AuthorKana,
-                    publisher_name as PublisherName,
-                    sales_date as SalesDate,
-                    schedule_status as ScheduleStatus
-                FROM comics";
+                    authorkana as AuthorKana,
+                    publishername as PublisherName,
+                    salesdate as SalesDate,
+                    schedulestatus as ScheduleStatus
+                FROM comic";
 
             await using var connection = await _dataSource.OpenConnectionAsync();
             var results = await connection.QueryAsync<Comic>(sql);
@@ -50,21 +49,19 @@ namespace ComiCal.Batch.Repositories
             }
 
             const string sql = @"
-                INSERT INTO comics (
+                INSERT INTO comic (
                     isbn, 
-                    type, 
                     title, 
-                    title_kana, 
-                    series_name, 
-                    series_name_kana, 
+                    titlekana, 
+                    seriesname, 
+                    seriesnamekana, 
                     author, 
-                    author_kana, 
-                    publisher_name, 
-                    sales_date, 
-                    schedule_status
+                    authorkana, 
+                    publishername, 
+                    salesdate, 
+                    schedulestatus
                 ) VALUES (
                     @Isbn, 
-                    @Type, 
                     @Title, 
                     @TitleKana, 
                     @SeriesName, 
@@ -76,22 +73,20 @@ namespace ComiCal.Batch.Repositories
                     @ScheduleStatus
                 )
                 ON CONFLICT (isbn) DO UPDATE SET
-                    type = EXCLUDED.type,
                     title = EXCLUDED.title,
-                    title_kana = EXCLUDED.title_kana,
-                    series_name = EXCLUDED.series_name,
-                    series_name_kana = EXCLUDED.series_name_kana,
+                    titlekana = EXCLUDED.titlekana,
+                    seriesname = EXCLUDED.seriesname,
+                    seriesnamekana = EXCLUDED.seriesnamekana,
                     author = EXCLUDED.author,
-                    author_kana = EXCLUDED.author_kana,
-                    publisher_name = EXCLUDED.publisher_name,
-                    sales_date = EXCLUDED.sales_date,
-                    schedule_status = EXCLUDED.schedule_status";
+                    authorkana = EXCLUDED.authorkana,
+                    publishername = EXCLUDED.publishername,
+                    salesdate = EXCLUDED.salesdate,
+                    schedulestatus = EXCLUDED.schedulestatus";
 
             // Prepare comics with default values
             var comicsToUpsert = comics.Select(c => new
             {
                 c.Isbn,
-                Type = string.IsNullOrWhiteSpace(c.type) ? "comic" : c.type,
                 c.Title,
                 c.TitleKana,
                 c.SeriesName,
