@@ -30,6 +30,7 @@ services:
     networks:
       - comical-network
     environment:
+      # Development credentials only - use secrets for production
       - POSTGRES_USER=comical
       - POSTGRES_PASSWORD=comical_dev_password
       - POSTGRES_DB=comical

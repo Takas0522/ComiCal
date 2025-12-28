@@ -33,5 +33,6 @@ CREATE TABLE IF NOT EXISTS ConfigMigration (
     Value TEXT NOT NULL
 );
 
--- Grant permissions (optional, for development)
--- GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO comical;
+-- Grant permissions (optional, for development only)
+-- For production, grant only specific permissions needed:
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO comical;
