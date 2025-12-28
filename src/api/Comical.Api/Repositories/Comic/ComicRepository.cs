@@ -24,9 +24,9 @@ namespace Comical.Api.Repositories
             try
             {
                 var queryBuilder = new StringBuilder();
+                // Note: isbn maps to both id and Isbn properties in Comic model
                 queryBuilder.Append(@"
                     SELECT 
-                        isbn as id,
                         isbn as Isbn,
                         type,
                         title as Title,
@@ -74,12 +74,18 @@ namespace Comical.Api.Repositories
                 await using var connection = await _dataSource.OpenConnectionAsync();
                 var results = await connection.QueryAsync<Comic>(queryBuilder.ToString(), parameters);
                 
+                // Set id property for Cosmos DB compatibility
+                foreach (var comic in results)
+                {
+                    comic.id = comic.Isbn;
+                }
+                
                 return results;
             }
             catch (NpgsqlException ex)
             {
                 // Log and rethrow with context
-                throw new InvalidOperationException($"Failed to retrieve comics from PostgreSQL database: {ex.Message}", ex);
+                throw new InvalidOperationException($"Failed to retrieve comics from database: {ex.Message}", ex);
             }
         }
     }
