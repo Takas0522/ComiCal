@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
-using System.Data.SqlClient;
+using Npgsql;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -22,7 +22,7 @@ namespace ComiCal.Shared
             // Database Factory
             static DbConnection ConnectionFactory(string accessKey)
             {
-                return new SqlConnection(accessKey);
+                return new NpgsqlConnection(accessKey);
             }
             service.AddSingleton<DefaultConnectionFactory>(() => ConnectionFactory(config.GetConnectionString(ConnectionName.DefaultConnection)));
 
