@@ -26,6 +26,18 @@ namespace Comical.Api.Services
             _logger = logger;
         }
 
+        private static string SanitizeForLog(string value)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            // Remove line breaks to mitigate log forging via user-controlled identifiers.
+            return value.Replace("\r", string.Empty)
+                        .Replace("\n", string.Empty);
+        }
+
         public async Task<string> RegisterMigrationSetting(IEnumerable<string> value)
         {
             try
@@ -59,27 +71,28 @@ namespace Comical.Api.Services
         {
             try
             {
+                var logSafeId = SanitizeForLog(id);
                 ConfigMigration data = await _configMigrationRepository.GetConfigSettings(id);
                 if (data == null)
                 {
-                    _logger.LogWarning("Migration setting not found for ID: {Id}", id);
+                    _logger.LogWarning("Migration setting not found for ID: {Id}", logSafeId);
                     return Enumerable.Empty<string>();
                 }
                 string val = data.Value;
                 IEnumerable<string> retVal = val.Split(_separator);
                 await _configMigrationRepository.DeleteConfigSettings(id);
                 
-                _logger.LogInformation("Successfully loaded and deleted migration setting with ID: {Id}", id);
+                _logger.LogInformation("Successfully loaded and deleted migration setting with ID: {Id}", logSafeId);
                 return retVal;
             }
             catch (NpgsqlException ex)
             {
-                _logger.LogError(ex, "Database error occurred while loading migration setting. ID: {Id}", id);
+                _logger.LogError(ex, "Database error occurred while loading migration setting. ID: {Id}", logSafeId);
                 throw new InvalidOperationException("Failed to load migration setting due to database error. Please try again later.", ex);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error occurred while loading migration setting. ID: {Id}", id);
+                _logger.LogError(ex, "Unexpected error occurred while loading migration setting. ID: {Id}", logSafeId);
                 throw;
             }
         }
