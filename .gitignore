@@ -1,0 +1,4 @@
+/**/azurite
+**/local.settings.json
+database/node_modules/
+database/package-lock.json

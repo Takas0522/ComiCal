@@ -1,0 +1,65 @@
+services:
+  app:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+
+    volumes:
+      - ../..:/workspaces:cached
+      # Node.js dependencies - use named volumes for better performance
+      - node_modules_front:/workspaces/ComiCal/src/front/node_modules
+      - node_modules_api:/workspaces/ComiCal/src/api/Comical.Api/node_modules
+      - node_modules_database:/workspaces/ComiCal/database/node_modules
+
+    # Overrides default command so things don't shut down after the process ends.
+    command: sleep infinity
+
+    # Use shared network to communicate with other services
+    networks:
+      - comical-network
+
+    # Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+    # user: root
+
+    # Use "forwardPorts" in **devcontainer.json** to forward an app port locally. 
+    # (Adding the "ports" property to this file will not forward from a Codespace.)
+    depends_on:
+      - postgres
+      - azurite
+
+  postgres:
+    container_name: comical-postgres
+    image: postgres:15-alpine
+    restart: unless-stopped
+    networks:
+      - comical-network
+    environment:
+      # Development credentials only - use secrets for production
+      - POSTGRES_USER=comical
+      - POSTGRES_PASSWORD=comical_dev_password
+      - POSTGRES_DB=comical
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ../database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+
+  azurite:
+    container_name: comical-azurite
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    restart: unless-stopped
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --skipApiVersionCheck --loose
+    networks:
+      - comical-network
+    volumes:
+      - ./data/azurite:/data
+
+networks:
+  comical-network:
+    name: comical-network
+    driver: bridge
+
+volumes:
+  postgres-data:
+  node_modules_front:
+  node_modules_api:
+  node_modules_database:

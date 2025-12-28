@@ -1,0 +1,15 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "PostgresConnectionString": "Host=postgres;Port=5432;Database=comical;Username=comical;Password=comical_dev_password",
+    "StorageConnectionString": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;",
+    "_Comment_PostgresLocal": "Local development: Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
+    "_Comment_PostgresAzure": "Azure with password: Host=<server>.postgres.database.azure.com;Port=5432;Database=comical;Username=<user>;Password=<pass>;SslMode=Require",
+    "_Comment_PostgresManagedIdentity": "Azure with Managed Identity: Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>;SslMode=Require"
+  },
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=postgres;Port=5432;Database=comical;Username=comical;Password=comical_dev_password"
+  }
+}

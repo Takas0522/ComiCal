@@ -16,8 +16,8 @@ https://manrem.devtakas.jp/
        │ HTTPS
        ▼
 ┌─────────────┐       ┌──────────────────┐
-│  API Layer  │◄─────►│   Cosmos DB      │
-│ (Functions) │       │  - comics        │  ← サーバーレスモード
+│  API Layer  │◄─────►│   PostgreSQL     │
+│ (Functions) │       │  - comics        │
 └──────┬──────┘       │  - config-migr...│
        │              └──────────────────┘
        │
@@ -35,15 +35,15 @@ https://manrem.devtakas.jp/
 
 **主要技術スタック**:
 - **フロントエンド**: Angular 17, Azure Static Web Apps
-- **API**: Azure Functions (.NET 6), Cosmos DB (NoSQL)
+- **API**: Azure Functions (.NET 6), PostgreSQL
 - **Batch**: Azure Durable Functions, Blob Storage
 - **外部API**: 楽天ブックスAPI
 
 **データフロー**:
 1. Batch層が楽天APIから漫画データを取得
-2. Cosmos DBに保存、画像はBlob Storageに保存
+2. PostgreSQLに保存、画像はBlob Storageに保存
 3. ユーザーがフロントエンドで検索
-4. API層がCosmos DBからデータを取得して返却
+4. API層がPostgreSQLからデータを取得して返却
 5. フロントエンドが画像をBlob Storageから動的に読み込み
 
 詳細は [アーキテクチャ図](./.attachements/2021-08-22-15-47-09.png) を参照。
@@ -60,9 +60,9 @@ https://manrem.devtakas.jp/
 - @azure/static-web-apps-cli
 - VisualStudio
   - Visual Studio CodeでもOK
-- SQL Server
-  - localdbでOK
-- Azure Cosmos DB（サーバーレスモード推奨）
+- PostgreSQL 14+
+  - Dockerでの起動推奨
+- Azure Database for PostgreSQL Flexible Server（本番環境）
 - Azure Blob Storage
 - Azure CLI（セットアップ用）
 
@@ -70,25 +70,63 @@ https://manrem.devtakas.jp/
 
 ### 初期セットアップ
 
-#### 1. Cosmos DB のセットアップ
+#### 1. PostgreSQL のセットアップ
 
-Cosmos DB データベースとコンテナを作成します：
+**ローカル開発環境（Docker使用）**:
 
-```powershell
-# Azure CLI でログイン（初回のみ）
-az login
+```bash
+# PostgreSQLコンテナを起動
+docker run --name comical-postgres \
+  -e POSTGRES_DB=comical \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -p 5432:5432 \
+  -d postgres:14
 
-# セットアップスクリプトを実行
-cd scripts
-.\setup-cosmosdb.ps1 -CosmosAccountName "<your-cosmos-account-name>" -ResourceGroupName "<your-resource-group-name>"
+# データベースの初期化（マイグレーション実行）
+# NOTE: マイグレーションスクリプトは Issue #90 の完了後に利用可能になります
+# 現時点ではPostgreSQLの起動のみ実施してください
 ```
 
-スクリプトは以下を自動的に作成します：
-- データベース: `ComiCalDB`
-- コンテナ: `comics`（パーティションキー: `/id`、インデックス最適化済み）
-- コンテナ: `config-migrations`（パーティションキー: `/id`）
+**Azure環境**:
 
-スクリプト実行後、表示される接続文字列を設定ファイルに追加してください。
+```bash
+# Azure Database for PostgreSQL Flexible Serverを作成
+az postgres flexible-server create \
+  --resource-group <your-resource-group> \
+  --name <your-server-name> \
+  --location japaneast \
+  --admin-user adminuser \
+  --admin-password <your-password> \
+  --sku-name Standard_B1ms \
+  --tier Burstable \
+  --version 14
+
+# データベースを作成
+az postgres flexible-server db create \
+  --resource-group <your-resource-group> \
+  --server-name <your-server-name> \
+  --database-name comical
+```
+
+**Managed Identity設定（本番環境推奨）**:
+
+Azure Functions に Managed Identity を設定し、PostgreSQL へのアクセスを許可します：
+
+```bash
+# Functions AppにManaged Identityを有効化
+az functionapp identity assign \
+  --name <your-function-app> \
+  --resource-group <your-resource-group>
+
+# PostgreSQLでManaged Identityを認証ユーザーとして追加
+# Azure PortalのPostgreSQL > Authentication > Add Azure AD Adminで設定
+```
+
+Managed Identity使用時は、接続文字列に資格情報を含める必要がありません：
+```
+Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>
+```
 
 #### 2. Blob Storage のセットアップ
 
@@ -98,10 +136,10 @@ Azure Portal または Azure CLI で Blob Storage アカウントを作成し、
 
 テンプレートファイルをコピーして、実際の接続文字列を設定します：
 
-**API層の設定** (`api/local.settings.json`):
+**API層の設定** (`src/api/local.settings.json`):
 ```bash
 # テンプレートからコピー
-cp api/local.settings.json.template api/local.settings.json
+cp src/api/local.settings.json.template src/api/local.settings.json
 ```
 
 ```json
@@ -110,19 +148,16 @@ cp api/local.settings.json.template api/local.settings.json
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "CosmosConnectionString": "AccountEndpoint=https://<account-name>.documents.azure.com:443/;AccountKey=<your-key>;",
+    "PostgresConnectionString": "Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
     "StorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=<storage-account>;AccountKey=<your-key>;EndpointSuffix=core.windows.net"
-  },
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=ComiCalDB;Trusted_Connection=True;"
   }
 }
 ```
 
-**Batch層の設定** (`batch/local.settings.json`):
+**Batch層の設定** (`src/batch/local.settings.json`):
 ```bash
 # テンプレートからコピー
-cp batch/local.settings.json.template batch/local.settings.json
+cp src/batch/local.settings.json.template src/batch/local.settings.json
 ```
 設定内容は API 層と同じです。
 
@@ -139,15 +174,20 @@ export const environment = {
 
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
-| `CosmosConnectionString` | Cosmos DB 接続文字列 | `AccountEndpoint=https://...;AccountKey=...;` |
+| `PostgresConnectionString` | PostgreSQL 接続文字列（ローカル開発） | `Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password` |
+| `PostgresConnectionString` | PostgreSQL 接続文字列（Azure with Managed Identity） | `Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>` |
 | `StorageConnectionString` | Blob Storage 接続文字列 | `DefaultEndpointsProtocol=https;AccountName=...` |
-| `DefaultConnection` | SQL Server 接続文字列（オプション） | `Server=(localdb)\\mssqllocaldb;...` |
 | `blobBaseUrl` | Blob Storage の画像ベースURL | `https://<account>.blob.core.windows.net/images` |
 
-> **セキュリティ注意**: 本番環境では、接続文字列に AccountKey を使用するのではなく、Azure Managed Identity や Azure AD 認証の使用を推奨します。これにより、設定ファイルに機密情報を保存する必要がなくなります。
+> **セキュリティ注意**: 本番環境では、接続文字列にパスワードを含めるのではなく、Azure Managed Identity を使用することを強く推奨します。これにより、設定ファイルに機密情報を保存する必要がなくなり、自動的にローテーションされる資格情報を使用できます。
 
 #### 4. ローカル開発実行
 
+**前提条件**:
+- PostgreSQLが起動していること（Docker: `docker start comical-postgres`）
+- Azurite（ローカルストレージエミュレータ）が起動していること
+
+**実行手順**:
 1. apiデバッグ実行/apiディレクトリで`func start`
 2. frontディレクトリで`npm run start`
 3. frontディレクトリで`npm run start:swa`
@@ -205,27 +245,28 @@ cd scripts
 
 | 項目 | 月額コスト |
 |------|-----------|
-| Cosmos DB ストレージ | $0.025 |
-| Cosmos DB RU消費 | $1.275 |
+| PostgreSQL Flexible Server (Burstable B1ms) | $12.41 |
+| PostgreSQL ストレージ (32 GiB) | $4.48 |
 | Blob Storage ストレージ | $0.18 |
 | Blob Storage トランザクション | $0.40 |
 | Azure Functions | $0.00 (消費プラン無料枠内) |
-| **合計** | **約 $1.88/月** |
+| **合計** | **約 $17.47/月** |
 
-> **注**: 実際のコストは使用パターンによって変動します。詳細は [Cosmos DB 移行ガイド](./docs/COSMOS_DB_MIGRATION.md#コスト見積もり) を参照してください。
+> **注**: 実際のコストは使用パターンによって変動します。PostgreSQL Flexible Serverは自動スケーリングとストップ機能により、開発環境でのコストを削減できます。詳細は [Cosmos DB 移行ガイド](./docs/COSMOS_DB_MIGRATION.md#コスト見積もり) を参照してください。
 
 ## トラブルシューティング
 
 ### よくある問題
 
-#### Cosmos DB 接続エラー
+#### PostgreSQL 接続エラー
 ```
-Microsoft.Azure.Cosmos.CosmosException: Unable to connect
+Npgsql.NpgsqlException: Connection refused
 ```
 **解決方法**: 
-- 接続文字列が正しいか確認
+- PostgreSQLが起動しているか確認（Docker: `docker ps | grep postgres`）
+- 接続文字列が正しいか確認（ホスト、ポート、データベース名、ユーザー名）
 - ファイアウォール設定を確認
-- 詳細は [トラブルシューティングガイド](./docs/COSMOS_DB_MIGRATION.md#トラブルシューティング)
+- Azure環境の場合、Managed Identityの設定を確認
 
 #### 画像が表示されない
 **解決方法**:
@@ -261,7 +302,7 @@ az consumption budget create \
 Application Insights で以下のメトリクスを監視：
 - API レスポンスタイム（目標: < 2秒）
 - エラー率（目標: < 5%）
-- Cosmos DB RU消費量
+- PostgreSQL 接続プール使用率
 - Blob Storage トランザクション数
 
 詳細は [Cosmos DB 移行ガイド](./docs/COSMOS_DB_MIGRATION.md#コスト監視とアラート設定) を参照してください。

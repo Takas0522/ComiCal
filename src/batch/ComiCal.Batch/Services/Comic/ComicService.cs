@@ -1,0 +1,262 @@
+﻿using ComiCal.Batch.Models;
+using ComiCal.Batch.Repositories;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using System.Linq;
+using ComiCal.Batch.Util.Common;
+using System.IO;
+using Castle.Core.Logging;
+using ComiCal.Shared.Models;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using ComiCal.Shared.Util;
+using System.Net.Http;
+using Microsoft.Extensions.Logging;
+using Npgsql;
+
+namespace ComiCal.Batch.Services
+{
+    public class ComicService : IComicService
+    {
+        private readonly IRakutenComicRepository _rakutenComicRepository;
+        private readonly IComicRepository _comicRepository;
+        private readonly BlobServiceClient _blobServiceClient;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly ILogger<ComicService> _logger;
+        private const string ContainerName = "images";
+
+        public ComicService(
+            IRakutenComicRepository rakutenComicRepository,
+            IComicRepository comicRepository,
+            BlobServiceClient blobServiceClient,
+            IHttpClientFactory httpClientFactory,
+            ILogger<ComicService> logger
+        )
+        {
+            _rakutenComicRepository = rakutenComicRepository;
+            _comicRepository = comicRepository;
+            _blobServiceClient = blobServiceClient;
+            _httpClientFactory = httpClientFactory;
+            _logger = logger;
+        }
+
+        public async Task<int> GetPageCountAsync()
+        {
+            try
+            {
+                RakutenComicResponse data = await _rakutenComicRepository.Fetch(1);
+                return data.PageCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get page count from Rakuten API");
+                throw;
+            }
+        }
+
+        public async Task RegitoryAsync(int requestPage)
+        {
+            try
+            {
+                RakutenComicResponse baseData = await _rakutenComicRepository.Fetch(requestPage);
+                IEnumerable<Comic> comics = GenRegistData(baseData);
+
+                await _comicRepository.UpsertComicsAsync(comics);
+                _logger.LogInformation("Successfully registered comics from page {Page}", requestPage);
+            }
+            catch (NpgsqlException ex)
+            {
+                _logger.LogError(ex, "Database error occurred while upserting comics for page {Page}", requestPage);
+                throw new InvalidOperationException($"Failed to register comics for page {requestPage} due to database error.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to register comics for page {Page}", requestPage);
+                throw;
+            }
+        }
+
+        private IEnumerable<Comic> GenRegistData(RakutenComicResponse data)
+        {
+            return data.Comics.Select(x =>
+            {
+                var date = DateTimeUtility.JpDateToDateTimeType(x.Info.SalesDate);
+                return new Comic
+                {
+                    Author = x.Info.Author,
+                    AuthorKana = x.Info.AuthorKana,
+                    Isbn = x.Info.Isbn,
+                    PublisherName = x.Info.PublisherName,
+                    SalesDate = date.value,
+                    SeriesName = x.Info.SeriesName,
+                    SeriesNameKana = x.Info.SeriesNameKana,
+                    Title = x.Info.Title,
+                    TitleKana = x.Info.TitleKana,
+                    ScheduleStatus = (int)date.status
+                };
+            });
+        }
+
+        public async Task<IEnumerable<Comic>> GetUpdateImageTargetAsync()
+        {
+            try
+            {
+                // Get all comics from PostgreSQL
+                var comics = await _comicRepository.GetComicsAsync();
+                
+                // Get blob container
+                var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+                
+                // Ensure container exists
+                await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                
+                var comicsNeedingImages = new List<Comic>();
+                
+                foreach (var comic in comics)
+                {
+                    if (string.IsNullOrWhiteSpace(comic.Isbn))
+                    {
+                        continue;
+                    }
+                    
+                    // Check if any image exists for this ISBN in blob storage using prefix search
+                    // This is more efficient than checking each extension individually
+                    var hasImage = false;
+                    await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{comic.Isbn}."))
+                    {
+                        // If any blob with prefix "{isbn}." exists, the comic has an image
+                        hasImage = true;
+                        break;
+                    }
+                    
+                    if (!hasImage)
+                    {
+                        comicsNeedingImages.Add(comic);
+                    }
+                }
+                
+                _logger.LogInformation("Found {Count} comics needing images out of {Total} total comics", 
+                    comicsNeedingImages.Count, comics.Count());
+                return comicsNeedingImages;
+            }
+            catch (NpgsqlException ex)
+            {
+                _logger.LogError(ex, "Database error occurred while retrieving comics for image update");
+                throw new InvalidOperationException("Failed to retrieve comics for image update due to database error.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get comics needing image updates");
+                throw;
+            }
+        }
+
+        public async Task UpdateImageDataAsync(string isbn, string imageUrl)
+        {
+            if (string.IsNullOrWhiteSpace(isbn))
+            {
+                throw new ArgumentException("ISBN cannot be null or whitespace.", nameof(isbn));
+            }
+            
+            if (string.IsNullOrWhiteSpace(imageUrl))
+            {
+                throw new ArgumentException("Image URL cannot be null or whitespace.", nameof(imageUrl));
+            }
+            
+            try
+            {
+                // Download image from URL
+                using var httpClient = _httpClientFactory.CreateClient();
+                using var response = await httpClient.GetAsync(imageUrl);
+                response.EnsureSuccessStatusCode();
+                
+                // Get content type and determine extension
+                var contentType = response.Content.Headers.ContentType?.MediaType;
+                var extension = ContentTypeHelper.GetExtensionFromContentType(contentType);
+                
+                // Get blob container
+                var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+                
+                // Ensure container exists with public access
+                await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                
+                // Create blob client with path: {isbn}.{ext}
+                var blobName = $"{isbn}{extension}";
+                var blobClient = containerClient.GetBlobClient(blobName);
+                
+                // Upload image to blob storage
+                using var imageStream = await response.Content.ReadAsStreamAsync();
+                await blobClient.UploadAsync(
+                    imageStream,
+                    new BlobHttpHeaders { ContentType = contentType },
+                    conditions: null
+                );
+            }
+            catch (HttpRequestException ex)
+            {
+                // Log error but don't throw - allow batch to continue with other images
+                _logger.LogError(ex, "Failed to download image for ISBN {Isbn} from {ImageUrl}", isbn, imageUrl);
+            }
+            catch (Exception ex)
+            {
+                // Log error but don't throw - allow batch to continue with other images
+                _logger.LogError(ex, "Failed to upload image for ISBN {Isbn}", isbn);
+            }
+        }
+
+        public async Task ProcessImageDownloadsAsync(int pageNumber)
+        {
+            try
+            {
+                // Fetch comic data from Rakuten API for this page
+                RakutenComicResponse data = await _rakutenComicRepository.Fetch(pageNumber);
+                
+                _logger.LogInformation("Processing images for page {Page} with {Count} comics", pageNumber, data.Comics.Count());
+                
+                // Process each comic's image
+                foreach (var comicInfo in data.Comics)
+                {
+                    var isbn = comicInfo.Info.Isbn;
+                    var imageUrl = comicInfo.Info.LargeImageUrl;
+                    
+                    // Skip if no ISBN or no image URL
+                    if (string.IsNullOrWhiteSpace(isbn) || string.IsNullOrWhiteSpace(imageUrl))
+                    {
+                        _logger.LogDebug("Skipping comic with ISBN {Isbn} - missing ISBN or image URL", isbn);
+                        continue;
+                    }
+                    
+                    // Check if image already exists
+                    var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+                    await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                    
+                    var hasImage = false;
+                    await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{isbn}."))
+                    {
+                        hasImage = true;
+                        break;
+                    }
+                    
+                    if (hasImage)
+                    {
+                        _logger.LogDebug("Image already exists for ISBN {Isbn}, skipping", isbn);
+                        continue;
+                    }
+                    
+                    // Download and save the image
+                    await UpdateImageDataAsync(isbn, imageUrl);
+                    _logger.LogInformation("Successfully processed image for ISBN {Isbn}", isbn);
+                }
+                
+                _logger.LogInformation("Completed image processing for page {Page}", pageNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process images for page {Page}", pageNumber);
+                // Don't throw - allow the batch to continue with other pages
+            }
+        }
+    }
+}

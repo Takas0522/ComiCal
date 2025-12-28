@@ -1,0 +1,49 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/dotnet-mssql
+{
+	"name": "Comical Dev",
+	"dockerComposeFile": "docker-compose.yml",
+	"service": "app",
+	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	// "features": {},
+
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			// Set *default* container specific settings.json values on container create.
+			"settings": { 
+			},
+			
+			// Add the IDs of extensions you want installed when the container is created.
+			"extensions": [
+				"ms-dotnettools.csharp",
+				"ms-ossdata.vscode-postgresql",
+				"GitHub.copilot-chat",
+				"ms-ossdata.vscode-pgsql"
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [4200, 5432, 10000, 10001, 10002],
+	// "portsAttributes": {
+	//		"5001": {
+	//			"protocol": "https"
+	//		}
+	// }
+
+	// Wait for PostgreSQL and Azurite to be ready, install dependencies, and seed images
+	"postCreateCommand": "bash -c 'until pg_isready -h postgres -U comical; do sleep 1; done && echo \"Database is ready!\" && until curl -s http://azurite:10000/ > /dev/null; do sleep 1; done && echo \"Azurite is ready!\" && sudo chown -R vscode:vscode /workspaces/ComiCal/src/front/node_modules /workspaces/ComiCal/database && cd /workspaces/ComiCal/src/front && npm ci && cd /workspaces/ComiCal/database && npm ci && npm run seed-images'",
+	"features": {
+		"ghcr.io/devcontainers/features/dotnet:2": {},
+		"ghcr.io/devcontainers/features/github-cli:1": {},
+		"ghcr.io/devcontainers-extra/features/angular-cli:2": {},
+		"ghcr.io/devcontainers-extra/features/node-asdf:0": {}
+	}
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}
