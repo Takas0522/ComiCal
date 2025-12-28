@@ -34,8 +34,8 @@
 	//		}
 	// }
 
-	// postCreateCommand.sh parameters: $1=SA password, $2=dacpac path, $3=sql script(s) path
-	// "postCreateCommand": "bash .devcontainer/mssql/postCreateCommand.sh 'P@ssw0rd' './bin/Debug/' './.devcontainer/mssql/'",
+	// Wait for PostgreSQL to be ready and verify the database initialization
+	"postCreateCommand": "until pg_isready -h postgres -U comical; do sleep 1; done && echo 'Database is ready!'",
 	"features": {
 		"ghcr.io/devcontainers/features/dotnet:2": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {},
