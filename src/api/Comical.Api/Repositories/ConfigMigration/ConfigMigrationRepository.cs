@@ -10,9 +10,9 @@ namespace Comical.Api.Repositories
     {
         private readonly NpgsqlDataSource _dataSource;
 
-        private const string UpsertSql = "INSERT INTO config_migrations (id, value) VALUES (@Id, @Value) ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value";
-        private const string SelectSql = "SELECT id, value FROM config_migrations WHERE id = @Id";
-        private const string DeleteSql = "DELETE FROM config_migrations WHERE id = @Id";
+        private const string UpsertSql = "INSERT INTO configmigration (id, value) VALUES (@Id, @Value) ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value";
+        private const string SelectSql = "SELECT id, value FROM configmigration WHERE id = @Id";
+        private const string DeleteSql = "DELETE FROM configmigration WHERE id = @Id";
 
         public ConfigMigrationRepository(NpgsqlDataSource dataSource)
         {

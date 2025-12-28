@@ -29,8 +29,8 @@ CREATE INDEX IF NOT EXISTS idx_comics_author_trgm ON comics USING GIN (author gi
 CREATE INDEX IF NOT EXISTS idx_comics_sales_date ON comics (sales_date);
 CREATE INDEX IF NOT EXISTS idx_comics_type ON comics (type);
 
--- Create config_migrations table
-CREATE TABLE IF NOT EXISTS config_migrations (
+-- Create configmigration table
+CREATE TABLE IF NOT EXISTS configmigration (
     id VARCHAR(255) NOT NULL PRIMARY KEY,
     value TEXT NOT NULL
 );
