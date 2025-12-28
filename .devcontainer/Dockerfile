@@ -5,6 +5,11 @@ FROM mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm
 # RUN bash ./installSQLtools.sh \
 #      && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
 
+# Install PostgreSQL client
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends postgresql-client \
+    && apt-get clean -y && rm -rf /var/lib/apt/lists/*
+
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>
