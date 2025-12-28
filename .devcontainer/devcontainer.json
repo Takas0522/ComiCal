@@ -21,7 +21,8 @@
 			"extensions": [
 				"ms-dotnettools.csharp",
 				"ms-ossdata.vscode-postgresql",
-				"GitHub.copilot-chat"
+				"GitHub.copilot-chat",
+				"ms-ossdata.vscode-pgsql"
 			]
 		}
 	},

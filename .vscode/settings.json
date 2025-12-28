@@ -1,0 +1,24 @@
+{
+  "pgsql.connections": [
+    {
+        "id": "43BFFB04-D629-4182-922F-D6A9F98E5245",
+        "groupId": "DC731DF2-81F3-448D-AF70-0B28C6DA414B",
+        "authenticationType": "SqlLogin",
+        "connectTimeout": 15,
+        "applicationName": "vscode-pgsql",
+        "clientEncoding": "utf8",
+        "sslmode": "disable",
+        "savePassword": true,
+        "server": "postgres",
+        "user": "comical",
+        "port": "5432",
+        "database": "comical",
+        "password": "",
+        "sshPassword": "comical_dev_password",
+        "profileName": "postgres, comical (comical)",
+        "copilotAccessMode": "ro",
+        "displayName": "postgres, comical (comical)",
+        "expiresOn": 0
+    }
+]
+}

@@ -205,5 +205,58 @@ namespace ComiCal.Batch.Services
                 _logger.LogError(ex, "Failed to upload image for ISBN {Isbn}", isbn);
             }
         }
+
+        public async Task ProcessImageDownloadsAsync(int pageNumber)
+        {
+            try
+            {
+                // Fetch comic data from Rakuten API for this page
+                RakutenComicResponse data = await _rakutenComicRepository.Fetch(pageNumber);
+                
+                _logger.LogInformation("Processing images for page {Page} with {Count} comics", pageNumber, data.Comics.Count());
+                
+                // Process each comic's image
+                foreach (var comicInfo in data.Comics)
+                {
+                    var isbn = comicInfo.Info.Isbn;
+                    var imageUrl = comicInfo.Info.LargeImageUrl;
+                    
+                    // Skip if no ISBN or no image URL
+                    if (string.IsNullOrWhiteSpace(isbn) || string.IsNullOrWhiteSpace(imageUrl))
+                    {
+                        _logger.LogDebug("Skipping comic with ISBN {Isbn} - missing ISBN or image URL", isbn);
+                        continue;
+                    }
+                    
+                    // Check if image already exists
+                    var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+                    await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                    
+                    var hasImage = false;
+                    await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{isbn}."))
+                    {
+                        hasImage = true;
+                        break;
+                    }
+                    
+                    if (hasImage)
+                    {
+                        _logger.LogDebug("Image already exists for ISBN {Isbn}, skipping", isbn);
+                        continue;
+                    }
+                    
+                    // Download and save the image
+                    await UpdateImageDataAsync(isbn, imageUrl);
+                    _logger.LogInformation("Successfully processed image for ISBN {Isbn}", isbn);
+                }
+                
+                _logger.LogInformation("Completed image processing for page {Page}", pageNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to process images for page {Page}", pageNumber);
+                // Don't throw - allow the batch to continue with other pages
+            }
+        }
     }
 }

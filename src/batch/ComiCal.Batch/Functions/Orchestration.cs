@@ -28,6 +28,7 @@ namespace ComiCal.Batch.Functions
             var pageCount = await context.CallActivityAsync<int>("GetPageCount", "");
             log.LogInformation($"Get PageCount Result={pageCount}");
 
+            // Step 1: Register comic data for all pages
             for (int i = 1; i <= pageCount; i++)
             {
                 await context.CallActivityAsync("WaitTime", 15);
@@ -35,6 +36,16 @@ namespace ComiCal.Batch.Functions
             }
 
             log.LogInformation($"Data Get Complete");
+
+            // Step 2: Download images for all pages
+            log.LogInformation($"Starting image download process for {pageCount} pages");
+            for (int i = 1; i <= pageCount; i++)
+            {
+                await context.CallActivityAsync("WaitTime", 15);
+                await context.CallActivityAsync("DownloadImages", i);
+            }
+
+            log.LogInformation($"Image download complete");
         }
 
         [FunctionName("GetPageCount")]
@@ -54,6 +65,13 @@ namespace ComiCal.Batch.Functions
         {
             log.LogInformation($"Run Page: {pageCount}");
             await _comicService.RegitoryAsync(pageCount);
+        }
+
+        [FunctionName("DownloadImages")]
+        public async Task DownloadImages([ActivityTrigger] int pageNumber, ILogger log)
+        {
+            log.LogInformation($"Downloading images for page: {pageNumber}");
+            await _comicService.ProcessImageDownloadsAsync(pageNumber);
         }
 
         [FunctionName("TimerStart")]
