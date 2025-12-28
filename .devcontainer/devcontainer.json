@@ -1,7 +1,7 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the
 // README at: https://github.com/devcontainers/templates/tree/main/src/dotnet-mssql
 {
-	"name": "C# (.NET) and MS SQL",
+	"name": "C# (.NET) and PostgreSQL",
 	"dockerComposeFile": "docker-compose.yml",
 	"service": "app",
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
@@ -20,14 +20,14 @@
 			// Add the IDs of extensions you want installed when the container is created.
 			"extensions": [
 				"ms-dotnettools.csharp",
-				"ms-mssql.mssql",
+				"ms-ossdata.vscode-postgresql",
 				"GitHub.copilot-chat"
 			]
 		}
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	"forwardPorts": [4200, 8081, 10251, 10252, 10253, 10254, 10255, 10000, 10001, 10002],
+	"forwardPorts": [4200, 5432, 10000, 10001, 10002],
 	// "portsAttributes": {
 	//		"5001": {
 	//			"protocol": "https"
