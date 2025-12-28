@@ -2,12 +2,14 @@
 -- This script creates the database schema for the ComiCal application
 
 -- Enable pg_trgm extension for partial match searching
+-- Note: Requires CREATE EXTENSION privilege. In production, this should be
+-- executed by a database administrator with appropriate permissions.
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Create comics table (compatible with Cosmos DB model)
 CREATE TABLE IF NOT EXISTS comics (
     isbn VARCHAR(13) NOT NULL PRIMARY KEY,
-    type VARCHAR(50) DEFAULT 'comic',
+    type VARCHAR(50) DEFAULT 'comic',  -- Document type identifier for Cosmos DB compatibility. Always 'comic' for comic entries.
     title TEXT NOT NULL,
     title_kana TEXT,
     series_name TEXT,
@@ -16,7 +18,7 @@ CREATE TABLE IF NOT EXISTS comics (
     author_kana TEXT,
     publisher_name TEXT NOT NULL,
     sales_date DATE NOT NULL,
-    schedule_status INTEGER NOT NULL
+    schedule_status INTEGER NOT NULL  -- 0: Confirm, 1: UntilDay, 2: UntilMonth, 3: UntilYear, 9: Undecided
 );
 
 -- Create GIN indexes with trgm_ops for partial match searching on title and author
