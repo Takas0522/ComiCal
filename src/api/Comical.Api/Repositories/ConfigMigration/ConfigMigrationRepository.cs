@@ -1,61 +1,40 @@
 ﻿using Comical.Api.Models;
-using ComiCal.Shared.Providers;
-using Microsoft.Azure.Cosmos;
+using Dapper;
+using Npgsql;
 using System;
-using System.Net;
 using System.Threading.Tasks;
 
 namespace Comical.Api.Repositories
 {
     public class ConfigMigrationRepository : IConfigMigrationRepository
     {
-        private readonly CosmosClient _cosmosClient;
-        private readonly Container _container;
-        private const string DatabaseName = "ComiCalDB";
-        private const string ContainerName = "config-migrations";
+        private readonly NpgsqlDataSource _dataSource;
 
-        public ConfigMigrationRepository(CosmosClientFactory cosmosClientFactory)
+        private const string UpsertSql = "INSERT INTO config_migrations (id, value) VALUES (@Id, @Value) ON CONFLICT (id) DO UPDATE SET value = EXCLUDED.value";
+        private const string SelectSql = "SELECT id, value FROM config_migrations WHERE id = @Id";
+        private const string DeleteSql = "DELETE FROM config_migrations WHERE id = @Id";
+
+        public ConfigMigrationRepository(NpgsqlDataSource dataSource)
         {
-            _cosmosClient = cosmosClientFactory();
-            _container = _cosmosClient.GetContainer(DatabaseName, ContainerName);
+            _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
         }
 
         public async Task RegisterConfig(string id, string settings)
         {
-            var configMigration = new ConfigMigration
-            {
-                id = id,
-                Value = settings
-            };
-
-            // Upsert operation - creates if not exists, updates if exists
-            await _container.UpsertItemAsync(configMigration, new PartitionKey(id));
+            await using var connection = await _dataSource.OpenConnectionAsync();
+            await connection.ExecuteAsync(UpsertSql, new { Id = id, Value = settings });
         }
 
         public async Task<ConfigMigration?> GetConfigSettings(string id)
         {
-            try
-            {
-                // Point read - most efficient operation (1 RU)
-                var response = await _container.ReadItemAsync<ConfigMigration>(id, new PartitionKey(id));
-                return response.Resource;
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                return null;
-            }
+            await using var connection = await _dataSource.OpenConnectionAsync();
+            return await connection.QuerySingleOrDefaultAsync<ConfigMigration>(SelectSql, new { Id = id });
         }
 
         public async Task DeleteConfigSettings(string id)
         {
-            try
-            {
-                await _container.DeleteItemAsync<ConfigMigration>(id, new PartitionKey(id));
-            }
-            catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
-            {
-                // Item doesn't exist, which is fine for delete operation
-            }
+            await using var connection = await _dataSource.OpenConnectionAsync();
+            await connection.ExecuteAsync(DeleteSql, new { Id = id });
         }
     }
 }
