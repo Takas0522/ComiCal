@@ -9,6 +9,7 @@ services:
       # Node.js dependencies - use named volumes for better performance
       - node_modules_front:/workspaces/ComiCal/src/front/node_modules
       - node_modules_api:/workspaces/ComiCal/src/api/Comical.Api/node_modules
+      - node_modules_database:/workspaces/ComiCal/database/node_modules
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
@@ -61,3 +62,4 @@ volumes:
   postgres-data:
   node_modules_front:
   node_modules_api:
+  node_modules_database:

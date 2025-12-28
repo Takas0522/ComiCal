@@ -36,7 +36,7 @@
 	// }
 
 	// Wait for PostgreSQL and Azurite to be ready, install dependencies, and seed images
-	"postCreateCommand": "bash -c 'until pg_isready -h postgres -U comical; do sleep 1; done && echo \"Database is ready!\" && until curl -s http://azurite:10000/ > /dev/null; do sleep 1; done && echo \"Azurite is ready!\" && cd /workspaces/ComiCal/src/front && npm ci && cd /workspaces/ComiCal/database && npm ci && npm run seed-images-from-api'",
+	"postCreateCommand": "bash -c 'until pg_isready -h postgres -U comical; do sleep 1; done && echo \"Database is ready!\" && until curl -s http://azurite:10000/ > /dev/null; do sleep 1; done && echo \"Azurite is ready!\" && sudo chown -R vscode:vscode /workspaces/ComiCal/src/front/node_modules /workspaces/ComiCal/database && cd /workspaces/ComiCal/src/front && npm ci && cd /workspaces/ComiCal/database && npm ci && npm run seed-images'",
 	"features": {
 		"ghcr.io/devcontainers/features/dotnet:2": {},
 		"ghcr.io/devcontainers/features/github-cli:1": {},
