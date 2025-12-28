@@ -14,6 +14,7 @@ using Azure.Storage.Blobs.Models;
 using ComiCal.Shared.Util;
 using System.Net.Http;
 using Microsoft.Extensions.Logging;
+using Npgsql;
 
 namespace ComiCal.Batch.Services
 {
@@ -43,16 +44,38 @@ namespace ComiCal.Batch.Services
 
         public async Task<int> GetPageCountAsync()
         {
-            RakutenComicResponse data = await _rakutenComicRepository.Fetch(1);
-            return data.PageCount;
+            try
+            {
+                RakutenComicResponse data = await _rakutenComicRepository.Fetch(1);
+                return data.PageCount;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get page count from Rakuten API");
+                throw;
+            }
         }
 
         public async Task RegitoryAsync(int requestPage)
         {
-            RakutenComicResponse baseData = await _rakutenComicRepository.Fetch(requestPage);
-            IEnumerable<Comic> comics = GenRegistData(baseData);
+            try
+            {
+                RakutenComicResponse baseData = await _rakutenComicRepository.Fetch(requestPage);
+                IEnumerable<Comic> comics = GenRegistData(baseData);
 
-            await _comicRepository.UpsertComicsAsync(comics);
+                await _comicRepository.UpsertComicsAsync(comics);
+                _logger.LogInformation("Successfully registered comics from page {Page}", requestPage);
+            }
+            catch (NpgsqlException ex)
+            {
+                _logger.LogError(ex, "Database error occurred while upserting comics for page {Page}", requestPage);
+                throw new InvalidOperationException($"Failed to register comics for page {requestPage} due to database error.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to register comics for page {Page}", requestPage);
+                throw;
+            }
         }
 
         private IEnumerable<Comic> GenRegistData(RakutenComicResponse data)
@@ -78,41 +101,56 @@ namespace ComiCal.Batch.Services
 
         public async Task<IEnumerable<Comic>> GetUpdateImageTargetAsync()
         {
-            // Get all comics from Cosmos DB
-            var comics = await _comicRepository.GetComicsAsync();
-            
-            // Get blob container
-            var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
-            
-            // Ensure container exists
-            await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
-            
-            var comicsNeedingImages = new List<Comic>();
-            
-            foreach (var comic in comics)
+            try
             {
-                if (string.IsNullOrWhiteSpace(comic.Isbn))
+                // Get all comics from PostgreSQL
+                var comics = await _comicRepository.GetComicsAsync();
+                
+                // Get blob container
+                var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+                
+                // Ensure container exists
+                await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                
+                var comicsNeedingImages = new List<Comic>();
+                
+                foreach (var comic in comics)
                 {
-                    continue;
+                    if (string.IsNullOrWhiteSpace(comic.Isbn))
+                    {
+                        continue;
+                    }
+                    
+                    // Check if any image exists for this ISBN in blob storage using prefix search
+                    // This is more efficient than checking each extension individually
+                    var hasImage = false;
+                    await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{comic.Isbn}."))
+                    {
+                        // If any blob with prefix "{isbn}." exists, the comic has an image
+                        hasImage = true;
+                        break;
+                    }
+                    
+                    if (!hasImage)
+                    {
+                        comicsNeedingImages.Add(comic);
+                    }
                 }
                 
-                // Check if any image exists for this ISBN in blob storage using prefix search
-                // This is more efficient than checking each extension individually
-                var hasImage = false;
-                await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{comic.Isbn}."))
-                {
-                    // If any blob with prefix "{isbn}." exists, the comic has an image
-                    hasImage = true;
-                    break;
-                }
-                
-                if (!hasImage)
-                {
-                    comicsNeedingImages.Add(comic);
-                }
+                _logger.LogInformation("Found {Count} comics needing images out of {Total} total comics", 
+                    comicsNeedingImages.Count, comics.Count());
+                return comicsNeedingImages;
             }
-            
-            return comicsNeedingImages;
+            catch (NpgsqlException ex)
+            {
+                _logger.LogError(ex, "Database error occurred while retrieving comics for image update");
+                throw new InvalidOperationException("Failed to retrieve comics for image update due to database error.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get comics needing image updates");
+                throw;
+            }
         }
 
         public async Task UpdateImageDataAsync(string isbn, string imageUrl)
