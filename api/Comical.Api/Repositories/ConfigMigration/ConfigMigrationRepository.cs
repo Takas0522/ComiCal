@@ -1,9 +1,9 @@
 ﻿using Comical.Api.Models;
 using Dapper;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Data;
 using System.Text;
 using System.Threading.Tasks;
@@ -27,7 +27,7 @@ namespace Comical.Api.Repositories
             param.Add("@id", id);
             param.Add("@value", settings);
 
-            using (var connection = new SqlConnection(_ConnectionString))
+            using (var connection = new NpgsqlConnection(_ConnectionString))
             {
                 connection.Open();
                 await connection.ExecuteAsync("RegisterConfigMigrationData", param, commandType: CommandType.StoredProcedure);
@@ -36,7 +36,7 @@ namespace Comical.Api.Repositories
 
         public async Task<ConfigMigration> GetConfigSettings(string id)
         {
-            using (var connection = new SqlConnection(_ConnectionString))
+            using (var connection = new NpgsqlConnection(_ConnectionString))
             {
                 connection.Open();
                 var param = new DynamicParameters();
@@ -55,7 +55,7 @@ namespace Comical.Api.Repositories
             var param = new DynamicParameters();
             param.Add("@id", id);
 
-            using (var connection = new SqlConnection(_ConnectionString))
+            using (var connection = new NpgsqlConnection(_ConnectionString))
             {
                 connection.Open();
                 await connection.ExecuteAsync("DeleteConfigMigration", param, commandType: CommandType.StoredProcedure);

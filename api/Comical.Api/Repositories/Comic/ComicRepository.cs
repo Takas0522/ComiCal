@@ -1,8 +1,8 @@
 ﻿using Dapper;
 using Microsoft.Extensions.Configuration;
+using Npgsql;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Text;
 using System.Threading.Tasks;
 using Comical.Api.Models;
@@ -27,7 +27,7 @@ namespace Comical.Api.Repositories
             var dt = d.ToDataTable();
             param.Add("@isbns", dt.AsTableValuedParameter("[dbo].[IsbnListTableType]"));
 
-            using (var connection = new SqlConnection(_ConnectionString))
+            using (var connection = new NpgsqlConnection(_ConnectionString))
             {
                 connection.Open();
                 return await connection.QueryAsync<ComicImage>("GetComicImages", param, commandType: CommandType.StoredProcedure);
@@ -36,7 +36,7 @@ namespace Comical.Api.Repositories
 
         public async Task<IEnumerable<Comic>> GetComicsAsync()
         {
-            using (var connection = new SqlConnection(_ConnectionString))
+            using (var connection = new NpgsqlConnection(_ConnectionString))
             {
                 connection.Open();
                 return await connection.QueryAsync<Comic>("GetComics", commandType: CommandType.StoredProcedure);
