@@ -1,51 +1,40 @@
-﻿using Microsoft.Azure.Cosmos;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Linq;
 using ComiCal.Shared.Models;
-using ComiCal.Shared.Providers;
+using Npgsql;
+using Dapper;
 
 namespace ComiCal.Batch.Repositories
 {
     public class ComicRepository : IComicRepository
     {
-        private readonly CosmosClient _cosmosClient;
-        private readonly Container _container;
-        private const string DatabaseName = "ComiCalDB";
-        private const string ContainerName = "comics";
-        private const int MaxItemCount = 100;
+        private readonly NpgsqlDataSource _dataSource;
 
-        public ComicRepository(CosmosClientFactory cosmosClientFactory)
+        public ComicRepository(NpgsqlDataSource dataSource)
         {
-            _cosmosClient = cosmosClientFactory();
-            _container = _cosmosClient.GetContainer(DatabaseName, ContainerName);
+            _dataSource = dataSource;
         }
 
         public async Task<IEnumerable<Comic>> GetComicsAsync()
         {
-            var results = new List<Comic>();
-            
-            // Query all comics with type = "comic"
-            var queryDefinition = new QueryDefinition(
-                "SELECT * FROM c WHERE c.type = @type")
-                .WithParameter("@type", "comic");
+            const string sql = @"
+                SELECT 
+                    isbn as Isbn,
+                    type,
+                    title as Title,
+                    title_kana as TitleKana,
+                    series_name as SeriesName,
+                    series_name_kana as SeriesNameKana,
+                    author as Author,
+                    author_kana as AuthorKana,
+                    publisher_name as PublisherName,
+                    sales_date as SalesDate,
+                    schedule_status as ScheduleStatus
+                FROM comics";
 
-            var queryRequestOptions = new QueryRequestOptions
-            {
-                MaxItemCount = MaxItemCount
-            };
-
-            using FeedIterator<Comic> feedIterator = _container.GetItemQueryIterator<Comic>(
-                queryDefinition,
-                continuationToken: null,
-                queryRequestOptions);
-
-            while (feedIterator.HasMoreResults)
-            {
-                FeedResponse<Comic> response = await feedIterator.ReadNextAsync();
-                results.AddRange(response);
-            }
-
+            await using var connection = await _dataSource.OpenConnectionAsync();
+            var results = await connection.QueryAsync<Comic>(sql);
             return results;
         }
 
@@ -56,31 +45,74 @@ namespace ComiCal.Batch.Repositories
                 return;
             }
 
-            // Create concurrent tasks for parallel upsert execution
-            // Note: Cosmos DB SDK v3+ automatically optimizes concurrent operations
-            var tasks = new List<Task>();
-            
-            foreach (var comic in comics)
+            const string sql = @"
+                INSERT INTO comics (
+                    isbn, 
+                    type, 
+                    title, 
+                    title_kana, 
+                    series_name, 
+                    series_name_kana, 
+                    author, 
+                    author_kana, 
+                    publisher_name, 
+                    sales_date, 
+                    schedule_status
+                ) VALUES (
+                    @Isbn, 
+                    @Type, 
+                    @Title, 
+                    @TitleKana, 
+                    @SeriesName, 
+                    @SeriesNameKana, 
+                    @Author, 
+                    @AuthorKana, 
+                    @PublisherName, 
+                    @SalesDate, 
+                    @ScheduleStatus
+                )
+                ON CONFLICT (isbn) DO UPDATE SET
+                    type = EXCLUDED.type,
+                    title = EXCLUDED.title,
+                    title_kana = EXCLUDED.title_kana,
+                    series_name = EXCLUDED.series_name,
+                    series_name_kana = EXCLUDED.series_name_kana,
+                    author = EXCLUDED.author,
+                    author_kana = EXCLUDED.author_kana,
+                    publisher_name = EXCLUDED.publisher_name,
+                    sales_date = EXCLUDED.sales_date,
+                    schedule_status = EXCLUDED.schedule_status";
+
+            // Prepare comics with default values
+            var comicsToUpsert = comics.Select(c => new
             {
-                // Ensure required fields are set
-                if (string.IsNullOrWhiteSpace(comic.id))
-                {
-                    comic.id = comic.Isbn; // Use ISBN as ID
-                }
-                if (string.IsNullOrWhiteSpace(comic.type))
-                {
-                    comic.type = "comic";
-                }
+                c.Isbn,
+                Type = string.IsNullOrWhiteSpace(c.type) ? "comic" : c.type,
+                c.Title,
+                c.TitleKana,
+                c.SeriesName,
+                c.SeriesNameKana,
+                c.Author,
+                c.AuthorKana,
+                c.PublisherName,
+                c.SalesDate,
+                c.ScheduleStatus
+            }).ToList();
 
-                // Create upsert task - will be executed concurrently with others
-                tasks.Add(_container.UpsertItemAsync(
-                    comic,
-                    new PartitionKey(comic.type)
-                ));
+            await using var connection = await _dataSource.OpenConnectionAsync();
+            await using var transaction = await connection.BeginTransactionAsync();
+            
+            try
+            {
+                // Execute batch upsert in a single transaction
+                await connection.ExecuteAsync(sql, comicsToUpsert, transaction);
+                await transaction.CommitAsync();
             }
-
-            // Execute all upserts concurrently
-            await Task.WhenAll(tasks);
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }
