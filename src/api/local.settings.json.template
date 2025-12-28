@@ -5,7 +5,8 @@
     "FUNCTIONS_WORKER_RUNTIME": "dotnet",
     "PostgresConnectionString": "Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
     "StorageConnectionString": "<your-blob-storage-connection-string>",
-    "_Comment_PostgresConnectionString": "Sample: Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
-    "_Comment_ManagedIdentity": "For Azure deployment with Managed Identity, use: Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>"
+    "_Comment_PostgresLocal": "Local development: Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
+    "_Comment_PostgresAzure": "Azure with password: Host=<server>.postgres.database.azure.com;Port=5432;Database=comical;Username=<user>;Password=<pass>;SslMode=Require",
+    "_Comment_PostgresManagedIdentity": "Azure with Managed Identity: Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>;SslMode=Require"
   }
 }

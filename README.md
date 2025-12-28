@@ -84,7 +84,8 @@ docker run --name comical-postgres \
   -d postgres:14
 
 # データベースの初期化（マイグレーション実行）
-# TODO: マイグレーションスクリプトの追加
+# NOTE: マイグレーションスクリプトは Issue #90 の完了後に利用可能になります
+# 現時点ではPostgreSQLの起動のみ実施してください
 ```
 
 **Azure環境**:
