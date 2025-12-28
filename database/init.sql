@@ -1,40 +1,34 @@
 -- ComiCal Database Initialization Script for PostgreSQL
 -- This script creates the database schema for the ComiCal application
 
--- Enable pg_trgm extension for partial match searching
--- Note: Requires CREATE EXTENSION privilege. In production, this should be
--- executed by a database administrator with appropriate permissions.
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
-
--- Create comics table (compatible with Cosmos DB model)
-CREATE TABLE IF NOT EXISTS comics (
+-- Create comic table (main table for comic information)
+CREATE TABLE IF NOT EXISTS comic (
     isbn VARCHAR(13) NOT NULL PRIMARY KEY,
-    type VARCHAR(50) DEFAULT 'comic',  -- Document type identifier for Cosmos DB compatibility. Always 'comic' for comic entries.
-    title TEXT NOT NULL,
-    title_kana TEXT,
-    series_name TEXT,
-    series_name_kana TEXT,
-    author TEXT NOT NULL,
-    author_kana TEXT,
-    publisher_name TEXT NOT NULL,
-    sales_date DATE NOT NULL,
-    schedule_status INTEGER NOT NULL  -- 0: Confirm, 1: UntilDay, 2: UntilMonth, 3: UntilYear, 9: Undecided
+    title VARCHAR(255) NOT NULL,
+    titlekana VARCHAR(255),
+    seriesname VARCHAR(255),
+    seriesnamekana VARCHAR(255),
+    author VARCHAR(100) NOT NULL,
+    authorkana VARCHAR(100),
+    publishername VARCHAR(100) NOT NULL,
+    salesdate TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    schedulestatus SMALLINT NOT NULL  -- 0: Confirm, 1: UntilDay, 2: UntilMonth, 3: UntilYear, 9: Undecided
 );
 
--- Create GIN indexes with trgm_ops for partial match searching on title and author
-CREATE INDEX IF NOT EXISTS idx_comics_title_trgm ON comics USING GIN (title gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_comics_author_trgm ON comics USING GIN (author gin_trgm_ops);
+-- Create indexes for better search performance
+CREATE INDEX IF NOT EXISTS ix_comic_titleandkana ON comic (title, titlekana);
+CREATE INDEX IF NOT EXISTS ix_comic_seriesandkana ON comic (seriesname, seriesnamekana);
+CREATE INDEX IF NOT EXISTS ix_comic_authorandkana ON comic (author, authorkana);
 
--- Create additional B-tree indexes for exact match and sorting
-CREATE INDEX IF NOT EXISTS idx_comics_sales_date ON comics (sales_date);
-CREATE INDEX IF NOT EXISTS idx_comics_type ON comics (type);
+-- Create comicimage table (stores comic image information)
+CREATE TABLE IF NOT EXISTS comicimage (
+    isbn VARCHAR(13) NOT NULL PRIMARY KEY,
+    imagebaseurl VARCHAR(255) NOT NULL,
+    imagestorageurl TEXT
+);
 
--- Create configmigration table
+-- Create configmigration table (stores configuration migration data)
 CREATE TABLE IF NOT EXISTS configmigration (
-    id VARCHAR(255) NOT NULL PRIMARY KEY,
+    id CHAR(10) NOT NULL PRIMARY KEY,
     value TEXT NOT NULL
 );
-
--- Grant permissions (optional, for development only)
--- For production, grant only specific permissions needed:
--- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO comical;

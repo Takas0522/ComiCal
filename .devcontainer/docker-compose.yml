@@ -6,6 +6,9 @@ services:
 
     volumes:
       - ../..:/workspaces:cached
+      # Node.js dependencies - use named volumes for better performance
+      - node_modules_front:/workspaces/ComiCal/src/front/node_modules
+      - node_modules_api:/workspaces/ComiCal/src/api/Comical.Api/node_modules
 
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
@@ -36,7 +39,8 @@ services:
       - POSTGRES_DB=comical
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ../database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
 
   azurite:
     container_name: comical-azurite
@@ -55,3 +59,5 @@ networks:
 
 volumes:
   postgres-data:
+  node_modules_front:
+  node_modules_api:

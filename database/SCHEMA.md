@@ -3,29 +3,27 @@
 ## Overview
 
 このドキュメントは、ComiCal アプリケーションの PostgreSQL データベーススキーマを説明します。
-スキーマは Cosmos DB モデルとの互換性を保ちながら、PostgreSQL の機能を活用した設計になっています。
 
 ## Tables
 
-### comics
+### comic
 
-漫画情報を格納するメインテーブル。Cosmos DB の `comics` コンテナと互換性があります。
+漫画情報を格納するメインテーブル。
 
 #### Schema
 
 ```sql
-CREATE TABLE comics (
+CREATE TABLE comic (
     isbn VARCHAR(13) NOT NULL PRIMARY KEY,
-    type VARCHAR(50) DEFAULT 'comic',
-    title TEXT NOT NULL,
-    title_kana TEXT,
-    series_name TEXT,
-    series_name_kana TEXT,
-    author TEXT NOT NULL,
-    author_kana TEXT,
-    publisher_name TEXT NOT NULL,
-    sales_date DATE NOT NULL,
-    schedule_status INTEGER NOT NULL
+    title VARCHAR(255) NOT NULL,
+    titlekana VARCHAR(255),
+    seriesname VARCHAR(255),
+    seriesnamekana VARCHAR(255),
+    author VARCHAR(100) NOT NULL,
+    authorkana VARCHAR(100),
+    publishername VARCHAR(100) NOT NULL,
+    salesdate TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    schedulestatus SMALLINT NOT NULL
 );
 ```
 
@@ -34,61 +32,41 @@ CREATE TABLE comics (
 | Column Name | Type | Constraints | Description |
 |-------------|------|-------------|-------------|
 | isbn | VARCHAR(13) | PRIMARY KEY, NOT NULL | 国際標準図書番号（ISBN-13） |
-| type | VARCHAR(50) | DEFAULT 'comic' | データタイプ識別子（Cosmos DB 互換） |
-| title | TEXT | NOT NULL | 漫画のタイトル |
-| title_kana | TEXT | NULL | タイトルのカナ読み |
-| series_name | TEXT | NULL | シリーズ名 |
-| series_name_kana | TEXT | NULL | シリーズ名のカナ読み |
-| author | TEXT | NOT NULL | 著者名 |
-| author_kana | TEXT | NULL | 著者名のカナ読み |
-| publisher_name | TEXT | NOT NULL | 出版社名 |
-| sales_date | DATE | NOT NULL | 発売日 |
-| schedule_status | INTEGER | NOT NULL | 発売スケジュールステータス（0-9） |
+| title | VARCHAR(255) | NOT NULL | 漫画のタイトル |
+| titlekana | VARCHAR(255) | NULL | タイトルのカナ読み |
+| seriesname | VARCHAR(255) | NULL | シリーズ名 |
+| seriesnamekana | VARCHAR(255) | NULL | シリーズ名のカナ読み |
+| author | VARCHAR(100) | NOT NULL | 著者名 |
+| authorkana | VARCHAR(100) | NULL | 著者名のカナ読み |
+| publishername | VARCHAR(100) | NOT NULL | 出版社名 |
+| salesdate | TIMESTAMP | NOT NULL | 発売日 |
+| schedulestatus | SMALLINT | NOT NULL | 発売スケジュールステータス（0-9） |
 
 #### Indexes
-
-##### GIN Indexes (Partial Match Search)
-
-pg_trgm 拡張を使用した部分一致検索用インデックス：
-
-```sql
-CREATE INDEX idx_comics_title_trgm ON comics USING GIN (title gin_trgm_ops);
-CREATE INDEX idx_comics_author_trgm ON comics USING GIN (author gin_trgm_ops);
-```
-
-**用途**: 
-- タイトルや著者名の部分一致検索（`LIKE '%keyword%'`）を高速化
-- 日本語を含むテキスト検索に対応
-
-**使用例**:
-```sql
--- タイトルで部分一致検索
-SELECT * FROM comics WHERE title LIKE '%ワンピース%';
-
--- 著者名で部分一致検索
-SELECT * FROM comics WHERE author LIKE '%尾田%';
-```
 
 ##### B-tree Indexes
 
 ```sql
-CREATE INDEX idx_comics_sales_date ON comics (sales_date);
-CREATE INDEX idx_comics_type ON comics (type);
+CREATE INDEX ix_comic_titleandkana ON comic (title, titlekana);
+CREATE INDEX ix_comic_seriesandkana ON comic (seriesname, seriesnamekana);
+CREATE INDEX ix_comic_authorandkana ON comic (author, authorkana);
 ```
 
 **用途**:
-- 発売日による範囲検索とソート
-- タイプによるフィルタリング
+- タイトルとタイトルカナによる検索
+- シリーズ名とシリーズ名カナによる検索
+- 著者名と著者名カナによる検索
 
 **使用例**:
 ```sql
--- 特定期間の漫画を検索
-SELECT * FROM comics 
-WHERE sales_date BETWEEN '2024-01-01' AND '2024-12-31'
-ORDER BY sales_date DESC;
+-- タイトルで検索
+SELECT * FROM comic WHERE title LIKE 'ワンピース%';
 
--- タイプでフィルタリング
-SELECT * FROM comics WHERE type = 'comic';
+-- 著者名で検索
+SELECT * FROM comic WHERE author LIKE '尾田%';
+
+-- 発売日でソート
+SELECT * FROM comic ORDER BY salesdate DESC LIMIT 20;
 ```
 
 #### Schedule Status Values
@@ -98,6 +76,122 @@ SELECT * FROM comics WHERE type = 'comic';
 | 0 | Confirm - 確定 |
 | 1 | UntilDay - 日まで確定 |
 | 2 | UntilMonth - 月まで確定 |
+| 3 | UntilYear - 年まで確定 |
+| 9 | Undecided - 未定 |
+
+### comicimage
+
+漫画の画像情報を格納するテーブル。
+
+#### Schema
+
+```sql
+CREATE TABLE comicimage (
+    isbn VARCHAR(13) NOT NULL PRIMARY KEY,
+    imagebaseurl VARCHAR(255) NOT NULL,
+    imagestorageurl TEXT
+);
+```
+
+#### Columns
+
+| Column Name | Type | Constraints | Description |
+|-------------|------|-------------|-------------|
+| isbn | VARCHAR(13) | PRIMARY KEY, NOT NULL | 国際標準図書番号（ISBN-13、comicテーブルと紐付く） |
+| imagebaseurl | VARCHAR(255) | NOT NULL | 画像のベースURL（楽天APIなどの元URL） |
+| imagestorageurl | TEXT | NULL | ストレージに保存された画像のURL（Azurite/Azure Blob Storage） |
+
+### configmigration
+
+設定移行データを格納するテーブル。
+
+#### Schema
+
+```sql
+CREATE TABLE configmigration (
+    id CHAR(10) NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL
+);
+```
+
+#### Columns
+
+| Column Name | Type | Constraints | Description |
+|-------------|------|-------------|-------------|
+| id | CHAR(10) | PRIMARY KEY, NOT NULL | 設定ID |
+| value | TEXT | NOT NULL | 設定値（JSON形式を推奨） |
+
+#### Usage Example
+
+```sql
+-- 設定データの挿入
+INSERT INTO configmigration (id, value) 
+VALUES ('migration1', '{"key": "value"}');
+
+-- 設定データの取得
+SELECT value FROM configmigration WHERE id = 'migration1';
+
+-- 設定データの更新
+UPDATE configmigration 
+SET value = '{"key": "updated"}' 
+WHERE id = 'migration1';
+```
+
+## Seed Data
+
+開発環境では、[seed.sql](seed.sql) を使用してサンプルデータを自動的に投入します。
+
+DevContainer起動時に自動的に実行されるため、手動での実行は不要です。
+
+### Seed Dataの内容
+
+- 最新の漫画データ20件
+- 実際のデータベースから抽出したサンプルデータ
+- `ON CONFLICT DO NOTHING` により、既存データがある場合はスキップ
+
+### 手動でSeed Dataを投入する場合
+
+```bash
+psql -U comical -d comical -f /workspaces/ComiCal/database/seed.sql
+```
+
+## Query Examples
+
+### 基本的なクエリ
+
+```sql
+-- 全ての漫画を取得（最新順）
+SELECT * FROM comic 
+ORDER BY salesdate DESC 
+LIMIT 30;
+
+-- 特定のISBNで検索
+SELECT * FROM comic 
+WHERE isbn = '9784088820000';
+
+-- タイトルで部分一致検索
+SELECT * FROM comic 
+WHERE title LIKE '%ワンピース%'
+ORDER BY salesdate DESC;
+
+-- 著者で部分一致検索
+SELECT * FROM comic 
+WHERE author LIKE '%尾田%'
+ORDER BY salesdate DESC;
+```
+
+### 複合検索
+
+```sql
+-- タイトルと著者の両方で検索
+SELECT * FROM comic 
+WHERE title LIKE '%ワンピース%' 
+  AND author LIKE '%尾田%'
+ORDER BY salesdate DESC;
+
+-- 特定期間の漫画を検索
+SELECT * FROM comic 
+WHERE salesdate BETWEEN '2024-01-01' AND '2024-12-31'
 | 3 | UntilYear - 年まで確定 |
 | 9 | Undecided - 未定 |
 
@@ -220,37 +314,57 @@ ORDER BY sales_date DESC;
 -- 特定期間の漫画を検索
 SELECT * FROM comics 
 WHERE sales_date BETWEEN '2024-01-01' AND '2024-12-31'
-  AND schedule_status = 0
-ORDER BY sales_date ASC;
+ORDER BY salesdate DESC;
+
+-- スケジュールステータスでフィルタリング
+SELECT * FROM comic 
+WHERE schedulestatus = 0
+ORDER BY salesdate DESC;
 ```
 
 ### ページング
 
 ```sql
 -- ページング（最初の30件）
-SELECT * FROM comics 
-ORDER BY sales_date DESC 
+SELECT * FROM comic 
+ORDER BY salesdate DESC 
 LIMIT 30 OFFSET 0;
 
 -- ページング（次の30件）
-SELECT * FROM comics 
-ORDER BY sales_date DESC 
+SELECT * FROM comic 
+ORDER BY salesdate DESC 
 LIMIT 30 OFFSET 30;
+```
+
+### 画像情報との結合
+
+```sql
+-- 漫画情報と画像情報を結合
+SELECT 
+    c.isbn,
+    c.title,
+    c.author,
+    c.salesdate,
+    ci.imagebaseurl,
+    ci.imagestorageurl
+FROM 
+    comic c
+LEFT JOIN 
+    comicimage ci ON c.isbn = ci.isbn
+ORDER BY 
+    c.salesdate DESC
+LIMIT 30;
 ```
 
 ## Performance Considerations
 
 ### Index Usage
 
-1. **部分一致検索**: GINインデックスを使用
-   - `LIKE '%keyword%'` パターンが高速化される
-   - 前方一致（`LIKE 'keyword%'`）も高速
-
-2. **範囲検索**: B-treeインデックスを使用
-   - `sales_date` による範囲検索とソート
+1. **複合インデックス**: B-treeインデックスを使用
+   - タイトルとカナ、シリーズとカナ、著者とカナの複合検索が最適化される
    - `WHERE` 句と `ORDER BY` の組み合わせが最適化される
 
-3. **完全一致検索**: PRIMARY KEY を使用
+2. **完全一致検索**: PRIMARY KEY を使用
    - `isbn` による検索が最速
 
 ### Best Practices
@@ -260,8 +374,8 @@ LIMIT 30 OFFSET 30;
    - `SELECT *` は避ける（大きなデータの場合）
 
 2. **LIKE クエリ**:
-   - 前方一致（`title LIKE 'keyword%'`）は後方一致より高速
-   - 両側ワイルドカード（`LIKE '%keyword%'`）は GIN インデックスで最適化
+   - 前方一致（`title LIKE 'keyword%'`）は効率的
+   - 後方一致（`title LIKE '%keyword'`）や中間一致（`LIKE '%keyword%'`）はフルスキャンになる可能性がある
 
 3. **ページング**:
    - `LIMIT` と `OFFSET` を使用
@@ -274,8 +388,9 @@ LIMIT 30 OFFSET 30;
 定期的に VACUUM を実行してテーブルを最適化：
 
 ```sql
-VACUUM ANALYZE comics;
-VACUUM ANALYZE config_migrations;
+VACUUM ANALYZE comic;
+VACUUM ANALYZE comicimage;
+VACUUM ANALYZE configmigration;
 ```
 
 ### Index Rebuild
@@ -283,8 +398,9 @@ VACUUM ANALYZE config_migrations;
 必要に応じてインデックスを再構築：
 
 ```sql
-REINDEX TABLE comics;
-REINDEX TABLE config_migrations;
+REINDEX TABLE comic;
+REINDEX TABLE comicimage;
+REINDEX TABLE configmigration;
 ```
 
 ### Statistics Update
@@ -292,31 +408,10 @@ REINDEX TABLE config_migrations;
 クエリプランナーの統計情報を更新：
 
 ```sql
-ANALYZE comics;
-ANALYZE config_migrations;
+ANALYZE comic;
+ANALYZE comicimage;
+ANALYZE configmigration;
 ```
-
-## Migration Notes
-
-### From SQL Server
-
-SQL Server からの移行時の注意点：
-
-1. **テーブル名**: `Comic` → `comics`（小文字）
-2. **フィールド名**: PascalCase → snake_case
-3. **データ型**:
-   - `NVARCHAR` → `TEXT` または `VARCHAR`
-   - `DATETIME2` → `DATE` または `TIMESTAMP`
-   - `SMALLINT` → `INTEGER`
-
-### To Cosmos DB
-
-Cosmos DB への移行時の注意点：
-
-1. **id フィールド**: `isbn` の値を `id` にコピー
-2. **type フィールド**: すでに `'comic'` がデフォルト値として設定済み
-3. **フィールド名**: snake_case → camelCase にマッピング
-4. **日付形式**: `DATE` → ISO 8601 文字列（例: `2024-01-15T00:00:00Z`）
 
 ## Testing
 
@@ -324,18 +419,17 @@ Cosmos DB への移行時の注意点：
 
 ```sql
 -- テストデータの挿入
-INSERT INTO comics (
-    isbn, type, title, title_kana, author, author_kana, 
-    publisher_name, sales_date, schedule_status
+INSERT INTO comic (
+    isbn, title, titlekana, author, authorkana, 
+    publishername, salesdate, schedulestatus
 ) VALUES (
     '9784088820000', 
-    'comic',
     'ワンピース 100巻', 
-    'わんぴーす',
+    'ワンピース',
     '尾田栄一郎',
-    'おだえいいちろう',
+    'オダエイイチロウ',
     '集英社',
-    '2024-01-15',
+    '2024-01-15 00:00:00',
     0
 );
 ```
@@ -345,7 +439,7 @@ INSERT INTO comics (
 ```sql
 -- インデックスの使用状況を確認
 EXPLAIN ANALYZE 
-SELECT * FROM comics 
+SELECT * FROM comic 
 WHERE title LIKE '%ワンピース%';
 
 -- インデックスサイズの確認
@@ -353,15 +447,19 @@ SELECT
     schemaname,
     tablename,
     indexname,
+```sql
+-- インデックスサイズの確認
+SELECT 
+    indexrelname as index_name,
     pg_size_pretty(pg_relation_size(indexrelid)) as index_size
 FROM pg_stat_user_indexes
-WHERE tablename IN ('comics', 'config_migrations')
+WHERE tablename IN ('comic', 'comicimage', 'configmigration')
 ORDER BY pg_relation_size(indexrelid) DESC;
 ```
 
 ## References
 
-- [PostgreSQL pg_trgm Documentation](https://www.postgresql.org/docs/current/pgtrgm.html)
-- [PostgreSQL GIN Indexes](https://www.postgresql.org/docs/current/gin.html)
-- [Cosmos DB Migration Plan](../docs/COSMOS_DB_MIGRATION_PLAN.md)
-- [Comic Model](../src/ComiCal.Server/ComiCal.Shared/Models/Comic.cs)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/)
+- [Database Initialization Script](init.sql)
+- [Seed Data Script](seed.sql)
+

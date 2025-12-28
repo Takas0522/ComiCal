@@ -1,0 +1,17 @@
+{
+  "name": "comical-database-seed",
+  "version": "1.0.0",
+  "description": "Database and image seeding scripts for ComiCal development environment",
+  "private": true,
+  "scripts": {
+    "seed-images": "node seed-images.js",
+    "seed-images-from-api": "node seed-images-from-api.js"
+  },
+  "dependencies": {
+    "@azure/storage-blob": "^12.17.0"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
