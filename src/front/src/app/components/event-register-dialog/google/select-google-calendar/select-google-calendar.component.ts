@@ -5,9 +5,10 @@ import { map } from 'rxjs/operators';
 import { GoogleAuthService } from '../google-auth.service';
 
 @Component({
-  selector: 'app-select-google-calendar',
-  templateUrl: './select-google-calendar.component.html',
-  styleUrls: ['./select-google-calendar.component.scss']
+    selector: 'app-select-google-calendar',
+    templateUrl: './select-google-calendar.component.html',
+    styleUrls: ['./select-google-calendar.component.scss'],
+    standalone: false
 })
 export class SelectGoogleCalendarComponent implements OnInit {
 

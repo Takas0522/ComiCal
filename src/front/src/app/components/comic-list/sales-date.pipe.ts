@@ -3,7 +3,8 @@ import { formatDate } from '@angular/common';
 import { ScheduleStatusType, scheduleStatus } from 'src/app/models/comic.interface';
 
 @Pipe({
-  name: 'salesDate'
+    name: 'salesDate',
+    standalone: false
 })
 export class SalesDatePipe implements PipeTransform {
 

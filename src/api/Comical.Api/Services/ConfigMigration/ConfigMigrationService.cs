@@ -69,9 +69,9 @@ namespace Comical.Api.Services
 
         public async Task<IEnumerable<string>> LoadMigrationSetting(string id)
         {
+            var logSafeId = SanitizeForLog(id);
             try
             {
-                var logSafeId = SanitizeForLog(id);
                 ConfigMigration data = await _configMigrationRepository.GetConfigSettings(id);
                 if (data == null)
                 {

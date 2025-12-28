@@ -4,9 +4,10 @@ import { LicenceDialogQuery } from './licence-dialog.query';
 import { LicenceDialogService } from './licence-dialog.service';
 
 @Component({
-  selector: 'app-license-dialog',
-  templateUrl: './license-dialog.component.html',
-  styleUrls: ['./license-dialog.component.scss']
+    selector: 'app-license-dialog',
+    templateUrl: './license-dialog.component.html',
+    styleUrls: ['./license-dialog.component.scss'],
+    standalone: false
 })
 export class LicenseDialogComponent implements OnInit {
 
