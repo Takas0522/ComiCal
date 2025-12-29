@@ -1,9 +1,15 @@
-FROM mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm
+FROM mcr.microsoft.com/devcontainers/dotnet:1-8.0-bookworm
 
 # Install SQL Tools: SQLPackage and sqlcmd
 # COPY mssql/installSQLtools.sh installSQLtools.sh
 # RUN bash ./installSQLtools.sh \
 #      && apt-get clean -y && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
+
+# Install .NET 10 SDK
+RUN wget https://dot.net/v1/dotnet-install.sh -O dotnet-install.sh \
+    && chmod +x dotnet-install.sh \
+    && ./dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet \
+    && rm dotnet-install.sh
 
 # Install PostgreSQL client
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
