@@ -22,31 +22,35 @@ namespace ComiCal.Batch.Functions
 
         [Function("Orchestration")]
         public static async Task RunOrchestrator(
-            [OrchestrationTrigger] TaskOrchestrationContext context,
-            ILogger log
+            [OrchestrationTrigger] TaskOrchestrationContext context
         )
         {
-            var pageCount = await context.CallActivityAsync<int>("GetPageCount", "");
-            log.LogInformation($"Get PageCount Result={pageCount}");
+            var log = context.CreateReplaySafeLogger<Orchestration>();
+            log.LogDebug("Orchestration started");
+            
+            var pageCount = await context.CallActivityAsync<int>("GetPageCount");
+            log.LogInformation("Get PageCount Result={PageCount}", pageCount);
 
             // Step 1: Register comic data for all pages
+            log.LogDebug("Starting registration loop for {PageCount} pages", pageCount);
             for (int i = 1; i <= pageCount; i++)
             {
                 await context.CallActivityAsync("WaitTime", 15);
                 await context.CallActivityAsync("Register", i);
             }
 
-            log.LogInformation($"Data Get Complete");
+            log.LogInformation("Data Get Complete");
 
             // Step 2: Download images for all pages
-            log.LogInformation($"Starting image download process for {pageCount} pages");
+            log.LogDebug("Starting image download loop");
+            log.LogInformation("Starting image download process for {PageCount} pages", pageCount);
             for (int i = 1; i <= pageCount; i++)
             {
                 await context.CallActivityAsync("WaitTime", 15);
                 await context.CallActivityAsync("DownloadImages", i);
             }
 
-            log.LogInformation($"Image download complete");
+            log.LogInformation("Image download complete");
         }
 
         [Function("GetPageCount")]
