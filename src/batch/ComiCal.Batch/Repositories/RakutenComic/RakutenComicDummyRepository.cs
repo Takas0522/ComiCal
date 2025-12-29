@@ -74,7 +74,7 @@ namespace ComiCal.Batch.Repositories
                 "}";
             return await Task.Run(() =>
             {
-                return JsonSerializer.Deserialize<RakutenComicResponse>(json);
+                return JsonSerializer.Deserialize<RakutenComicResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             });
         }
 
