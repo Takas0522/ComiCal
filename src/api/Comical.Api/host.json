@@ -8,7 +8,7 @@
             }
         },
         "logLevel": {
-            "Default": "Information",
+            "Default": "Debug",
             "Microsoft.Azure.Functions.Worker": "Debug"
         }
     }

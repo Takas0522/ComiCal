@@ -118,10 +118,8 @@ namespace ComiCal.Batch.Functions
         [Function("TimerStart")]
         public static async Task Run(
             [TimerTrigger(
-                "0 0 0 * * *"
-#if DEBUG
-            , RunOnStartup=true
-#endif
+                "0 0 0 * * *",
+                RunOnStartup=true
             )] TimerInfo myTimer,
             [DurableClient] DurableTaskClient starter,
             FunctionContext executionContext)
