@@ -1,5 +1,7 @@
 <div class ="contents">
-  <p *ngIf="isComplete$ | async">連携コードが生成されました。生成されたコードを連携先のブラウザで入力してください。</p>
+  @if (isComplete$ | async) {
+    <p>連携コードが生成されました。生成されたコードを連携先のブラウザで入力してください。</p>
+  }
   <div class="id">
     <h1>{{ id$ | async }}</h1>
   </div>

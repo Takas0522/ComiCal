@@ -23,34 +23,46 @@
         </div>
         <div class="open-close-button">
           <button mat-flat-button (click)="drawer.toggle()">
-            <span *ngIf="drawer.opened">閉じる</span>
-            <mat-icon *ngIf="drawer.opened">arrow_forward_ios</mat-icon>
-            <mat-icon *ngIf="!drawer.opened">arrow_back_ios</mat-icon>
-            <span *ngIf="!drawer.opened">キーワード</span>
+            @if (drawer.opened) {
+              <span>閉じる</span>
+            }
+            @if (drawer.opened) {
+              <mat-icon>arrow_forward_ios</mat-icon>
+            }
+            @if (!drawer.opened) {
+              <mat-icon>arrow_back_ios</mat-icon>
+            }
+            @if (!drawer.opened) {
+              <span>キーワード</span>
+            }
           </button>
         </div>
       </div>
       <form [formGroup]="fg">
         <div class="list-contents" formArrayName="checkedItems">
-            <ng-container *ngFor="let comic of comicList$ | async; let i = index">
-              <mat-card appearance="outlined" class="comic-card">
-                <div class="card-contents">
-                  <div class="checkbox" [formGroupName]="i">
-                    <mat-checkbox formControlName="checkedItem"></mat-checkbox>
-                    <input hidden formControlName="isbn"/>
-                  </div>
-                  <div class="pix">
-                    <img [src]="comic.imageUrlSanitize" (error)="onImageError($event)" *ngIf="comic.imageUrl" />
-                    <span class="no-image" *ngIf="!comic.imageUrl">画像なし</span>
-                  </div>
-                  <div class="text-contents info">
-                    <div class="title">{{comic.title}}</div>
-                    <div class="author">{{comic.author}}</div>
-                    <div class="sales-date">{{comic.salesDate | salesDate: comic.scheduleStatus}}</div>
-                  </div>
+          @for (comic of comicList$ | async; track comic; let i = $index) {
+            <mat-card appearance="outlined" class="comic-card">
+              <div class="card-contents">
+                <div class="checkbox" [formGroupName]="i">
+                  <mat-checkbox formControlName="checkedItem"></mat-checkbox>
+                  <input hidden formControlName="isbn"/>
                 </div>
-              </mat-card>
-            </ng-container>
+                <div class="pix">
+                  @if (comic.imageUrl) {
+                    <img [src]="comic.imageUrlSanitize" (error)="onImageError($event)" />
+                  }
+                  @if (!comic.imageUrl) {
+                    <span class="no-image">画像なし</span>
+                  }
+                </div>
+                <div class="text-contents info">
+                  <div class="title">{{comic.title}}</div>
+                  <div class="author">{{comic.author}}</div>
+                  <div class="sales-date">{{comic.salesDate | salesDate: comic.scheduleStatus}}</div>
+                </div>
+              </div>
+            </mat-card>
+          }
         </div>
       </form>
     </mat-drawer-content>

@@ -1,10 +1,10 @@
 <div class="contents">
-  <ng-container *ngFor="let item of calendarList$ | async">
+  @for (item of calendarList$ | async; track item) {
     <div class="buttons">
       <button mat-stroked-button color="primary"
         (click)="selectCalendar(item.id)">
         {{item.summary}}
       </button>
     </div>
-  </ng-container>
+  }
 </div>
