@@ -26,8 +26,8 @@ namespace Comical.Api.Util.Common
         public string? Details { get; set; }
 
         /// <summary>
-        /// Gets or sets the timestamp when the error occurred.
+        /// Gets the timestamp when the error occurred.
         /// </summary>
-        public DateTime Timestamp { get; set; }
+        public DateTime Timestamp { get; }
     }
 }

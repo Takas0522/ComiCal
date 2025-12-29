@@ -48,16 +48,11 @@ namespace Comical.Api.Util.Common
             string message,
             string? details = null)
         {
-            var errorResponse = new ErrorResponse
-            {
-                Message = message,
-                Details = details
-            };
-
-            var response = request.CreateResponse(HttpStatusCode.BadRequest);
-            response.Headers.Add("Content-Type", JsonContentType);
-            await response.WriteAsJsonAsync(errorResponse, JsonOptions);
-            return response;
+            return await CreateErrorResponseInternalAsync(
+                request,
+                HttpStatusCode.BadRequest,
+                message,
+                details);
         }
 
         /// <summary>
@@ -72,13 +67,29 @@ namespace Comical.Api.Util.Common
             string message,
             string? details = null)
         {
+            return await CreateErrorResponseInternalAsync(
+                request,
+                HttpStatusCode.InternalServerError,
+                message,
+                details);
+        }
+
+        /// <summary>
+        /// Creates an error HTTP response with the specified status code.
+        /// </summary>
+        private static async Task<HttpResponseData> CreateErrorResponseInternalAsync(
+            HttpRequestData request,
+            HttpStatusCode statusCode,
+            string message,
+            string? details)
+        {
             var errorResponse = new ErrorResponse
             {
                 Message = message,
                 Details = details
             };
 
-            var response = request.CreateResponse(HttpStatusCode.InternalServerError);
+            var response = request.CreateResponse(statusCode);
             response.Headers.Add("Content-Type", JsonContentType);
             await response.WriteAsJsonAsync(errorResponse, JsonOptions);
             return response;
