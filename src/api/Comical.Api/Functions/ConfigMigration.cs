@@ -63,7 +63,12 @@ namespace Comical.Api.Functions
             return await FunctionExecutionHelper.ExecuteAsync(req, _logger, async () =>
             {
                 string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-                var regData = JsonSerializer.Deserialize<IEnumerable<string>>(requestBody);
+                var jsonOptions = new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+                };
+                var regData = JsonSerializer.Deserialize<IEnumerable<string>>(requestBody, jsonOptions);
                 
                 if (regData == null)
                 {
