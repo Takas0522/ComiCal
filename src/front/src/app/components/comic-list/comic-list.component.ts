@@ -19,9 +19,10 @@ import { SearchKeywordsQuery } from './search-keywords/search-keywords.query';
 import { SearchKeywordsService } from './search-keywords/search-keywords.service';
 
 @Component({
-  selector: 'app-comic-list',
-  templateUrl: './comic-list.component.html',
-  styleUrls: ['./comic-list.component.scss']
+    selector: 'app-comic-list',
+    templateUrl: './comic-list.component.html',
+    styleUrls: ['./comic-list.component.scss'],
+    standalone: false
 })
 export class ComicListComponent implements OnInit {
 

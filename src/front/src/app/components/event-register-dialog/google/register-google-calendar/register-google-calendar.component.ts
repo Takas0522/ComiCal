@@ -5,9 +5,10 @@ import { GoogleAuthService } from '../google-auth.service';
 import { Observable } from 'rxjs';
 
 @Component({
-  selector: 'app-register-google-calendar',
-  templateUrl: './register-google-calendar.component.html',
-  styleUrls: ['./register-google-calendar.component.scss']
+    selector: 'app-register-google-calendar',
+    templateUrl: './register-google-calendar.component.html',
+    styleUrls: ['./register-google-calendar.component.scss'],
+    standalone: false
 })
 export class RegisterGoogleCalendarComponent implements OnInit {
 

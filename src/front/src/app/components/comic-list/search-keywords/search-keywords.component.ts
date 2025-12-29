@@ -5,9 +5,10 @@ import { SearchKeywordsQuery } from './search-keywords.query';
 import { SearchKeywordsService } from './search-keywords.service';
 
 @Component({
-  selector: 'app-search-keywords',
-  templateUrl: './search-keywords.component.html',
-  styleUrls: ['./search-keywords.component.scss']
+    selector: 'app-search-keywords',
+    templateUrl: './search-keywords.component.html',
+    styleUrls: ['./search-keywords.component.scss'],
+    standalone: false
 })
 export class SearchKeywordsComponent implements OnInit {
 

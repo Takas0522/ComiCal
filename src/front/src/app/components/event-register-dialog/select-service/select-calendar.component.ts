@@ -3,9 +3,10 @@ import { Observable, Subject } from 'rxjs';
 import { calendarService, CalendarServiceType } from '../models/calendar-service.type';
 
 @Component({
-  selector: 'app-select-service',
-  templateUrl: './select-calendar.component.html',
-  styleUrls: ['./select-calendar.component.scss']
+    selector: 'app-select-service',
+    templateUrl: './select-calendar.component.html',
+    styleUrls: ['./select-calendar.component.scss'],
+    standalone: false
 })
 export class SelectServiceComponent {
 

@@ -9,9 +9,10 @@ import { calendarService, CalendarServiceType } from './models/calendar-service.
 import { SelectServiceComponent } from './select-service/select-calendar.component';
 
 @Component({
-  selector: 'app-event-register-dialog',
-  templateUrl: './event-register-dialog.component.html',
-  styleUrls: ['./event-register-dialog.component.scss']
+    selector: 'app-event-register-dialog',
+    templateUrl: './event-register-dialog.component.html',
+    styleUrls: ['./event-register-dialog.component.scss'],
+    standalone: false
 })
 export class EventRegisterDialogComponent implements OnInit, AfterViewInit {
 

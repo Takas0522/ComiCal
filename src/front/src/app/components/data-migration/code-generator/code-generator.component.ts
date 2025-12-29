@@ -5,9 +5,10 @@ import { DataMigrationSerivce } from '../data-migration.service';
 import { CodeGeneratorQuery } from './code-generator.query';
 
 @Component({
-  selector: 'app-code-generator',
-  templateUrl: './code-generator.component.html',
-  styleUrls: ['./code-generator.component.scss']
+    selector: 'app-code-generator',
+    templateUrl: './code-generator.component.html',
+    styleUrls: ['./code-generator.component.scss'],
+    standalone: false
 })
 export class CodeGeneratorComponent implements OnInit {
 

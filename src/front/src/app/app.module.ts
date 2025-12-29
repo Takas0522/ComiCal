@@ -5,7 +5,7 @@ import { AppRoutingModule } from './app-routing.module';
 import { AppComponent } from './app.component';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { SearchKeywordsComponent } from './components/comic-list/search-keywords/search-keywords.component';
-import { HttpClientModule, HTTP_INTERCEPTORS } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { MaterialModule } from './modules/material.module';
 import { ComicListComponent } from './components/comic-list/comic-list.component';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -20,32 +20,25 @@ import { RegisterGoogleCalendarComponent } from './components/event-register-dia
 import { CodeGeneratorComponent } from './components/data-migration/code-generator/code-generator.component';
 import { CodeRegisterComponent } from './components/data-migration/code-register/code-register.component';
 
-@NgModule({
-  declarations: [
-    AppComponent,
-    SearchKeywordsComponent,
-    ComicListComponent,
-    SalesDatePipe,
-    LicenseDialogComponent,
-    ImageSrcPipe,
-    EventRegisterDialogComponent,
-    SelectServiceComponent,
-    SelectGoogleCalendarComponent,
-    RegisterGoogleCalendarComponent,
-    CodeGeneratorComponent,
-    CodeRegisterComponent
-  ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    BrowserAnimationsModule,
-    HttpClientModule,
-    MaterialModule,
-    ReactiveFormsModule
-  ],
-  providers: [
-    // { provide: HTTP_INTERCEPTORS, useClass: MockInterceptor, multi: true }
-  ],
-  bootstrap: [AppComponent]
-})
+@NgModule({ declarations: [
+        AppComponent,
+        SearchKeywordsComponent,
+        ComicListComponent,
+        SalesDatePipe,
+        LicenseDialogComponent,
+        ImageSrcPipe,
+        EventRegisterDialogComponent,
+        SelectServiceComponent,
+        SelectGoogleCalendarComponent,
+        RegisterGoogleCalendarComponent,
+        CodeGeneratorComponent,
+        CodeRegisterComponent
+    ],
+    bootstrap: [AppComponent], imports: [BrowserModule,
+        AppRoutingModule,
+        BrowserAnimationsModule,
+        MaterialModule,
+        ReactiveFormsModule], providers: [
+        provideHttpClient(withInterceptorsFromDi())
+    ] })
 export class AppModule { }

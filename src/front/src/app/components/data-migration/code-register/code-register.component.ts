@@ -4,9 +4,10 @@ import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { DataMigrationSerivce } from '../data-migration.service';
 
 @Component({
-  selector: 'app-code-register',
-  templateUrl: './code-register.component.html',
-  styleUrls: ['./code-register.component.scss']
+    selector: 'app-code-register',
+    templateUrl: './code-register.component.html',
+    styleUrls: ['./code-register.component.scss'],
+    standalone: false
 })
 export class CodeRegisterComponent {
 

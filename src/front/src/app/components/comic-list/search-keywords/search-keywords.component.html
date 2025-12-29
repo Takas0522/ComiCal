@@ -11,26 +11,28 @@
   </div>
   <div class="keyword-field">
     <mat-chip-listbox>
-      <mat-chip-option *ngFor="let keyword of keywords$ | async"
-        [selectable]="true"
-        [removable]="true"
-        (removed)="removeKeyword(keyword)">
-        <div class="inner-field">
-          {{keyword}}
-        </div>
-        <mat-icon matChipRemove >cancel</mat-icon>
-      </mat-chip-option>
+      @for (keyword of keywords$ | async; track keyword) {
+        <mat-chip-option
+          [selectable]="true"
+          [removable]="true"
+          (removed)="removeKeyword(keyword)">
+          <div class="inner-field">
+            {{keyword}}
+          </div>
+          <mat-icon matChipRemove >cancel</mat-icon>
+        </mat-chip-option>
+      }
     </mat-chip-listbox>
   </div>
   <div class="key-word-edit">
     <form [formGroup]="keywordForm" (ngSubmit)="submit()" autocomplete="off">
       <div>
-          <mat-form-field>
-              <input formControlName="keyword" matInput placeholder="追加キーワード"/>
-          </mat-form-field>
+        <mat-form-field>
+          <input formControlName="keyword" matInput placeholder="追加キーワード"/>
+        </mat-form-field>
       </div>
       <div class="add-field">
-          <button mat-flat-button color="primary" type="submit">追加</button>
+        <button mat-flat-button color="primary" type="submit">追加</button>
       </div>
     </form>
   </div>
