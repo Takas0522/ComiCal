@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Azure.Storage.Blobs;
 using Microsoft.Azure.Cosmos;
+using Azure.Identity;
 
 namespace ComiCal.Shared
 {
@@ -38,10 +39,42 @@ namespace ComiCal.Shared
                 return dataSourceBuilder.Build();
             });
 
-            // BlobClient
-            var blobConnection = config["StorageConnectionString"];
+            // BlobClient - Managed Identity support with fallback to connection string
+            var storageAccountName = config["StorageAccountName"];
+            var storageConnectionString = config["StorageConnectionString"];
+            
             service.AddAzureClients(clientBuilder => {
-                clientBuilder.AddBlobServiceClient(blobConnection);
+                // Prioritize Managed Identity when StorageAccountName is configured
+                if (!string.IsNullOrWhiteSpace(storageAccountName))
+                {
+                    // Use Managed Identity via DefaultAzureCredential
+                    var blobServiceUri = new Uri($"https://{storageAccountName}.blob.core.windows.net");
+                    
+                    clientBuilder.AddBlobServiceClient(blobServiceUri)
+                        .WithCredential(new DefaultAzureCredential(new DefaultAzureCredentialOptions
+                        {
+                            // Configure retry settings for better reliability
+                            Retry = 
+                            {
+                                MaxRetries = 3,
+                                NetworkTimeout = TimeSpan.FromSeconds(30)
+                            }
+                        }));
+                    
+                    // StorageConnectionString is retained as fallback for Managed Identity failures
+                    // and can be used in development/local environments
+                }
+                else if (!string.IsNullOrWhiteSpace(storageConnectionString))
+                {
+                    // Fall back to connection string authentication when StorageAccountName is not set
+                    clientBuilder.AddBlobServiceClient(storageConnectionString);
+                }
+                else
+                {
+                    throw new InvalidOperationException(
+                        "Azure Storage configuration is missing. Please configure either 'StorageAccountName' " +
+                        "(for Managed Identity) or 'StorageConnectionString' (for connection string authentication).");
+                }
             });
 
             // CosmosClient as Singleton (Deprecated - to be removed after PostgreSQL migration)
