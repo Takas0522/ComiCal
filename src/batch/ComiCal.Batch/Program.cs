@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ComiCal.Batch.Repositories;
 using ComiCal.Batch.Services;
 using ComiCal.Shared;
@@ -17,6 +18,13 @@ var host = new HostBuilder()
         services.AddSingleton<IRakutenComicRepository, RakutenComicRepository>();
         services.AddSingleton<IComicRepository, ComicRepository>();
         services.AddSingleton<IComicService, ComicService>();
+
+        // Configure JSON serializer options
+        services.Configure<JsonSerializerOptions>(options =>
+        {
+            options.PropertyNameCaseInsensitive = true;
+            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        });
     })
     .Build();
 
