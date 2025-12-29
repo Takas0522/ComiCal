@@ -43,7 +43,7 @@ namespace ComiCal.Batch.Repositories
                 throw new Exception($"RakutenWebAPI Error\n{errorMessage}");
             }
             var content = await res.Content.ReadAsStreamAsync();
-            return JsonSerializer.Deserialize<RakutenComicResponse>(content);
+            return await JsonSerializer.DeserializeAsync<RakutenComicResponse>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
         }
 
         public async Task<BinaryData> FetchImageAndConvertStream(string imageUrl)
