@@ -48,7 +48,7 @@ namespace Comical.Api.Functions
                     }
                 }
 
-                IEnumerable<string> resValue = await _configMigrationService.LoadMigrationSetting(id);
+                IEnumerable<string> resValue = await _configMigrationService.LoadMigrationSetting(id!);
                 var res = new ConfigMigrationGetResponse { Data = resValue };
 
                 return await HttpResponseHelper.CreateOkResponseAsync(req, res);
