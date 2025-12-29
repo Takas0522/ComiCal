@@ -1,45 +1,58 @@
 using System;
-using System.IO;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Extensions.Http;
-using Microsoft.AspNetCore.Http;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
 using Comical.Api.Services;
-using Utf8Json;
 using Comical.Api.Models;
+using Comical.Api.Util.Common;
 
 namespace Comical.Api
 {
     public class ComicData
     {
         private readonly IComicService _comicService;
+        private readonly ILogger<ComicData> _logger;
 
         public ComicData(
-            IComicService comicService
+            IComicService comicService,
+            ILogger<ComicData> logger
         )
         {
             _comicService = comicService;
+            _logger = logger;
         }
 
-        [FunctionName("ComicData")]
-        public async Task<IActionResult> GetComicData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = null)] HttpRequest req,
-            ILogger log)
+        [Function("ComicData")]
+        public async Task<HttpResponseData> GetComicData(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
         {
-            var query = req.Query["fromdate"];
-            var fromdate = DateTime.UtcNow.AddMonths(-1);
-            if (query.Count !=0 && query != string.Empty)
-            {
-                fromdate = DateTime.Parse(query).ToUniversalTime();
-            }
-            string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
-            var data = JsonSerializer.Deserialize<GetComicsRequest>(requestBody);
+            return await FunctionExecutionHelper.ExecuteAsync(
+                req,
+                _logger,
+                async () =>
+                {
+                    var query = req.Query["fromdate"];
+                    var fromdate = DateTime.UtcNow.AddMonths(-1);
+                    if (!string.IsNullOrEmpty(query))
+                    {
+                        if (!DateTime.TryParse(query, out fromdate))
+                        {
+                            throw new InvalidOperationException($"Invalid date format: {query}");
+                        }
+                        fromdate = fromdate.ToUniversalTime();
+                    }
 
-            var d = await _comicService.GetComicsAsync(data, fromdate);
+                    var data = await req.ReadFromJsonAsync<GetComicsRequest>();
+                    if (data is null)
+                    {
+                        throw new InvalidOperationException("Request body cannot be null");
+                    }
 
-            return new OkObjectResult(d);
+                    var comics = await _comicService.GetComicsAsync(data, fromdate);
+
+                    return await HttpResponseHelper.CreateOkResponseAsync(req, comics);
+                });
         }
     }
 }
