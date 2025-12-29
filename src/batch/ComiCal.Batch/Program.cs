@@ -23,6 +23,7 @@ var host = new HostBuilder()
         services.Configure<JsonSerializerOptions>(options =>
         {
             options.PropertyNameCaseInsensitive = true;
+            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
     })
     .Build();
