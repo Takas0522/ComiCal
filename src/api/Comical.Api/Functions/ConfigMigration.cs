@@ -40,7 +40,7 @@ namespace Comical.Api.Functions
                     var queryParams = query.TrimStart('?').Split('&')
                         .Select(p => p.Split('='))
                         .Where(p => p.Length == 2)
-                        .ToDictionary(p => Uri.UnescapeDataString(p[0]), p => Uri.UnescapeDataString(p[1]));
+                        .ToDictionary(p => Uri.UnescapeDataString(p[0]), p => Uri.UnescapeDataString(p[1]), StringComparer.OrdinalIgnoreCase);
                     
                     if (queryParams.TryGetValue("id", out var idValue))
                     {
@@ -48,6 +48,7 @@ namespace Comical.Api.Functions
                     }
                 }
 
+                // The service can handle null values - it will return an empty enumerable
                 IEnumerable<string> resValue = await _configMigrationService.LoadMigrationSetting(id!);
                 var res = new ConfigMigrationGetResponse { Data = resValue };
 
@@ -63,6 +64,12 @@ namespace Comical.Api.Functions
             {
                 string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
                 var regData = JsonSerializer.Deserialize<IEnumerable<string>>(requestBody);
+                
+                if (regData == null)
+                {
+                    _logger.LogWarning("Failed to deserialize request body to IEnumerable<string>");
+                    return await HttpResponseHelper.CreateBadRequestResponseAsync(req, "Invalid request body", "Request body could not be deserialized");
+                }
 
                 string id = await _configMigrationService.RegisterMigrationSetting(regData);
                 var res = new ConfigMigrationPostResponse { Id = id };
