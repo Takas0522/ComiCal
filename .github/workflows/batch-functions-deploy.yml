@@ -11,7 +11,7 @@ on:
 env:
   AZURE_FUNCTIONAPP_NAME: 'comical-batch'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'batch'
-  DOTNET_VERSION: '6'
+  DOTNET_VERSION: '10'
 
 jobs:
   build-and-deploy:
