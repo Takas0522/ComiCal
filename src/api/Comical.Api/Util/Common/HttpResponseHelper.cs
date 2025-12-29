@@ -37,8 +37,7 @@ namespace Comical.Api.Util.Common
             }
 
             var response = request.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", JsonContentType);
-            await response.WriteAsJsonAsync(data, JsonOptions);
+            await response.WriteAsJsonAsync(data);
             return response;
         }
 
@@ -98,8 +97,7 @@ namespace Comical.Api.Util.Common
             };
 
             var response = request.CreateResponse(statusCode);
-            response.Headers.Add("Content-Type", JsonContentType);
-            await response.WriteAsJsonAsync(errorResponse, JsonOptions);
+            await response.WriteAsJsonAsync(errorResponse);
             return response;
         }
     }

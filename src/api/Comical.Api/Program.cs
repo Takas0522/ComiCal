@@ -1,6 +1,7 @@
 using Comical.Api.Repositories;
 using Comical.Api.Services;
 using ComiCal.Shared;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
@@ -22,6 +23,7 @@ var host = new HostBuilder()
         services.Configure<JsonSerializerOptions>(options =>
         {
             options.PropertyNameCaseInsensitive = true;
+            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
         });
     })
     .Build();
