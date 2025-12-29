@@ -11,6 +11,8 @@ namespace Comical.Api.Util.Common
     /// </summary>
     public static class HttpResponseHelper
     {
+        private const string JsonContentType = "application/json; charset=utf-8";
+
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNameCaseInsensitive = true,
@@ -29,7 +31,7 @@ namespace Comical.Api.Util.Common
             T data)
         {
             var response = request.CreateResponse(HttpStatusCode.OK);
-            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            response.Headers.Add("Content-Type", JsonContentType);
             await response.WriteAsJsonAsync(data, JsonOptions);
             return response;
         }
@@ -53,7 +55,7 @@ namespace Comical.Api.Util.Common
             };
 
             var response = request.CreateResponse(HttpStatusCode.BadRequest);
-            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            response.Headers.Add("Content-Type", JsonContentType);
             await response.WriteAsJsonAsync(errorResponse, JsonOptions);
             return response;
         }
@@ -77,7 +79,7 @@ namespace Comical.Api.Util.Common
             };
 
             var response = request.CreateResponse(HttpStatusCode.InternalServerError);
-            response.Headers.Add("Content-Type", "application/json; charset=utf-8");
+            response.Headers.Add("Content-Type", JsonContentType);
             await response.WriteAsJsonAsync(errorResponse, JsonOptions);
             return response;
         }

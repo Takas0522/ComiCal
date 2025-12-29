@@ -8,6 +8,14 @@ namespace Comical.Api.Util.Common
     public class ErrorResponse
     {
         /// <summary>
+        /// Initializes a new instance of the ErrorResponse class.
+        /// </summary>
+        public ErrorResponse()
+        {
+            Timestamp = DateTime.UtcNow;
+        }
+
+        /// <summary>
         /// Gets or sets the error message.
         /// </summary>
         public string Message { get; set; } = string.Empty;
@@ -20,6 +28,6 @@ namespace Comical.Api.Util.Common
         /// <summary>
         /// Gets or sets the timestamp when the error occurred.
         /// </summary>
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime Timestamp { get; set; }
     }
 }
