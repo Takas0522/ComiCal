@@ -36,7 +36,11 @@ namespace Comical.Api
                     var fromdate = DateTime.UtcNow.AddMonths(-1);
                     if (!string.IsNullOrEmpty(query))
                     {
-                        fromdate = DateTime.Parse(query).ToUniversalTime();
+                        if (!DateTime.TryParse(query, out fromdate))
+                        {
+                            throw new InvalidOperationException($"Invalid date format: {query}");
+                        }
+                        fromdate = fromdate.ToUniversalTime();
                     }
 
                     var data = await req.ReadFromJsonAsync<GetComicsRequest>();
