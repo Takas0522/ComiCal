@@ -28,11 +28,11 @@ namespace Comical.Api.Util.Common
             }
             catch (InvalidOperationException ex)
             {
-                logger.LogWarning(ex, "Invalid operation: {Message}", ex.Message);
+                logger.LogWarning(ex, "Invalid operation");
                 return await HttpResponseHelper.CreateBadRequestResponseAsync(
                     request,
                     "Invalid operation",
-                    ex.Message);
+                    null);
             }
             catch (Exception ex)
             {

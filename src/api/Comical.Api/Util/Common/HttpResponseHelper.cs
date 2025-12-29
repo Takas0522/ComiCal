@@ -26,10 +26,13 @@ namespace Comical.Api.Util.Common
         /// <param name="request">The HTTP request data.</param>
         /// <param name="data">The data to include in the response.</param>
         /// <returns>An HTTP response with status 200 and the serialized data.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when data is null.</exception>
         public static async Task<HttpResponseData> CreateOkResponseAsync<T>(
             HttpRequestData request,
             T data)
         {
+            ArgumentNullException.ThrowIfNull(data);
+
             var response = request.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", JsonContentType);
             await response.WriteAsJsonAsync(data, JsonOptions);
@@ -83,6 +86,8 @@ namespace Comical.Api.Util.Common
             string message,
             string? details)
         {
+            ArgumentException.ThrowIfNullOrWhiteSpace(message);
+
             var errorResponse = new ErrorResponse
             {
                 Message = message,
