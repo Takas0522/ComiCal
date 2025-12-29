@@ -2,10 +2,14 @@
     "version": "2.0",
     "extensions": {
       "durableTask": {
+        "hubName": "ComiCalBatchHubV2",
         "storageProvider": {
           "type": "azureStorage",
           "connectionStringName": "AzureWebJobsStorage"
-        }
+        },
+        "maxConcurrentActivityFunctions": 10,
+        "extendedSessionsEnabled": false,
+        "maxConcurrentOrchestratorFunctions": 10
       }
     },
     "logging": {
@@ -17,8 +21,13 @@
       },
       "logLevel": {
         "Default": "Information",
-        "Microsoft.Azure.Functions.Worker": "Debug",
-        "ComiCal.Batch.Repositories.RakutenComicRepository": "Error"
+        "ComiCal.Batch": "Information",
+        "Microsoft.Azure.Functions.Worker": "Warning",
+        "Azure.Core": "Warning",
+        "Azure.Storage": "Warning",
+        "System.Net.Http": "Warning",
+        "DurableTask.Core": "Warning",
+        "DurableTask.AzureStorage": "Warning"
       }
     }
 }

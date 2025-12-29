@@ -9,6 +9,7 @@ using ComiCal.Batch.Util.Common;
 using System.IO;
 using Castle.Core.Logging;
 using ComiCal.Shared.Models;
+using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ComiCal.Shared.Util;
@@ -42,6 +43,25 @@ namespace ComiCal.Batch.Services
             _logger = logger;
         }
 
+        private async Task<BlobContainerClient> GetImagesContainerClientAsync()
+        {
+            var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
+
+            try
+            {
+                await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+            }
+            catch (RequestFailedException ex) when (ex.Status == 409)
+            {
+                // Azure Storage returns 409 when the container already exists.
+                // During local runs (and in races), CreateIfNotExistsAsync may still surface the conflict.
+                // Treat it as success and continue.
+                _logger.LogDebug(ex, "Blob container already exists (ignored): {ContainerName}", ContainerName);
+            }
+
+            return containerClient;
+        }
+
         public async Task<int> GetPageCountAsync()
         {
             try
@@ -49,10 +69,15 @@ namespace ComiCal.Batch.Services
                 RakutenComicResponse data = await _rakutenComicRepository.Fetch(1);
                 return data.PageCount;
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error while getting page count from Rakuten API");
+                throw new InvalidOperationException("Failed to get page count due to HTTP error", ex);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to get page count from Rakuten API");
-                throw;
+                throw new InvalidOperationException("Failed to get page count", ex);
             }
         }
 
@@ -64,7 +89,12 @@ namespace ComiCal.Batch.Services
                 IEnumerable<Comic> comics = GenRegistData(baseData);
 
                 await _comicRepository.UpsertComicsAsync(comics);
-                _logger.LogInformation("Successfully registered comics from page {Page}", requestPage);
+                _logger.LogDebug("Successfully registered comics from page {Page}", requestPage);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error while fetching comics for page {Page}", requestPage);
+                throw new InvalidOperationException($"Failed to register comics for page {requestPage} due to HTTP error.", ex);
             }
             catch (NpgsqlException ex)
             {
@@ -74,7 +104,7 @@ namespace ComiCal.Batch.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to register comics for page {Page}", requestPage);
-                throw;
+                throw new InvalidOperationException($"Failed to register comics for page {requestPage}.", ex);
             }
         }
 
@@ -105,12 +135,9 @@ namespace ComiCal.Batch.Services
             {
                 // Get all comics from PostgreSQL
                 var comics = await _comicRepository.GetComicsAsync();
-                
-                // Get blob container
-                var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
-                
-                // Ensure container exists
-                await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+
+                // Get blob container (ensure it exists)
+                var containerClient = await GetImagesContainerClientAsync();
                 
                 var comicsNeedingImages = new List<Comic>();
                 
@@ -137,7 +164,7 @@ namespace ComiCal.Batch.Services
                     }
                 }
                 
-                _logger.LogInformation("Found {Count} comics needing images out of {Total} total comics", 
+                _logger.LogDebug("Found {Count} comics needing images out of {Total} total comics", 
                     comicsNeedingImages.Count, comics.Count());
                 return comicsNeedingImages;
             }
@@ -177,10 +204,7 @@ namespace ComiCal.Batch.Services
                 var extension = ContentTypeHelper.GetExtensionFromContentType(contentType);
                 
                 // Get blob container
-                var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
-                
-                // Ensure container exists with public access
-                await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                var containerClient = await GetImagesContainerClientAsync();
                 
                 // Create blob client with path: {isbn}.{ext}
                 var blobName = $"{isbn}{extension}";
@@ -196,13 +220,14 @@ namespace ComiCal.Batch.Services
             }
             catch (HttpRequestException ex)
             {
-                // Log error but don't throw - allow batch to continue with other images
+                // Convert HttpRequestException to avoid Durable Functions serialization issues
                 _logger.LogError(ex, "Failed to download image for ISBN {Isbn} from {ImageUrl}", isbn, imageUrl);
+                throw new InvalidOperationException($"Failed to download image for ISBN {isbn}", ex);
             }
             catch (Exception ex)
             {
-                // Log error but don't throw - allow batch to continue with other images
-                _logger.LogError(ex, "Failed to upload image for ISBN {Isbn}", isbn);
+                _logger.LogError(ex, "Failed to process image for ISBN {Isbn}", isbn);
+                throw new InvalidOperationException($"Failed to process image for ISBN {isbn}", ex);
             }
         }
 
@@ -213,7 +238,7 @@ namespace ComiCal.Batch.Services
                 // Fetch comic data from Rakuten API for this page
                 RakutenComicResponse data = await _rakutenComicRepository.Fetch(pageNumber);
                 
-                _logger.LogInformation("Processing images for page {Page} with {Count} comics", pageNumber, data.Comics.Count());
+                _logger.LogDebug("Processing images for page {Page} with {Count} comics", pageNumber, data.Comics.Count());
                 
                 // Process each comic's image
                 foreach (var comicInfo in data.Comics)
@@ -229,8 +254,7 @@ namespace ComiCal.Batch.Services
                     }
                     
                     // Check if image already exists
-                    var containerClient = _blobServiceClient.GetBlobContainerClient(ContainerName);
-                    await containerClient.CreateIfNotExistsAsync(PublicAccessType.Blob);
+                    var containerClient = await GetImagesContainerClientAsync();
                     
                     var hasImage = false;
                     await foreach (var blob in containerClient.GetBlobsAsync(prefix: $"{isbn}."))
@@ -247,15 +271,20 @@ namespace ComiCal.Batch.Services
                     
                     // Download and save the image
                     await UpdateImageDataAsync(isbn, imageUrl);
-                    _logger.LogInformation("Successfully processed image for ISBN {Isbn}", isbn);
+                    _logger.LogDebug("Successfully processed image for ISBN {Isbn}", isbn);
                 }
                 
-                _logger.LogInformation("Completed image processing for page {Page}", pageNumber);
+                _logger.LogDebug("Completed image processing for page {Page}", pageNumber);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP error while processing images for page {Page}", pageNumber);
+                throw new InvalidOperationException($"Failed to process images for page {pageNumber} due to HTTP error", ex);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to process images for page {Page}", pageNumber);
-                // Don't throw - allow the batch to continue with other pages
+                throw new InvalidOperationException($"Failed to process images for page {pageNumber}", ex);
             }
         }
     }

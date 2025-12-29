@@ -107,7 +107,7 @@ namespace ComiCal.Batch.Repositories
                 await connection.ExecuteAsync(sql, comicsToUpsert, transaction);
                 await transaction.CommitAsync();
                 
-                _logger.LogInformation("Successfully upserted {Count} comics", comicsToUpsert.Count);
+                _logger.LogDebug("Successfully upserted {Count} comics", comicsToUpsert.Count);
             }
             catch (Exception ex)
             {

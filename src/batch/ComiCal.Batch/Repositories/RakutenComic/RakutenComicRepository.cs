@@ -36,7 +36,11 @@ namespace ComiCal.Batch.Repositories
             var sort = HttpUtility.UrlEncode("+releaseDate");
             var baseUrl = $"https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404?booksGenreId=001001&sort={sort}&page={requestPage}&availability=5&applicationId={_applicationId}";
             var requestMessage = new HttpRequestMessage(HttpMethod.Get, baseUrl);
-            var res = await _httpClient.SendAsync(requestMessage);
+            
+            // Set timeout for the request
+            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(60));
+            var res = await _httpClient.SendAsync(requestMessage, cts.Token);
+            
             if (res.StatusCode != HttpStatusCode.OK)
             {
                 var errorMessage = await res.Content.ReadAsStringAsync();

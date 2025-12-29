@@ -47,7 +47,7 @@ services:
     container_name: comical-azurite
     image: mcr.microsoft.com/azure-storage/azurite:latest
     restart: unless-stopped
-    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --skipApiVersionCheck --loose
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --skipApiVersionCheck --loose --silent
     networks:
       - comical-network
     volumes:
