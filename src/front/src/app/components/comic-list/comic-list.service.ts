@@ -38,7 +38,11 @@ export class ComicListService {
         const imageUrl = `${environment.blobBaseUrl}/${f.isbn}.jpg`;
         f.imageUrl = imageUrl;
         f.imageUrlSanitize = this.sanitizer.bypassSecurityTrustUrl(imageUrl);
-        f.salesDate = new Date(f.salesDate);
+        // 日付を変換し、無効な日付の場合は現在の値を保持
+        const parsedDate = new Date(f.salesDate);
+        if (!isNaN(parsedDate.getTime())) {
+          f.salesDate = parsedDate;
+        }
       })
       this.query.updateComicList(this.baseData);
       this.appService.exitApiAccess();
@@ -50,10 +54,17 @@ export class ComicListService {
       return checkedIsbns.includes(f.isbn);
     });
     return filData.map(m => {
+      // salesDateをDate型に確実に変換
+      let salesDate: Date;
+      if (m.salesDate instanceof Date) {
+        salesDate = m.salesDate;
+      } else {
+        salesDate = new Date(m.salesDate);
+      }
       return {
         title: m.title,
         author: m.author,
-        salesDate: m.salesDate
+        salesDate: salesDate
       };
     });
   }

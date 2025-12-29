@@ -6,6 +6,10 @@
                 "isEnabled": true,
                 "excludedTypes": "Request"
             }
+        },
+        "logLevel": {
+            "Default": "Information",
+            "Microsoft.Azure.Functions.Worker": "Debug"
         }
     }
 }

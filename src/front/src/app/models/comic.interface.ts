@@ -9,7 +9,7 @@ export interface ComicInterface {
   author: string;
   authorKana: string;
   publisherName: string;
-  salesDate: Date;
+  salesDate: Date | string;
   scheduleStatus: ScheduleStatusType;
   imageUrl?: string;
   imageUrlSanitize?: SafeUrl;

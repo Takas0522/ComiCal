@@ -11,7 +11,7 @@ on:
 env:
   AZURE_FUNCTIONAPP_NAME: 'comical-api'
   AZURE_FUNCTIONAPP_PACKAGE_PATH: 'api'
-  DOTNET_VERSION: '6'
+  DOTNET_VERSION: '10'
 
 jobs:
   build-and-deploy:
@@ -21,7 +21,7 @@ jobs:
       uses: actions/checkout@main
 
     - name: Setup DotNet ${{ env.DOTNET_VERSION }} Environment
-      uses: actions/setup-dotnet@v3
+      uses: actions/setup-dotnet@v4
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
