@@ -24,14 +24,17 @@ namespace Comical.Api.Util.Common
         /// </summary>
         /// <typeparam name="T">The type of data to serialize.</typeparam>
         /// <param name="request">The HTTP request data.</param>
-        /// <param name="data">The data to include in the response.</param>
+        /// <param name="data">The data to include in the response. Cannot be null.</param>
         /// <returns>An HTTP response with status 200 and the serialized data.</returns>
         /// <exception cref="ArgumentNullException">Thrown when data is null.</exception>
         public static async Task<HttpResponseData> CreateOkResponseAsync<T>(
             HttpRequestData request,
             T data)
         {
-            ArgumentNullException.ThrowIfNull(data);
+            if (data is null)
+            {
+                throw new ArgumentNullException(nameof(data));
+            }
 
             var response = request.CreateResponse(HttpStatusCode.OK);
             response.Headers.Add("Content-Type", JsonContentType);
