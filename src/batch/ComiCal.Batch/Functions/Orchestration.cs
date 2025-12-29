@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -54,31 +55,64 @@ namespace ComiCal.Batch.Functions
         }
 
         [Function("GetPageCount")]
-        public async Task<int> GetPageCount ([ActivityTrigger] string val, FunctionContext executionContext)
+        public async Task<int> GetPageCount([ActivityTrigger] string? input, FunctionContext context)
         {
-            return await _comicService.GetPageCountAsync();
+            var log = context.GetLogger<Orchestration>();
+            log.LogDebug("GetPageCount activity started");
+            
+            try
+            {
+                var result = await _comicService.GetPageCountAsync();
+                log.LogInformation("Successfully retrieved page count: {Count}", result);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Failed to get page count");
+                throw;
+            }
         }
 
         [Function("WaitTime")]
-        public async Task WaitTime([ActivityTrigger] int waitTimeSec, FunctionContext executionContext)
+        public async Task WaitTime([ActivityTrigger] int waitTimeSec, FunctionContext context)
         {
+            var log = context.GetLogger<Orchestration>();
+            log.LogDebug("WaitTime activity started");
             await Task.Delay(waitTimeSec * 1000);
         }
 
         [Function("Register")]
-        public async Task Register([ActivityTrigger] int pageCount, FunctionContext executionContext)
+        public async Task Register([ActivityTrigger] int pageCount, FunctionContext context)
         {
-            var log = executionContext.GetLogger("Register");
-            log.LogInformation($"Run Page: {pageCount}");
-            await _comicService.RegitoryAsync(pageCount);
+            var log = context.GetLogger<Orchestration>();
+            log.LogInformation("Run Page: {PageCount}", pageCount);
+            
+            try
+            {
+                await _comicService.RegitoryAsync(pageCount);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Failed to register page: {PageCount}", pageCount);
+                throw;
+            }
         }
 
         [Function("DownloadImages")]
-        public async Task DownloadImages([ActivityTrigger] int pageNumber, FunctionContext executionContext)
+        public async Task DownloadImages([ActivityTrigger] int pageNumber, FunctionContext context)
         {
-            var log = executionContext.GetLogger("DownloadImages");
-            log.LogInformation($"Downloading images for page: {pageNumber}");
-            await _comicService.ProcessImageDownloadsAsync(pageNumber);
+            var log = context.GetLogger<Orchestration>();
+            log.LogInformation("Downloading images for page: {PageNumber}", pageNumber);
+            
+            try
+            {
+                await _comicService.ProcessImageDownloadsAsync(pageNumber);
+            }
+            catch (Exception ex)
+            {
+                log.LogError(ex, "Failed to download images for page: {PageNumber}", pageNumber);
+                throw;
+            }
         }
 
         [Function("TimerStart")]
