@@ -18,7 +18,7 @@ namespace Comical.Api.Util.Common
         /// <summary>
         /// Gets or sets the error message.
         /// </summary>
-        public string Message { get; set; } = string.Empty;
+        public required string Message { get; set; }
 
         /// <summary>
         /// Gets or sets the error details (optional).

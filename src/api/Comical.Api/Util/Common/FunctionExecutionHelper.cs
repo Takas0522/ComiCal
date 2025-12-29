@@ -39,7 +39,7 @@ namespace Comical.Api.Util.Common
                 logger.LogError(ex, "Unexpected error occurred");
                 return await HttpResponseHelper.CreateErrorResponseAsync(
                     request,
-                    "An unexpected error occurred",
+                    "Internal server error",
                     null);
             }
         }
