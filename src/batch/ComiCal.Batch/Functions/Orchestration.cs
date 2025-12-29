@@ -89,8 +89,9 @@ namespace ComiCal.Batch.Functions
             FunctionContext executionContext)
         {
             var log = executionContext.GetLogger("TimerStart");
+            log.LogDebug("Timer triggered");
             string instanceId = await starter.ScheduleNewOrchestrationInstanceAsync("Orchestration");
-            log.LogInformation($"Started orchestration with ID = '{instanceId}'.");
+            log.LogInformation("Started orchestration with ID = '{InstanceId}'.", instanceId);
         }
     }
 }
