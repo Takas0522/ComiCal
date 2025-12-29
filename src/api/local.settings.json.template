@@ -7,7 +7,7 @@
     "StorageConnectionString": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;",
     "_Comment_Runtime": "dotnet-isolated is required for .NET isolated worker process model (Azure Functions v4 with .NET 10)",
     "_Comment_LocalDevelopment": "Local development uses containerized services (postgres, azurite) via Docker Compose. Connection strings use service names as hostnames.",
-    "_Comment_AzureEnvironment": "In Azure, configure these settings as Application Settings. Use Azure Key Vault references for sensitive values. FUNCTIONS_WORKER_RUNTIME is automatically set by the platform.",
+    "_Comment_AzureEnvironment": "In Azure, configure these settings as Application Settings. Use Azure Key Vault references for sensitive values. FUNCTIONS_WORKER_RUNTIME must be explicitly set to 'dotnet-isolated' in Azure Application Settings.",
     "_Comment_PostgresLocal": "Local development: Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
     "_Comment_PostgresAzure": "Azure with password: Host=<server>.postgres.database.azure.com;Port=5432;Database=comical;Username=<user>;Password=<pass>;SslMode=Require",
     "_Comment_PostgresManagedIdentity": "Azure with Managed Identity: Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>;SslMode=Require"
