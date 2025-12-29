@@ -36,11 +36,11 @@ namespace Comical.Api.Util.Common
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Unexpected error: {Message}", ex.Message);
+                logger.LogError(ex, "Unexpected error occurred");
                 return await HttpResponseHelper.CreateErrorResponseAsync(
                     request,
                     "An unexpected error occurred",
-                    ex.Message);
+                    null);
             }
         }
     }
