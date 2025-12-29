@@ -49,8 +49,7 @@ namespace Comical.Api.Util.Common
             var errorResponse = new ErrorResponse
             {
                 Message = message,
-                Details = details,
-                Timestamp = DateTime.UtcNow
+                Details = details
             };
 
             var response = request.CreateResponse(HttpStatusCode.BadRequest);
@@ -74,8 +73,7 @@ namespace Comical.Api.Util.Common
             var errorResponse = new ErrorResponse
             {
                 Message = message,
-                Details = details,
-                Timestamp = DateTime.UtcNow
+                Details = details
             };
 
             var response = request.CreateResponse(HttpStatusCode.InternalServerError);
