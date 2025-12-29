@@ -307,6 +307,24 @@ Application Insights で以下のメトリクスを監視：
 
 詳細は [Cosmos DB 移行ガイド](./docs/COSMOS_DB_MIGRATION.md#コスト監視とアラート設定) を参照してください。
 
+## 便利なGitコマンド
+
+### リモートで削除されたブランチをクリーンアップ
+
+リモートで削除されたローカルブランチを一括削除するには、以下のエイリアスを設定してください：
+
+```bash
+# エイリアスを設定（初回のみ）
+git config --global alias.prune-local "!git fetch --prune && git branch -vv | grep ': gone]' | awk '{print \$1}' | xargs -r git branch -D"
+
+# 使い方
+git prune-local
+```
+
+このコマンドは：
+1. `git fetch --prune` でリモートの状態を同期
+2. リモートで削除されたローカルブランチを自動検出して削除
+
 ## 貢献
 
 プルリクエストを歓迎します！以下の手順に従ってください：
