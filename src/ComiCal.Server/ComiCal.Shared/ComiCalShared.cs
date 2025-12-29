@@ -61,8 +61,8 @@ namespace ComiCal.Shared
                             }
                         }));
                     
-                    // StorageConnectionString is retained as fallback for Managed Identity failures
-                    // and can be used in development/local environments
+                    // Note: StorageConnectionString can be used as an alternative authentication method
+                    // in development/local environments when StorageAccountName is not configured
                 }
                 else if (!string.IsNullOrWhiteSpace(storageConnectionString))
                 {
