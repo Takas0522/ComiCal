@@ -12,7 +12,7 @@ namespace Comical.Api.Util.Common
         /// </summary>
         public ErrorResponse()
         {
-            Timestamp = DateTime.UtcNow;
+            Timestamp = DateTimeOffset.UtcNow;
         }
 
         /// <summary>
@@ -28,6 +28,6 @@ namespace Comical.Api.Util.Common
         /// <summary>
         /// Gets the timestamp when the error occurred.
         /// </summary>
-        public DateTime Timestamp { get; }
+        public DateTimeOffset Timestamp { get; }
     }
 }
