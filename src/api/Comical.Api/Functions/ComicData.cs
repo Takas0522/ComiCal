@@ -40,8 +40,12 @@ namespace Comical.Api
                     }
 
                     var data = await req.ReadFromJsonAsync<GetComicsRequest>();
+                    if (data is null)
+                    {
+                        throw new InvalidOperationException("Request body cannot be null");
+                    }
 
-                    var comics = await _comicService.GetComicsAsync(data!, fromdate);
+                    var comics = await _comicService.GetComicsAsync(data, fromdate);
 
                     return await HttpResponseHelper.CreateOkResponseAsync(req, comics);
                 });
