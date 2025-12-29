@@ -55,7 +55,7 @@ namespace ComiCal.Batch.Functions
         }
 
         [Function("GetPageCount")]
-        public async Task<int> GetPageCount(FunctionContext context)
+        public async Task<int> GetPageCount([ActivityTrigger] string? input, FunctionContext context)
         {
             var log = context.GetLogger<Orchestration>();
             log.LogDebug("GetPageCount activity started");
@@ -77,7 +77,7 @@ namespace ComiCal.Batch.Functions
         public async Task WaitTime([ActivityTrigger] int waitTimeSec, FunctionContext context)
         {
             var log = context.GetLogger<Orchestration>();
-            log.LogDebug("Activity started");
+            log.LogDebug("WaitTime activity started");
             await Task.Delay(waitTimeSec * 1000);
         }
 
