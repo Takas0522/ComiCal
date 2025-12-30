@@ -77,10 +77,11 @@ check_github_auth() {
     print_info "GitHub authentication verified."
 }
 
-# Function to get or create service principal
+# Function to get or create service principal with OIDC support
 setup_service_principal() {
     local SP_NAME="$1"
     local SUBSCRIPTION_ID="$2"
+    local REPO="$3"
     
     print_info "Setting up Service Principal: $SP_NAME"
     
@@ -91,27 +92,18 @@ setup_service_principal() {
         print_info "Creating new Service Principal..."
         
         # Create Service Principal with Contributor role
-        SP_OUTPUT=$(az ad sp create-for-rbac \
+        SP_CREATION_OUTPUT=$(az ad sp create-for-rbac \
             --name "$SP_NAME" \
             --role Contributor \
             --scopes /subscriptions/$SUBSCRIPTION_ID \
-            --sdk-auth)
+            --json-auth)
         
-        SP_APP_ID=$(echo $SP_OUTPUT | jq -r '.clientId')
+        SP_APP_ID=$(echo $SP_CREATION_OUTPUT | jq -r '.clientId')
         print_info "Service Principal created successfully."
         print_info "  App ID: $SP_APP_ID"
-    else
-        print_warning "Service Principal already exists with App ID: $SP_APP_ID"
-        print_info "Resetting Service Principal credentials..."
         
-        # Reset credentials for existing Service Principal
-        SP_CREDENTIALS=$(az ad sp credential reset \
-            --id "$SP_APP_ID" \
-            --query "{clientId: appId, clientSecret: password, tenantId: tenant, subscriptionId: '$SUBSCRIPTION_ID'}" \
-            --output json)
-        
-        # Format for sdk-auth compatibility
-        SP_OUTPUT=$(echo "$SP_CREDENTIALS" | jq '. + {
+        # Format for sdk-auth compatibility (legacy format)
+        SP_OUTPUT=$(echo $SP_CREATION_OUTPUT | jq '. + {
             "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
             "resourceManagerEndpointUrl": "https://management.azure.com/",
             "activeDirectoryGraphResourceId": "https://graph.windows.net/",
@@ -119,9 +111,96 @@ setup_service_principal() {
             "galleryEndpointUrl": "https://gallery.azure.com/",
             "managementEndpointUrl": "https://management.core.windows.net/"
         }')
+    else
+        print_warning "Service Principal already exists with App ID: $SP_APP_ID"
+        print_info "Using existing Service Principal for OIDC setup..."
+        
+        # Get tenant ID
+        TENANT_ID=$(az account show --query tenantId -o tsv)
+        
+        # Create a basic SP_OUTPUT structure for legacy compatibility
+        SP_OUTPUT=$(jq -n --arg clientId "$SP_APP_ID" \
+                         --arg subscriptionId "$SUBSCRIPTION_ID" \
+                         --arg tenantId "$TENANT_ID" \
+                         '{
+                             clientId: $clientId,
+                             subscriptionId: $subscriptionId,
+                             tenantId: $tenantId,
+                             activeDirectoryEndpointUrl: "https://login.microsoftonline.com",
+                             resourceManagerEndpointUrl: "https://management.azure.com/",
+                             activeDirectoryGraphResourceId: "https://graph.windows.net/",
+                             sqlManagementEndpointUrl: "https://management.core.windows.net:8443/",
+                             galleryEndpointUrl: "https://gallery.azure.com/",
+                             managementEndpointUrl: "https://management.core.windows.net/"
+                         }')
     fi
     
+    # Setup federated identity credentials for OIDC authentication
+    setup_federated_credentials "$SP_APP_ID" "$REPO"
+    
     echo "$SP_OUTPUT"
+}
+
+# Function to setup federated identity credentials for OIDC
+setup_federated_credentials() {
+    local SP_APP_ID="$1"
+    local REPO="$2"
+    
+    print_info "Setting up federated identity credentials for OIDC authentication..."
+    
+    # Extract owner and repo name
+    local REPO_OWNER=$(echo $REPO | cut -d'/' -f1)
+    local REPO_NAME=$(echo $REPO | cut -d'/' -f2)
+    
+    # Setup federated credentials for main branch
+    print_info "Creating federated credential for main branch..."
+    az ad app federated-credential create \
+        --id $SP_APP_ID \
+        --parameters '{
+            "name": "'$REPO_NAME'-main-branch",
+            "issuer": "https://token.actions.githubusercontent.com", 
+            "subject": "repo:'$REPO':ref:refs/heads/main",
+            "description": "GitHub Actions OIDC for main branch",
+            "audiences": ["api://AzureADTokenExchange"]
+        }' > /dev/null 2>&1 || print_warning "Federated credential for main branch might already exist"
+    
+    # Setup federated credentials for feature branches
+    print_info "Creating federated credential for feature branches..."
+    az ad app federated-credential create \
+        --id $SP_APP_ID \
+        --parameters '{
+            "name": "'$REPO_NAME'-feature-branches",
+            "issuer": "https://token.actions.githubusercontent.com",
+            "subject": "repo:'$REPO':ref:refs/heads/feature/*",
+            "description": "GitHub Actions OIDC for feature branches",
+            "audiences": ["api://AzureADTokenExchange"]
+        }' > /dev/null 2>&1 || print_warning "Federated credential for feature branches might already exist"
+    
+    # Setup federated credentials for tags (releases)
+    print_info "Creating federated credential for tags..."
+    az ad app federated-credential create \
+        --id $SP_APP_ID \
+        --parameters '{
+            "name": "'$REPO_NAME'-tags",
+            "issuer": "https://token.actions.githubusercontent.com",
+            "subject": "repo:'$REPO':ref:refs/tags/*",
+            "description": "GitHub Actions OIDC for tags/releases",
+            "audiences": ["api://AzureADTokenExchange"]
+        }' > /dev/null 2>&1 || print_warning "Federated credential for tags might already exist"
+    
+    # Setup federated credentials for pull requests
+    print_info "Creating federated credential for pull requests..."
+    az ad app federated-credential create \
+        --id $SP_APP_ID \
+        --parameters '{
+            "name": "'$REPO_NAME'-pull-requests",
+            "issuer": "https://token.actions.githubusercontent.com",
+            "subject": "repo:'$REPO':pull_request",
+            "description": "GitHub Actions OIDC for pull requests",
+            "audiences": ["api://AzureADTokenExchange"]
+        }' > /dev/null 2>&1 || print_warning "Federated credential for pull requests might already exist"
+    
+    print_info "Federated identity credentials configured successfully."
 }
 
 # Function to set GitHub secret
@@ -173,20 +252,20 @@ main() {
     
     # Setup Service Principal
     print_info "--- Setting up Service Principal ---"
-    SP_CREDENTIALS=$(setup_service_principal "$SP_NAME" "$SUBSCRIPTION_ID")
+    SP_CREDENTIALS=$(setup_service_principal "$SP_NAME" "$SUBSCRIPTION_ID" "$REPO")
     echo
     
     # Extract credentials
     CLIENT_ID=$(echo $SP_CREDENTIALS | jq -r '.clientId')
-    CLIENT_SECRET=$(echo $SP_CREDENTIALS | jq -r '.clientSecret')
     
     # Set GitHub Secrets
     print_info "--- Configuring GitHub Secrets ---"
     
-    # AZURE_CREDENTIALS (JSON format for backward compatibility)
+    # AZURE_CREDENTIALS (JSON format for backward compatibility - if needed)
+    # Note: This is kept for legacy workflows, but OIDC auth doesn't need client secret
     set_github_secret "$REPO" "AZURE_CREDENTIALS" "$SP_CREDENTIALS"
     
-    # Individual secrets for OIDC/newer authentication
+    # Individual secrets for OIDC authentication (primary method)
     set_github_secret "$REPO" "AZURE_CLIENT_ID" "$CLIENT_ID"
     set_github_secret "$REPO" "AZURE_TENANT_ID" "$TENANT_ID"
     set_github_secret "$REPO" "AZURE_SUBSCRIPTION_ID" "$SUBSCRIPTION_ID"
@@ -194,12 +273,15 @@ main() {
     echo
     print_info "=== Setup Complete ==="
     print_info "Service Principal: $SP_NAME"
+    print_info "App ID: $CLIENT_ID"
+    print_info "Federated Identity Credentials configured for GitHub Actions OIDC"
     print_info "GitHub Secrets configured successfully."
     echo
     print_info "Next steps:"
     print_info "1. Review the Bicep templates in infra/"
     print_info "2. Update parameter files in infra/parameters/"
     print_info "3. Run infrastructure deployment using GitHub Actions or Azure CLI"
+    print_info "4. GitHub Actions will now use OIDC authentication (no client secrets needed)"
     echo
 }
 

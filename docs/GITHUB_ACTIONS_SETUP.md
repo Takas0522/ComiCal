@@ -72,10 +72,19 @@ cd /path/to/ComiCal
 1. **Azure Service Principal の作成**
    - 名前: `sp-comical-github-actions`
    - ロール: Contributor（サブスクリプションスコープ）
-   - 既存の場合は認証情報をリセット
+   - 既存の場合は再利用
 
-2. **GitHub Secrets の設定**
-   - `AZURE_CREDENTIALS`: Service Principal の JSON 資格情報（レガシー形式）
+2. **GitHub Actions OIDC認証の設定**
+   - フェデレーテッドクレデンシャルの作成
+   - OpenID Connect 認証の有効化（クライアントシークレット不要）
+   - 以下のブランチ・イベントに対応：
+     - `main` ブランチ
+     - `feature/*` ブランチ
+     - タグ (`v*.*.*`)
+     - プルリクエスト
+
+3. **GitHub Secrets の設定**
+   - `AZURE_CREDENTIALS`: Service Principal の JSON 資格情報（レガシー互換用）
    - `AZURE_CLIENT_ID`: Service Principal のクライアントID
    - `AZURE_TENANT_ID`: Azure テナントID
    - `AZURE_SUBSCRIPTION_ID`: Azure サブスクリプションID
@@ -88,6 +97,24 @@ GitHub リポジトリの Settings → Secrets and variables → Actions で、�
 - ✅ AZURE_CLIENT_ID
 - ✅ AZURE_TENANT_ID
 - ✅ AZURE_SUBSCRIPTION_ID
+
+### 5. OIDC認証の確認
+
+Service Principal にフェデレーテッドクレデンシャルが設定されているか確認：
+
+```bash
+# Service Principal の App ID を取得
+SP_APP_ID=$(az ad sp list --display-name "sp-comical-github-actions" --query "[0].appId" -o tsv)
+
+# フェデレーテッドクレデンシャルの確認
+az ad app federated-credential list --id $SP_APP_ID --output table
+```
+
+以下のようなクレデンシャルが設定されていることを確認してください：
+- main ブランチ用
+- feature ブランチ用  
+- タグ用
+- プルリクエスト用
 
 ## Azure リソース命名規則
 
@@ -341,6 +368,66 @@ az group show --name rg-comical-dev-jpe
 az group delete --name rg-comical-dev-jpe --yes --no-wait
 ```
 
+### フェデレーテッドクレデンシャルの設定エラー
+
+**症状：** `AADSTS70025: The client has no configured federated identity credentials`
+
+**原因：** Service Principal にフェデレーテッドクレデンシャル（OIDC認証用）が設定されていない
+
+**解決策：**
+```bash
+# 現在のフェデレーテッドクレデンシャルを確認
+az ad app federated-credential list --id <service-principal-app-id>
+
+# 初期セットアップスクリプトを再実行
+./infra/scripts/initial-setup.sh
+
+# または手動でフェデレーテッドクレデンシャルを設定
+REPO="your-org/your-repo"
+SP_APP_ID="your-service-principal-app-id"
+
+# main ブランチ用
+az ad app federated-credential create \
+    --id $SP_APP_ID \
+    --parameters "{
+        \"name\": \"github-actions-main\",
+        \"issuer\": \"https://token.actions.githubusercontent.com\", 
+        \"subject\": \"repo:$REPO:ref:refs/heads/main\",
+        \"description\": \"GitHub Actions OIDC for main branch\",
+        \"audiences\": [\"api://AzureADTokenExchange\"]
+    }"
+
+# タグ用（リリース）
+az ad app federated-credential create \
+    --id $SP_APP_ID \
+    --parameters "{
+        \"name\": \"github-actions-tags\",
+        \"issuer\": \"https://token.actions.githubusercontent.com\",
+        \"subject\": \"repo:$REPO:ref:refs/tags/*\",
+        \"description\": \"GitHub Actions OIDC for tags\",
+        \"audiences\": [\"api://AzureADTokenExchange\"]
+    }"
+```
+
+**注意事項：**
+- リポジトリ名は正確に設定する必要があります（大文字小文字区別）
+- フェデレーテッドクレデンシャルの設定後、約5-10分で反映されます
+
+### GitHub Actions ワークフローの権限エラー
+
+**症状：** GitHub Actions ワークフロー実行時に権限エラーが発生する
+
+**確認事項：**
+```yaml
+# ワークフローファイルに以下の権限設定があるか確認
+permissions:
+  id-token: write
+  contents: read
+```
+
+**解決策：**
+ワークフローファイル（`.github/workflows/*.yml`）で上記の権限が正しく設定されているか確認してください。
+
 ### GitHub Secrets が設定されない
 
 **症状：** `initial-setup.sh` スクリプト実行後もシークレットが設定されていない
@@ -356,6 +443,7 @@ az group delete --name rg-comical-dev-jpe --yes --no-wait
 1. リポジトリの Settings → Secrets and variables → Actions
 2. "New repository secret" をクリック
 3. 名前と値を入力して保存
+
 
 ## 参考資料
 
