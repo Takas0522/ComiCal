@@ -89,8 +89,8 @@ API層とBatch層の両方で以下の設定を行います。
 
 | 設定名 | 値 | 説明 |
 |--------|-----|------|
-| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorage01`）<br>※3-24文字、小文字と数字のみ<br>この設定があると Managed Identity 認証が優先されます |
-| `StorageConnectionString` | `DefaultEndpointsProtocol=https;...` | **フォールバック用に保持**<br>Managed Identity 認証が失敗した場合の代替手段 |
+| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorage01`）<br>※3-24文字、小文字と数字のみ、Azure全体で一意である必要があります<br>この設定があると Managed Identity 認証が優先されます |
+| `StorageConnectionString` | `DefaultEndpointsProtocol=https;...` | **開発環境または移行期間のみ推奨**<br>本番環境では StorageAccountName + Managed Identity を使用すること<br>機密情報を含むためセキュリティリスクがあります |
 
 Azure CLI での設定例：
 
@@ -103,8 +103,10 @@ az functionapp config appsettings set \
   --name $FUNCTION_APP_NAME \
   --settings StorageAccountName=$STORAGE_ACCOUNT_NAME
 
-# StorageConnectionString をフォールバック用に設定（オプション）
-# セキュリティ上の理由から、可能であればManaged Identityのみを使用することを推奨
+# StorageConnectionString をフォールバック用に設定（オプション - 開発環境のみ推奨）
+# ⚠️ 警告: 接続文字列には機密情報（Account Key）が含まれます
+# 本番環境では StorageAccountName + Managed Identity のみを使用することを強く推奨します
+# 実際のキー値はバージョン管理システムにコミットしないでください
 STORAGE_CONNECTION_STRING="<your-storage-connection-string>"
 az functionapp config appsettings set \
   --resource-group $RESOURCE_GROUP \
@@ -115,6 +117,11 @@ az functionapp config appsettings set \
 **認証の優先順位**:
 1. `StorageAccountName` が設定されている場合 → Managed Identity (`DefaultAzureCredential`)
 2. `StorageAccountName` が未設定の場合 → `StorageConnectionString` を使用
+
+**セキュリティ推奨事項**:
+- 本番環境では `StorageAccountName` のみを設定し、Managed Identity認証を使用
+- `StorageConnectionString` は開発環境または移行期間のみ使用
+- 接続文字列を使用する場合は、Azure Key Vault参照を利用することを強く推奨
 
 #### 3.2 PostgreSQL接続文字列
 
@@ -228,12 +235,21 @@ Azure CLI での設定例：
 
 ```bash
 # AzureWebJobsStorage を接続文字列形式で設定
+# ⚠️ 重要なセキュリティ注意事項:
+# - 実際の Account Key は環境変数や Azure Key Vault から読み込んでください
+# - 接続文字列をコードやスクリプトにハードコードしないでください
+# - バージョン管理システムに機密情報をコミットしないでください
+
+# 推奨: 環境変数から読み込む
 AZUREWEBJOBS_STORAGE="DefaultEndpointsProtocol=https;AccountName=<account>;AccountKey=<key>;EndpointSuffix=core.windows.net"
 
 az functionapp config appsettings set \
   --resource-group $RESOURCE_GROUP \
   --name $FUNCTION_APP_NAME \
   --settings AzureWebJobsStorage=$AZUREWEBJOBS_STORAGE
+
+# または Azure Key Vault 参照を使用（最も安全）
+# AzureWebJobsStorage=@Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/AzureWebJobsStorage/)
 ```
 
 #### 5.2 Batch層のスケジュール設定
