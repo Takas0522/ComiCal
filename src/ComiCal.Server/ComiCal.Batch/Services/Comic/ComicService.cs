@@ -26,7 +26,7 @@ namespace ComiCal.Batch.Services
         private readonly BlobServiceClient _blobServiceClient;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<ComicService> _logger;
-        private const string ContainerName = "images";
+        private const string ContainerName = "$web";
 
         public ComicService(
             IRakutenComicRepository rakutenComicRepository,

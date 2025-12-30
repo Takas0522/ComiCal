@@ -37,7 +37,7 @@ RAKUTEN_APP_ID=your_app_id npm run seed-images-from-api
 ### seed-images.js
 
 1. Azurite Blob Storageに接続
-2. `images`コンテナを作成（存在しない場合）
+2. `$web`コンテナを作成（存在しない場合）
 3. seed.sqlの20件のISBNに対してループ
 4. 各ISBNについて、画像が既に存在するかチェック
 5. 存在しない場合、1x1透明PNGをプレースホルダーとしてアップロード
@@ -45,7 +45,7 @@ RAKUTEN_APP_ID=your_app_id npm run seed-images-from-api
 ### seed-images-from-api.js
 
 1. Azurite Blob Storageに接続
-2. `images`コンテナを作成（存在しない場合）
+2. `$web`コンテナを作成（存在しない場合）
 3. seed.sqlの20件のISBNに対してループ
 4. 各ISBNについて：
    - 楽天ブックスAPIで書籍情報を取得

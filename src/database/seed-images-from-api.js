@@ -23,7 +23,7 @@ const RAKUTEN_APP_ID = process.env.RAKUTEN_APP_ID;
 const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING || 
   'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;';
 
-const CONTAINER_NAME = 'images';
+const CONTAINER_NAME = '$web';
 
 // ISBNs from seed.sql
 const SEED_ISBNS = [
