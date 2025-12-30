@@ -89,7 +89,7 @@ API層とBatch層の両方で以下の設定を行います。
 
 | 設定名 | 値 | 説明 |
 |--------|-----|------|
-| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorageprod`）<br>この設定があると Managed Identity 認証が優先されます |
+| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorage01`）<br>※3-24文字、小文字と数字のみ<br>この設定があると Managed Identity 認証が優先されます |
 | `StorageConnectionString` | `DefaultEndpointsProtocol=https;...` | **フォールバック用に保持**<br>Managed Identity 認証が失敗した場合の代替手段 |
 
 Azure CLI での設定例：
@@ -122,10 +122,16 @@ az functionapp config appsettings set \
 |--------|----------------|
 | `DefaultConnection` (ConnectionStrings) | `Host=<server>.postgres.database.azure.com;Database=comical;Username=<user>;Password=<password>;SslMode=Require` |
 
-Managed Identity を使用する場合（推奨）：
+**Managed Identity を使用する場合（推奨）**:
+
+接続文字列でPasswordを省略すると、Npgsqlは自動的にAzure AD認証を試行します：
 ```
 Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>;SslMode=Require
 ```
+
+**注意**: 
+- PostgreSQL側でManaged IdentityをAzure ADユーザーとして登録する必要があります
+- `<managed-identity-name>`はFunction AppのManaged Identity名と一致させます
 
 Azure CLI での設定例：
 
@@ -138,6 +144,16 @@ az functionapp config connection-string set \
   --name $FUNCTION_APP_NAME \
   --connection-string-type PostgreSQL \
   --settings DefaultConnection=$POSTGRES_CONNECTION
+
+# Managed Identity認証の場合（Passwordを省略）
+# 注：PostgreSQL側での事前設定が必要
+POSTGRES_CONNECTION_MI="Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>;SslMode=Require"
+
+az functionapp config connection-string set \
+  --resource-group $RESOURCE_GROUP \
+  --name $FUNCTION_APP_NAME \
+  --connection-string-type PostgreSQL \
+  --settings DefaultConnection=$POSTGRES_CONNECTION_MI
 ```
 
 #### 3.3 Batch層固有の設定
