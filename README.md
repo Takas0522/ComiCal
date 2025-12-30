@@ -19,17 +19,20 @@ flowchart LR
 
 **主要技術スタック**:
 - **フロントエンド**: Angular 17, Azure Static Web Apps
-- **API**: Azure Functions (.NET 10 LTS + Isolated worker model), PostgreSQL
-- **Batch**: Azure Durable Functions (.NET 10 LTS + Isolated worker model), Blob Storage
+- **API**: Azure Functions (.NET 10 + Isolated worker model), PostgreSQL
+- **Batch**: Azure Durable Functions (.NET 10 + Isolated worker model), Blob Storage
 - **外部API**: 楽天ブックスAPI
+- **開発環境**: Dev Container with Docker Compose
 
+**技術詳細**:
 - フロントエンド: Angular（package.json上は Angular 21 系）
 - API/Batch: Azure Functions v4 / dotnet-isolated（プロジェクトは net10.0）
 - DB: PostgreSQL（Dev Container は `postgres:15-alpine`）
 - ストレージ: Azure Blob Storage（ローカルは Azurite）
 - 外部API: 楽天ブックスAPI
+- .NET 10: DevContainerでビルド時に自動インストール
 
-補足: 共有モジュールに Cosmos DB クライアントが残っていますが、コメント上は移行完了後に削除予定の扱いです。
+**注意**: .NET 10は.NET 8ベースイメージにビルド時に追加インストールされます。
 
 ## ディレクトリ構成
 
@@ -44,16 +47,23 @@ flowchart LR
 
 ### 1) Dev Container で起動
 
-Dev Container を開くと、同一 compose ネットワーク上で以下が利用されます。
+Dev Container を開くと、以下が自動セットアップされます：
 
+**サービス**（同一 compose ネットワーク上）:
 - PostgreSQL: `postgres:5432`（DB: `comical` / user: `comical`）
 - Azurite: `azurite:10000`（Blob）/ `10001`（Queue）/ `10002`（Table）
 
-動作確認用スクリプト:
+**自動セットアップ**（postCreateCommand）:
+1. PostgreSQL・Azuriteの起動待機
+2. Node.js依存関係のインストール（フロント・データベース）
+3. データベーススキーマ・シードデータの投入
+4. Azuriteへの画像データシード
+
+**動作確認用スクリプト**:
 
 ```bash
-./test-devcontainer.sh
-./test-services.sh
+./test-devcontainer.sh  # PostgreSQL移行テスト
+./test-services.sh     # サービス接続テスト
 ```
 
 ### 2) 設定ファイル（Functions）
@@ -70,8 +80,8 @@ cp src/api/local.settings.json.template src/api/local.settings.json
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
     "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
-    "PostgresConnectionString": "Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
-    "StorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=<storage-account>;AccountKey=<your-key>;EndpointSuffix=core.windows.net"
+    "PostgresConnectionString": "Host=postgres;Port=5432;Database=comical;Username=comical;Password=comical_dev_password",
+    "StorageConnectionString": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;..."
   }
 }
 ```
@@ -98,7 +108,7 @@ Batch（APIと併走する場合はポートを変える）:
 
 | 変数名 | 説明 | 例 |
 |--------|------|-----|
-| `PostgresConnectionString` | PostgreSQL 接続文字列（ローカル開発） | `Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password` |
+| `PostgresConnectionString` | PostgreSQL 接続文字列（ローカル開発） | `Host=postgres;Port=5432;Database=comical;Username=comical;Password=comical_dev_password` |
 | `PostgresConnectionString` | PostgreSQL 接続文字列（Azure with Managed Identity） | `Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>` |
 | `StorageConnectionString` | Blob Storage 接続文字列 | `DefaultEndpointsProtocol=https;AccountName=...` |
 | `blobBaseUrl` | Blob Storage の画像ベースURL | `https://<account>.blob.core.windows.net/images` |
@@ -107,7 +117,13 @@ Batch（APIと併走する場合はポートを変える）:
 
 #### .NET 10 Isolated移行後の設定
 
-プロジェクトは .NET 10 LTS と Isolated worker model に移行されています。以下の設定手順に従ってください：
+プロジェクトは .NET 10 と Isolated worker model に移行されています。
+
+**.NET 10のインストール方法**:
+- DevContainerでは.NET 8ベースイメージに.NET 10 SDKを**ビルド時に自動インストール**
+- Dockerfileで`dotnet-install.sh`スクリプトを使用してチャンネル10.0をインストール
+
+以下の設定手順に従ってください：
 
 **手順**:
 
@@ -133,13 +149,13 @@ local.settings.json内で以下を確認してください：
 
 3. **ローカル開発: StorageConnectionStringのみ設定 (Azurite)**
    
-ローカル開発環境では、Azuriteを使用します：
+ローカル開発環境では、DevContainerのAzuriteを使用します：
 
 ```json
 "StorageConnectionString": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
 ```
 
-> **注**: 上記はAzuriteの標準的な開発用接続文字列です。local.settings.json.templateから完全な接続文字列を確認してください。
+> **注**: DevContainerではサービス名`azurite`を使用し、外部アクセス時は`localhost`を使用します。
 
 4. **Azure環境: StorageAccountNameを追加してManaged Identity有効化**
    
@@ -176,8 +192,10 @@ npm install -g azure-functions-core-tools@4 --unsafe-perm true
 #### 4. ローカル開発実行
 
 **前提条件**:
-- PostgreSQLが起動していること（Docker: `docker start comical-postgres`）
-- Azurite（ローカルストレージエミュレータ）が起動していること
+- DevContainerが起動されていること
+- postCreateCommandによる自動セットアップが完了していること
+  - PostgreSQL（docker: `comical-postgres`）
+  - Azurite（docker: `comical-azurite`）
 
 **実行手順**:
 1. apiデバッグ実行/apiディレクトリで`func start`
@@ -185,11 +203,22 @@ npm install -g azure-functions-core-tools@4 --unsafe-perm true
 3. frontディレクトリで`npm run start:swa`
 4. http://localhost:4280
 
+> **ポート情報**: DevContainerでは4200, 5432, 10000, 10001, 10002がホストに自動フォワードされます。
+
 ## 統合テストとデプロイ
 
 ### 統合テストの実行
 
 詳細な統合テスト手順は [統合テストガイド](./docs/INTEGRATION_TESTS.md) を参照してください。
+
+**PostgreSQL移行テスト**:
+```bash
+# DevContainer PostgreSQL移行のテスト
+./test-devcontainer.sh
+
+# サービス接続テスト（PostgreSQL, Azurite）
+./test-services.sh
+```
 
 **クイックスタート**:
 ```powershell
@@ -222,7 +251,12 @@ npm run start:swa
 ### 4) 画像表示（ローカル）
 
 ローカルの画像URLは `src/front/src/environments/environment.ts` の `blobBaseUrl` で決まります。
-Dev Container + Azurite の既定値は `http://localhost:10000/devstoreaccount1/images` です。
+
+DevContainer + Azuriteの設定:
+- **コンテナ内**: `http://azurite:10000/devstoreaccount1/images`
+- **ホストから**: `http://localhost:10000/devstoreaccount1/images`
+
+> **注意**: DevContainerのpostCreateCommandで画像シードが自動実行されるため、起動直後から画像が表示されます。
 
 ## ドキュメント
 
@@ -238,12 +272,19 @@ Dev Container + Azurite の既定値は `http://localhost:10000/devstoreaccount1
 
 DBスキーマの詳細: [database/SCHEMA.md](./database/SCHEMA.md)
 
-## コンポーネントREADME
+## コンポーネント・設定ドキュメント
 
-- API: [src/api/README.md](./src/api/README.md)
-- Batch: [src/batch/README.md](./src/batch/README.md)
-- Front: [src/front/README.md](./src/front/README.md)
-- Scripts: [scripts/README.md](./scripts/README.md)
+### メインコンポーネント
+- **API**: [src/api/README.md](./src/api/README.md) - Azure Functions API層
+- **Batch**: [src/batch/README.md](./src/batch/README.md) - Durable Functions バッチ層
+- **Front**: [src/front/README.md](./src/front/README.md) - Angular フロントエンド
+- **Database**: [database/README.md](./database/README.md) - PostgreSQL データベース設定
+
+### 設定・スクリプト
+- **Scripts**: [scripts/README.md](./scripts/README.md) - セットアップスクリプト
+- **DevContainer**: [.devcontainer/](./.devcontainer/) - Docker Compose開発環境設定
+
+DBスキーマの詳細: [database/SCHEMA.md](./database/SCHEMA.md)
 
 ## ライセンス
 

@@ -41,8 +41,7 @@ flowchart TD
 - 画像フェーズ（全ページ）
   - 同様に 120 秒待機 + 最大 3 回のリトライ
   - `DownloadImages` Activity が `ProcessImageDownloadsAsync(page)` を実行
-  - Blob Storage の `images` コンテナへ `{isbn}.{拡張子}` で保存（拡張子は Content-Type から決定）
-
+  - Blob Storage の `$web` コンテナへ `{isbn}.{拡張子}` で保存（拡張子は Content-Type から決定）
 ## 楽天API呼び出し（実装上の注意）
 
 - `RakutenComicRepository.Fetch` はレート制限順守のため、呼び出し前に 1 秒待機します

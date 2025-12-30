@@ -83,45 +83,50 @@ echo "Principal ID: $PRINCIPAL_ID"
 
 ### 3. Application Settings
 
-#### 3.1 Blob Storage設定（Managed Identity使用）
+#### 3.1 画像ストレージ設定（静的リソースホスティング用）
 
-API層とBatch層の両方で以下の設定を行います。
+画像を集約するBlob Storageは、静的ウェブサイトホスティング機能を使用してパブリックアクセスを提供します。
+Function Appsからのアクセスは想定していません。
+
+**静的ウェブサイトホスティング設定**:
+- Azure Portal → ストレージアカウント → **静的ウェブサイト** → **有効化**
+- コンテナー名: `$web`（自動作成）
+- パブリック読み取りアクセスを許可
+
+**フロントエンド（Static Web Apps）での設定**:
 
 | 設定名 | 値 | 説明 |
 |--------|-----|------|
-| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorage01`）<br>※3-24文字、小文字(a-z)と数字(0-9)のみ（ハイフンや特殊文字は使用不可）、Azure全体で一意である必要があります<br>この設定があると Managed Identity 認証が優先されます |
-| `StorageConnectionString` | `DefaultEndpointsProtocol=https;...` | **開発環境または移行期間のみ推奨**<br>本番環境では StorageAccountName + Managed Identity を使用すること<br>機密情報を含むためセキュリティリスクがあります |
+| `blobBaseUrl` | `https://<storage-account-name>.z11.web.core.windows.net/` | 画像ストレージの静的ウェブサイトエンドポイント |
 
 Azure CLI での設定例：
 
 ```bash
-# ストレージアカウント名を設定（Managed Identity認証を有効化）
-STORAGE_ACCOUNT_NAME="<your-storage-account-name>"
+# 画像ストレージアカウントで静的ウェブサイトホスティングを有効化
+IMAGE_STORAGE_ACCOUNT_NAME="<your-image-storage-account-name>"
 
-az functionapp config appsettings set \
-  --resource-group $RESOURCE_GROUP \
-  --name $FUNCTION_APP_NAME \
-  --settings StorageAccountName=$STORAGE_ACCOUNT_NAME
+# 静的ウェブサイトホスティングを有効化
+az storage blob service-properties update \
+  --account-name $IMAGE_STORAGE_ACCOUNT_NAME \
+  --static-website \
+  --index-document index.html \
+  --404-document 404.html
 
-# StorageConnectionString をフォールバック用に設定（オプション - 開発環境のみ推奨）
-# ⚠️ 警告: 接続文字列には機密情報（Account Key）が含まれます
-# 本番環境では StorageAccountName + Managed Identity のみを使用することを強く推奨します
-# 実際のキー値はバージョン管理システムにコミットしないでください
-STORAGE_CONNECTION_STRING="<your-storage-connection-string>"
-az functionapp config appsettings set \
+# フロントエンド（Static Web Apps）に画像ベースURL設定
+STATIC_WEB_APP_NAME="<your-static-web-app-name>"
+IMAGE_BASE_URL="https://${IMAGE_STORAGE_ACCOUNT_NAME}.z11.web.core.windows.net/"
+
+az staticwebapp appsettings set \
   --resource-group $RESOURCE_GROUP \
-  --name $FUNCTION_APP_NAME \
-  --settings StorageConnectionString=$STORAGE_CONNECTION_STRING
+  --name $STATIC_WEB_APP_NAME \
+  --setting-names blobBaseUrl=$IMAGE_BASE_URL
 ```
 
-**認証の優先順位**:
-1. `StorageAccountName` が設定されている場合 → Managed Identity (`DefaultAzureCredential`)
-2. `StorageAccountName` が未設定の場合 → `StorageConnectionString` を使用
-
-**セキュリティ推奨事項**:
-- 本番環境では `StorageAccountName` のみを設定し、Managed Identity認証を使用
-- `StorageConnectionString` は開発環境または移行期間のみ使用
-- 接続文字列を使用する場合は、Azure Key Vault参照を利用することを強く推奨
+**画像ストレージの特徴**:
+- パブリック読み取りアクセス許可
+- 静的ウェブサイトホスティング機能使用
+- Function Appsからの直接アクセスなし（管理用途を除く）
+- CDN併用でパフォーマンス向上可能
 
 #### 3.2 PostgreSQL接続文字列
 
@@ -184,39 +189,46 @@ az functionapp config appsettings set \
 
 ### 4. RBAC設定
 
-Managed Identityに適切なRBACロールを付与します。
+#### 4.1 画像ストレージのアクセス権限
 
-#### 4.1 Storage Blob Data Contributorロールの付与
-
-Function AppのManaged IdentityにBlobへの読み書き権限を付与します。
+画像ストレージは静的ウェブサイトホスティング機能を使用するため、**パブリック読み取りアクセスが必要**です。
+Function AppsからのManaged Identity認証は**不要**です。
 
 Azure CLI での設定例：
 
 ```bash
-# ストレージアカウントのリソースIDを取得
-STORAGE_ACCOUNT_ID=$(az storage account show \
-  --name $STORAGE_ACCOUNT_NAME \
+# 画像ストレージアカウントでパブリック読み取りアクセスを許可
+az storage account update \
+  --name $IMAGE_STORAGE_ACCOUNT_NAME \
+  --resource-group $RESOURCE_GROUP \
+  --allow-blob-public-access true
+
+# $web コンテナー（静的ウェブサイト用）のアクセスレベルを確認
+az storage container show \
+  --account-name $IMAGE_STORAGE_ACCOUNT_NAME \
+  --name '$web' \
+  --query 'properties.publicAccess' \
+  --output tsv
+```
+
+#### 4.2 管理用のRBAC設定（オプション）
+
+画像のアップロードや管理を行う場合のみ、適切なユーザーまたはサービスプリンシパルにRBACロールを付与：
+
+```bash
+# 管理者にStorage Blob Data Contributorロールを付与（画像管理用）
+# Function Appsには不要
+IMAGE_STORAGE_ACCOUNT_ID=$(az storage account show \
+  --name $IMAGE_STORAGE_ACCOUNT_NAME \
   --resource-group $RESOURCE_GROUP \
   --query id \
   --output tsv)
 
-# Storage Blob Data Contributor ロールを付与
+# 管理用ユーザーにロール付与
 az role assignment create \
-  --assignee $PRINCIPAL_ID \
+  --assignee <admin-user-or-service-principal> \
   --role "Storage Blob Data Contributor" \
-  --scope $STORAGE_ACCOUNT_ID
-
-echo "RBAC role 'Storage Blob Data Contributor' assigned successfully"
-```
-
-#### 4.2 ロール付与の確認
-
-```bash
-# ロール割り当ての確認
-az role assignment list \
-  --assignee $PRINCIPAL_ID \
-  --scope $STORAGE_ACCOUNT_ID \
-  --output table
+  --scope $IMAGE_STORAGE_ACCOUNT_ID
 ```
 
 ### 5. Durable Functions設定
@@ -384,8 +396,6 @@ az monitor app-insights query \
 - [ ] ワーカープロセスモデルが「分離」に設定されている
 - [ ] `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` が設定されている
 - [ ] システム割り当てManaged Identityが有効化されている
-- [ ] `StorageAccountName` が設定されている
-- [ ] Storage Blob Data Contributor ロールが付与されている
 - [ ] `DefaultConnection` (PostgreSQL) が設定されている
 - [ ] `AzureWebJobsStorage` が接続文字列形式で設定されている
 
@@ -395,8 +405,6 @@ az monitor app-insights query \
 - [ ] ワーカープロセスモデルが「分離」に設定されている
 - [ ] `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated` が設定されている
 - [ ] システム割り当てManaged Identityが有効化されている
-- [ ] `StorageAccountName` が設定されている
-- [ ] Storage Blob Data Contributor ロールが付与されている
 - [ ] `DefaultConnection` (PostgreSQL) が設定されている
 - [ ] `AzureWebJobsStorage` が接続文字列形式で設定されている
 - [ ] `applicationid` (楽天ブックスAPI) が設定されている
@@ -407,6 +415,15 @@ az monitor app-insights query \
 - [ ] カスタムドメインが設定されている（必要な場合）
 - [ ] API の CORS 設定が正しく構成されている
 - [ ] 環境変数 (`blobBaseUrl` 等) が設定されている
+
+### 画像ストレージ (Blob Storage)
+
+- [ ] 画像用ストレージアカウントが作成されている
+- [ ] 静的ウェブサイトホスティングが有効化されている
+- [ ] パブリック読み取りアクセスが許可されている
+- [ ] `$web` コンテナーが作成されている
+- [ ] フロントエンドに `blobBaseUrl` が正しく設定されている
+- [ ] CDNが設定されている（パフォーマンス向上のため、オプション）
 
 ### 全体
 

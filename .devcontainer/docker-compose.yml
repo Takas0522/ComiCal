@@ -40,8 +40,8 @@ services:
       - POSTGRES_DB=comical
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ../database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
-      - ../database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - ../src/database/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ../src/database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
 
   azurite:
     container_name: comical-azurite

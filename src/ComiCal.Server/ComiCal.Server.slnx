@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Comical.Api/Comical.Api.csproj" />
+  <Project Path="ComiCal.Batch/ComiCal.Batch.csproj" />
+  <Project Path="ComiCal.Shared/ComiCal.Shared.csproj" />
+</Solution>
