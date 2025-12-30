@@ -1,0 +1,106 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.39.26.7824",
+      "templateHash": "14272336443775108457"
+    }
+  },
+  "parameters": {
+    "environmentName": {
+      "type": "string",
+      "allowedValues": [
+        "dev",
+        "prod"
+      ],
+      "metadata": {
+        "description": "Environment name (dev, prod)"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "japaneast",
+      "metadata": {
+        "description": "Azure region for resources"
+      }
+    },
+    "projectName": {
+      "type": "string",
+      "defaultValue": "comical",
+      "metadata": {
+        "description": "Project name for resource naming"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "defaultValue": {},
+      "metadata": {
+        "description": "Tags to apply to all resources"
+      }
+    },
+    "gitTag": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Git tag/version for semantic versioning (optional)"
+      }
+    }
+  },
+  "variables": {
+    "locationAbbreviation": {
+      "japaneast": "jpe",
+      "japanwest": "jpw",
+      "eastus": "eus",
+      "westus": "wus",
+      "eastasia": "ea",
+      "southeastasia": "sea"
+    },
+    "locationShort": "[variables('locationAbbreviation')[parameters('location')]]",
+    "envShort": "[createObject('dev', 'd', 'prod', 'p')[parameters('environmentName')]]",
+    "isSemanticVersion": "[and(not(empty(parameters('gitTag'))), startsWith(parameters('gitTag'), 'v'))]",
+    "versionTag": "[if(variables('isSemanticVersion'), parameters('gitTag'), '')]",
+    "commonTags": "[union(parameters('tags'), createObject('environment', parameters('environmentName'), 'project', parameters('projectName'), 'managedBy', 'bicep', 'version', if(not(empty(variables('versionTag'))), variables('versionTag'), 'untagged')))]",
+    "resourceGroupName": "[format('rg-{0}-{1}-{2}', parameters('projectName'), parameters('environmentName'), variables('locationShort'))]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/resourceGroups",
+      "apiVersion": "2021-04-01",
+      "name": "[variables('resourceGroupName')]",
+      "location": "[parameters('location')]",
+      "tags": "[variables('commonTags')]"
+    }
+  ],
+  "outputs": {
+    "resourceGroupName": {
+      "type": "string",
+      "value": "[variables('resourceGroupName')]"
+    },
+    "resourceGroupId": {
+      "type": "string",
+      "value": "[subscriptionResourceId('Microsoft.Resources/resourceGroups', variables('resourceGroupName'))]"
+    },
+    "location": {
+      "type": "string",
+      "value": "[parameters('location')]"
+    },
+    "environment": {
+      "type": "string",
+      "value": "[parameters('environmentName')]"
+    },
+    "semanticVersion": {
+      "type": "string",
+      "value": "[variables('versionTag')]"
+    },
+    "isSemanticVersionDeployment": {
+      "type": "bool",
+      "value": "[variables('isSemanticVersion')]"
+    },
+    "tags": {
+      "type": "object",
+      "value": "[variables('commonTags')]"
+    }
+  }
+}

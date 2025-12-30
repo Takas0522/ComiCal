@@ -2,3 +2,8 @@
 **/local.settings.json
 database/node_modules/
 database/package-lock.json
+
+# Infrastructure sensitive files
+*.credentials.json
+**/secrets/
+**/.azure/
