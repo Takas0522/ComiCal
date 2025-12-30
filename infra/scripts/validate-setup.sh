@@ -37,7 +37,8 @@ print_warning() {
 
 # Check if running from repository root
 if [ ! -f "infra/main.bicep" ]; then
-    print_error "Please run this script from the repository root directory"
+    echo -e "${RED}✗${NC} Please run this script from the repository root directory"
+    exit 1
 fi
 
 print_header "Validating Infrastructure Setup"
