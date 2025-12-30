@@ -209,7 +209,9 @@ GitHub Actions や Azure DevOps での自動テスト実行については、以
 
 3. **環境変数の設定**
    - `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated`
-   - その他必要な接続文字列
+   - `PostgresConnectionString` (PostgreSQL接続文字列)
+   - `StorageConnectionString` (Blob Storage接続文字列)
+   - `AzureWebJobsStorage` (Durable Functions用ストレージ接続文字列)
 
 ## ベストプラクティス
 
