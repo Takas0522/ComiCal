@@ -3,7 +3,8 @@
 # Test script to validate Bicep infrastructure setup
 # This script can be run locally without Azure credentials to verify basic setup
 
-set -e
+# Don't exit on errors - we want to collect all validation results
+set +e
 
 # Color output
 RED='\033[0;31m'
@@ -11,6 +12,10 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
+
+# Track validation results
+ERROR_COUNT=0
+WARNING_COUNT=0
 
 print_header() {
     echo -e "\n${BLUE}=== $1 ===${NC}\n"
@@ -22,11 +27,12 @@ print_success() {
 
 print_error() {
     echo -e "${RED}✗${NC} $1"
-    exit 1
+    ((ERROR_COUNT++))
 }
 
 print_warning() {
     echo -e "${YELLOW}⚠${NC} $1"
+    ((WARNING_COUNT++))
 }
 
 # Check if running from repository root
@@ -135,7 +141,7 @@ done
 # 7. Verify naming conventions in templates
 print_header "Verifying Naming Conventions"
 
-if grep -q "rg-\${projectName}-\${environmentName}-\${locationShort}" infra/main.bicep; then
+if grep -q 'rg-${projectName}-${environmentName}-${locationShort}' infra/main.bicep; then
     print_success "Resource group naming follows Azure CAF conventions"
 else
     print_warning "Resource group naming may not follow conventions"
@@ -166,7 +172,17 @@ done
 # Summary
 print_header "Validation Summary"
 
-echo -e "${GREEN}All checks passed!${NC}"
+if [ $ERROR_COUNT -eq 0 ] && [ $WARNING_COUNT -eq 0 ]; then
+    echo -e "${GREEN}✅ All checks passed!${NC}"
+elif [ $ERROR_COUNT -eq 0 ]; then
+    echo -e "${YELLOW}⚠ Validation completed with ${WARNING_COUNT} warning(s)${NC}"
+else
+    echo -e "${RED}❌ Validation failed with ${ERROR_COUNT} error(s) and ${WARNING_COUNT} warning(s)${NC}"
+    echo ""
+    echo "Please fix the errors before proceeding."
+    exit 1
+fi
+
 echo ""
 echo "Next steps:"
 echo "1. Run ./infra/scripts/initial-setup.sh to configure Azure and GitHub"

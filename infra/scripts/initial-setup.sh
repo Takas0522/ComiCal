@@ -102,14 +102,23 @@ setup_service_principal() {
         print_info "  App ID: $SP_APP_ID"
     else
         print_warning "Service Principal already exists with App ID: $SP_APP_ID"
-        print_info "Retrieving Service Principal credentials..."
+        print_info "Resetting Service Principal credentials..."
         
-        # Reset credentials to get new secret
-        SP_OUTPUT=$(az ad sp create-for-rbac \
-            --name "$SP_NAME" \
-            --role Contributor \
-            --scopes /subscriptions/$SUBSCRIPTION_ID \
-            --sdk-auth)
+        # Reset credentials for existing Service Principal
+        SP_CREDENTIALS=$(az ad sp credential reset \
+            --id "$SP_APP_ID" \
+            --query "{clientId: appId, clientSecret: password, tenantId: tenant, subscriptionId: '$SUBSCRIPTION_ID'}" \
+            --output json)
+        
+        # Format for sdk-auth compatibility
+        SP_OUTPUT=$(echo "$SP_CREDENTIALS" | jq '. + {
+            "activeDirectoryEndpointUrl": "https://login.microsoftonline.com",
+            "resourceManagerEndpointUrl": "https://management.azure.com/",
+            "activeDirectoryGraphResourceId": "https://graph.windows.net/",
+            "sqlManagementEndpointUrl": "https://management.core.windows.net:8443/",
+            "galleryEndpointUrl": "https://gallery.azure.com/",
+            "managementEndpointUrl": "https://management.core.windows.net/"
+        }')
     fi
     
     echo "$SP_OUTPUT"
