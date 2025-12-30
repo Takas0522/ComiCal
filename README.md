@@ -35,8 +35,8 @@ https://manrem.devtakas.jp/
 
 **主要技術スタック**:
 - **フロントエンド**: Angular 17, Azure Static Web Apps
-- **API**: Azure Functions (.NET 6), PostgreSQL
-- **Batch**: Azure Durable Functions, Blob Storage
+- **API**: Azure Functions (.NET 10 LTS + Isolated worker model), PostgreSQL
+- **Batch**: Azure Durable Functions (.NET 10 LTS + Isolated worker model), Blob Storage
 - **外部API**: 楽天ブックスAPI
 
 **データフロー**:
@@ -147,7 +147,7 @@ cp src/api/local.settings.json.template src/api/local.settings.json
   "IsEncrypted": false,
   "Values": {
     "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
     "PostgresConnectionString": "Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
     "StorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=<storage-account>;AccountKey=<your-key>;EndpointSuffix=core.windows.net"
   }
@@ -180,6 +180,67 @@ export const environment = {
 | `blobBaseUrl` | Blob Storage の画像ベースURL | `https://<account>.blob.core.windows.net/images` |
 
 > **セキュリティ注意**: 本番環境では、接続文字列にパスワードを含めるのではなく、Azure Managed Identity を使用することを強く推奨します。これにより、設定ファイルに機密情報を保存する必要がなくなり、自動的にローテーションされる資格情報を使用できます。
+
+#### .NET 10 Isolated移行後の設定
+
+プロジェクトは .NET 10 LTS と Isolated worker model に移行されています。以下の設定手順に従ってください：
+
+**手順**:
+
+1. **local.settings.jsonを作成** (テンプレートからコピー)
+   ```bash
+   # API層
+   cp src/api/local.settings.json.template src/api/local.settings.json
+   
+   # Batch層
+   cp src/batch/local.settings.json.template src/batch/local.settings.json
+   ```
+
+2. **FUNCTIONS_WORKER_RUNTIMEを`dotnet-isolated`に設定**
+   
+   local.settings.json内で以下を確認してください：
+   ```json
+   "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+   ```
+   
+   > **重要**: .NET 10 Isolated worker modelを使用するため、`dotnet-isolated`の設定が必須です。
+
+3. **ローカル開発: StorageConnectionStringのみ設定 (Azurite)**
+   
+   ローカル開発環境では、Azuriteを使用します：
+   ```json
+   "StorageConnectionString": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;..."
+   ```
+
+4. **Azure環境: StorageAccountNameを追加してManaged Identity有効化**
+   
+   Azure環境では、Managed Identityを使用することを推奨します：
+   - `StorageAccountName` を設定してManaged Identity認証を有効化
+   - `StorageConnectionString` はフォールバック用に保持
+   
+   Application Settingsでの設定例：
+   ```
+   StorageAccountName=<your-storage-account-name>
+   StorageConnectionString=DefaultEndpointsProtocol=https;AccountName=<account>;AccountKey=<key>;...
+   ```
+
+5. **AzureWebJobsStorageは接続文字列形式を継続**
+   
+   Durable Functions互換性のため、`AzureWebJobsStorage`は接続文字列形式を維持します：
+   ```json
+   "AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=<account>;AccountKey=<key>;..."
+   ```
+
+6. **Azure Functions Core Tools v4を使用**
+   
+   開発には Azure Functions Core Tools v4 を使用してください：
+   ```bash
+   # バージョン確認
+   func --version  # 4.x.x であることを確認
+   
+   # インストール（必要な場合）
+   npm install -g azure-functions-core-tools@4 --unsafe-perm true
+   ```
 
 #### 4. ローカル開発実行
 
