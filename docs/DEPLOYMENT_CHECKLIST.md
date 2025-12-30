@@ -139,6 +139,8 @@ Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-ide
 **注意**: 
 - PostgreSQL側でManaged IdentityをAzure ADユーザーとして登録する必要があります
 - `<managed-identity-name>`はFunction AppのManaged Identity名と一致させます
+  - システム割り当てManaged Identityの場合、通常はFunction App名と同じになります
+  - 例: Function App名が `comical-api-prod` の場合、Managed Identity名も `comical-api-prod` となります
 
 Azure CLI での設定例：
 
@@ -249,7 +251,10 @@ az functionapp config appsettings set \
   --settings AzureWebJobsStorage=$AZUREWEBJOBS_STORAGE
 
 # または Azure Key Vault 参照を使用（最も安全）
-# AzureWebJobsStorage=@Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/AzureWebJobsStorage/)
+# versionless形式（最新バージョンを自動取得）
+# AzureWebJobsStorage="@Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/AzureWebJobsStorage/)"
+# versioned形式（特定バージョンを指定）
+# AzureWebJobsStorage="@Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/AzureWebJobsStorage/<version>)"
 ```
 
 #### 5.2 Batch層のスケジュール設定
@@ -364,9 +369,10 @@ az monitor app-insights query \
 ## 参考リンク
 
 - [Azure Functions - Isolated worker model](https://learn.microsoft.com/azure/azure-functions/dotnet-isolated-process-guide)
-- [Azure Managed Identity](https://learn.microsoft.com/azure/active-directory/managed-identities-azure-resources/overview)
+- [Managed identities for Azure resources](https://learn.microsoft.com/entra/identity/managed-identities-azure-resources/overview)
 - [Azure Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/durable-functions-overview)
 - [Azure Blob Storage - Managed Identity 認証](https://learn.microsoft.com/azure/storage/common/authorize-data-access)
+- [Azure Key Vault references for App Service and Azure Functions](https://learn.microsoft.com/azure/app-service/app-service-key-vault-references)
 
 ## デプロイチェックリスト
 
