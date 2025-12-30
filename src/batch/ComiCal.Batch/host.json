@@ -22,7 +22,7 @@
       "logLevel": {
         "Default": "Information",
         "ComiCal.Batch": "Information",
-        "Microsoft.Azure.Functions.Worker": "Warning",
+        "Microsoft.Azure.Functions.Worker": "Debug",
         "Azure.Core": "Warning",
         "Azure.Storage": "Warning",
         "System.Net.Http": "Warning",

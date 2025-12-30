@@ -33,6 +33,10 @@ namespace ComiCal.Batch.Repositories
 
         public async Task<RakutenComicResponse> Fetch(int requestPage)
         {
+            // Rakuten API rate limit: 1 request per second per Application ID
+            // Wait 1 second before making the API call to comply with rate limits
+            await Task.Delay(TimeSpan.FromSeconds(1));
+            
             var sort = HttpUtility.UrlEncode("+releaseDate");
             var baseUrl = $"https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404?booksGenreId=001001&sort={sort}&page={requestPage}&availability=5&applicationId={_applicationId}";
             var requestMessage = new HttpRequestMessage(HttpMethod.Get, baseUrl);
