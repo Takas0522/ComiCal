@@ -124,7 +124,7 @@ cd scripts
 
 ### Durable Functions の注意事項
 
-- `AzureWebJobsStorage` は接続文字列形式を維持する必要があります（Durable Functions 互換性のため）
+- `AzureWebJobsStorage` は接続文字列形式を維持する必要があります（Durable Functions の互換性のため）
 - オーケストレーションの状態は Azure Storage（またはAzurite）に保存されます
 
 ## フロントエンドのテスト
