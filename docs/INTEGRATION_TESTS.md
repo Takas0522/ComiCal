@@ -1,442 +1,229 @@
-# Integration Tests Guide
+# 統合テストガイド
 
-このドキュメントでは、ComiCal システムの統合テスト手順を説明します。
+ComiCal プロジェクトの統合テスト手順を説明します。
 
 ## 概要
 
-統合テストでは、システム全体が正しく連携して動作することを確認します：
-- API層: Cosmos DB からのデータ取得
-- Batch層: 楽天API → Cosmos DB → Blob Storage のデータフロー
-- フロントエンド: 検索、画像表示、エラーハンドリング
+このドキュメントでは、API層、Batch層、フロントエンドの統合テスト手順を提供します。プロジェクトは **.NET 10 LTS + Isolated worker model** を使用しており、Azure Functions Core Tools v4 でテストを実行します。
 
 ## 前提条件
 
-### 必要な環境
-- Azure Cosmos DB アカウント（開発環境またはエミュレータ）
-- Azure Blob Storage アカウント
-- Azure Functions Core Tools (v4.x)
-- Node.js 18.x
-- .NET 6.0 SDK
-- 楽天 Books API アプリケーションID
+### 開発環境
+
+- **.NET 10 LTS + Isolated worker model**
+- Azure Functions Core Tools v4
+- PostgreSQL 14+
+- Node.js 18+
+- Angular CLI
+- PowerShell 7+（統合テストスクリプト用）
 
 ### 環境設定
 
-#### 1. Cosmos DB Emulator（ローカル開発の場合）
+テストを実行する前に、以下の環境設定が完了していることを確認してください：
 
-Cosmos DB Emulator のダウンロードとインストール:
-```powershell
-# Windows の場合
-# https://aka.ms/cosmosdb-emulator からダウンロード
+1. **local.settings.json の設定**
+   - `FUNCTIONS_WORKER_RUNTIME` が `dotnet-isolated` に設定されていること
+   - PostgreSQL 接続文字列が正しく設定されていること
+   - Storage 接続文字列（Azurite または Azure Storage）が設定されていること
 
-# 起動確認
-# https://localhost:8081/_explorer/index.html にアクセス
-```
+2. **サービスの起動**
+   - PostgreSQL が起動していること
+   - Azurite が起動していること（ローカル環境）
 
-エミュレータ接続文字列（ローカル開発専用）:
-```
-AccountEndpoint=https://localhost:8081/;AccountKey=C2y6yDjf5/R+ob0N8A7Cgv30VRDJIWEHLM+4QDU5DE2nQ9nDuVTqobD4b8mGGyPMbIZnqyMsEcaGQy67XIw/Jw==
-```
+## 統合テストの実行
 
-> **重要**: この接続文字列は Cosmos DB Emulator のデフォルトキーです。ローカル開発専用であり、**絶対に本番環境では使用しないでください**。本番環境では Azure Portal から取得した実際の接続文字列を使用してください。
-
-#### 2. 設定ファイルの準備
-
-**API層** (`api/local.settings.json`):
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "CosmosConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=...",
-    "StorageConnectionString": "UseDevelopmentStorage=true"
-  }
-}
-```
-
-**Batch層** (`batch/local.settings.json`):
-```json
-{
-  "IsEncrypted": false,
-  "Values": {
-    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-    "FUNCTIONS_WORKER_RUNTIME": "dotnet",
-    "CosmosConnectionString": "AccountEndpoint=https://localhost:8081/;AccountKey=...",
-    "StorageConnectionString": "UseDevelopmentStorage=true",
-    "RakutenApplicationId": "<your-application-id>"
-  }
-}
-```
-
-#### 3. Cosmos DB コンテナの初期化
+### クイックスタート
 
 ```powershell
+# すべてのテストを実行（ローカル環境）
 cd scripts
-.\setup-cosmosdb.ps1 -CosmosAccountName "<account-name>" -ResourceGroupName "<resource-group>"
+.\test-integration.ps1 -Environment Local -RunAllTests
+
+# API層のテストのみ実行
+.\test-integration.ps1 -Environment Local -TestApi
+
+# Batch層のテストのみ実行
+.\test-integration.ps1 -Environment Local -TestBatch
+
+# フロントエンドのテストのみ実行
+.\test-integration.ps1 -Environment Local -TestFrontend
 ```
 
-エミュレータの場合:
+### 開発環境でのテスト実行
+
 ```powershell
-# Azure Cosmos DB Emulator が起動している状態で
-.\setup-cosmosdb.ps1 -UseEmulator
+# 開発環境でテスト実行
+.\test-integration.ps1 -Environment Dev -RunAllTests
+
+# ステージング環境でテスト実行
+.\test-integration.ps1 -Environment Staging -RunAllTests
 ```
 
-#### 4. Azure Storage Emulator（ローカル開発の場合）
+### テストパラメータ
 
-```powershell
-# Azurite のインストールと起動
-npm install -g azurite
-azurite --silent --location c:\azurite --debug c:\azurite\debug.log
-```
+| パラメータ | 説明 | デフォルト値 |
+|-----------|------|------------|
+| `Environment` | テスト環境（Local, Dev, Staging, Prod） | 必須 |
+| `RunAllTests` | すべてのテストを実行 | - |
+| `TestApi` | API層のテストのみ実行 | - |
+| `TestBatch` | Batch層のテストのみ実行 | - |
+| `TestFrontend` | フロントエンドのテストのみ実行 | - |
+| `ResponseTimeThresholdMs` | APIレスポンスタイムの閾値（ミリ秒） | 2000ms |
+| `ConsistencyWaitSeconds` | データベースの整合性確認の待機時間（秒） | 2秒 |
 
-## API層の統合テスト
+## API層のテスト
 
-### テスト1: GetComics API - 基本的な検索
+### テスト項目
 
-#### 目的
-キーワード検索が正常に動作し、Cosmos DB からデータを取得できることを確認
+- **Health Check**: API のヘルスチェックエンドポイント
+- **Comics CRUD**: 漫画データの作成、読み取り、更新、削除
+- **Search**: 漫画検索機能
+- **Response Time**: APIレスポンスタイムの測定
 
-#### 手順
-
-1. **API を起動**
-```powershell
-cd api
-func start
-```
-
-2. **テストデータを Cosmos DB に登録**（初回のみ）
-```powershell
-# Batch を使用してテストデータを登録するか、
-# Azure Portal の Data Explorer から手動で登録
-```
-
-サンプルテストデータ:
-```json
-{
-  "id": "9784088820000",
-  "type": "comic",
-  "title": "テストマンガ 1巻",
-  "author": "テスト作者",
-  "publisherName": "テスト出版",
-  "salesDate": "2024-01-15",
-  "itemCaption": "テストマンガの説明",
-  "largeImageUrl": "https://example.com/image.jpg",
-  "affiliateUrl": "https://example.com/affiliate"
-}
-```
-
-3. **API にリクエストを送信**
-```powershell
-# PowerShell
-$body = @{
-    SearchList = @("テストマンガ")
-} | ConvertTo-Json
-
-Invoke-RestMethod -Uri "http://localhost:7071/api/ComicData?fromdate=2024-01-01" `
-    -Method POST `
-    -Body $body `
-    -ContentType "application/json"
-```
+### ローカル実行
 
 ```bash
-# Bash/curl
-curl -X POST "http://localhost:7071/api/ComicData?fromdate=2024-01-01" \
-  -H "Content-Type: application/json" \
-  -d '{"SearchList":["テストマンガ"]}'
-```
-
-#### 期待される結果
-- ステータスコード: 200 OK
-- レスポンスに検索条件に一致する漫画データが含まれる
-- 各エントリに `id`, `title`, `author`, `salesDate` などのプロパティが含まれる
-- 画像URL が正しく含まれる（または画像がない場合は null/空）
-
-#### 検証項目
-- [ ] API が正常に起動する
-- [ ] リクエストが成功する（200 OK）
-- [ ] 検索キーワードに一致するデータが返される
-- [ ] データ構造が正しい
-- [ ] 日付フィルタ（fromdate）が正しく機能する
-
-### テスト2: GetComics API - 複数キーワード検索
-
-#### 手順
-```powershell
-$body = @{
-    SearchList = @("ワンピース", "ナルト", "ブリーチ")
-} | ConvertTo-Json
-
-Invoke-RestMethod -Uri "http://localhost:7071/api/ComicData?fromdate=2024-01-01" `
-    -Method POST `
-    -Body $body `
-    -ContentType "application/json"
-```
-
-#### 期待される結果
-- すべてのキーワードに一致する漫画が返される
-- OR 条件で検索される（いずれかのキーワードに一致）
-
-### テスト3: ConfigMigration API - 設定の保存と取得
-
-#### 目的
-設定移行機能が正常に動作することを確認
-
-#### 手順
-
-1. **設定を保存**
-```powershell
-$body = @("keyword1", "keyword2", "keyword3") | ConvertTo-Json
-
-$result = Invoke-RestMethod -Uri "http://localhost:7071/api/ConfigMigration" `
-    -Method POST `
-    -Body $body `
-    -ContentType "application/json"
-
-$migrationId = $result.Id
-Write-Host "Migration ID: $migrationId"
-```
-
-2. **設定を取得**
-```powershell
-Invoke-RestMethod -Uri "http://localhost:7071/api/ConfigMigration?id=$migrationId" `
-    -Method GET
-```
-
-#### 期待される結果
-- POST: 新しい Migration ID が返される
-- GET: 保存したキーワードリストが正しく返される
-
-#### 検証項目
-- [ ] POST で設定を保存できる
-- [ ] 一意の ID が生成される
-- [ ] GET で保存した設定を取得できる
-- [ ] データの整合性が保たれる
-
-## Batch層の統合テスト
-
-### テスト4: Batch処理 - 楽天API → Cosmos DB → Blob Storage
-
-#### 目的
-バッチ処理全体のデータフローが正常に動作することを確認
-
-#### 手順
-
-1. **Batch を起動**
-```powershell
-cd batch
+# Azure Functions を起動
+cd src/api
 func start
+
+# 別のターミナルでテスト実行
+cd scripts
+.\test-integration.ps1 -Environment Local -TestApi
 ```
 
-2. **手動でオーケストレーションを開始**（デバッグ時）
-```powershell
-# TimerStart 関数のデバッグフラグが有効な場合、起動時に自動実行される
-# または、Durable Functions の管理API を使用して手動起動
+### .NET 10 Isolated 固有の注意事項
+
+- Azure Functions Core Tools v4 を使用してください
+- `FUNCTIONS_WORKER_RUNTIME` が `dotnet-isolated` に設定されていることを確認
+- Isolated worker model では、Functions ホストと .NET プロセスが分離されているため、起動時間が若干長くなる場合があります
+
+## Batch層のテスト
+
+### テスト項目
+
+- **Durable Functions**: オーケストレーション機能のテスト
+- **Rakuten API Integration**: 楽天APIからのデータ取得
+- **Blob Storage**: 画像の保存と取得
+- **Database Integration**: PostgreSQL へのデータ保存
+
+### ローカル実行
+
+```bash
+# Azurite を起動（別のターミナル）
+azurite --silent --location /tmp/azurite --debug /tmp/azurite/debug.log
+
+# Azure Functions を起動
+cd src/batch
+func start
+
+# 別のターミナルでテスト実行
+cd scripts
+.\test-integration.ps1 -Environment Local -TestBatch
 ```
 
-3. **ログを監視**
-```
-Functions runtime is ready
-Executing 'TimerStart'
-Started orchestration with ID = '...'
-Get PageCount Result=...
-Run Page: 1
-Data Get Complete
-```
+### Durable Functions の注意事項
 
-#### 期待される動作
+- `AzureWebJobsStorage` は接続文字列形式を維持する必要があります（Durable Functions の互換性のため）
+- オーケストレーションの状態は Azure Storage（またはAzurite）に保存されます
 
-1. **楽天APIからデータ取得**
-   - ページカウントを取得
-   - 各ページのデータを順次取得
-   - API レート制限を考慮（15秒待機）
+## フロントエンドのテスト
 
-2. **Cosmos DB へ登録**
-   - 漫画データを `comics` コンテナに保存
-   - ISBN (id) をパーティションキーとして使用
-   - 重複する場合は上書き（Upsert）
+### テスト項目
 
-3. **Blob Storage へ画像保存**
-   - 画像URLから画像をダウンロード
-   - Content-Type を判定（JPEG/PNG/GIF/WebP）
-   - `images/{isbn}.{ext}` 形式で保存
-   - Blob のメタデータに Content-Type を設定
+- **E2E Tests**: Angular アプリケーションのエンドツーエンドテスト
+- **Unit Tests**: コンポーネントとサービスのユニットテスト
 
-#### 検証項目
-- [ ] 楽天APIからデータを取得できる
-- [ ] Cosmos DB にデータが保存される
-- [ ] Blob Storage に画像が保存される
-- [ ] 適切な Content-Type が設定される
-- [ ] エラーハンドリングが正常に機能する
-- [ ] ログ出力が適切
+### ローカル実行
 
-### テスト5: 画像のダウンロードと保存
-
-#### 手順
-
-1. **Blob Storage を確認**
-```powershell
-# Azure Storage Explorer を使用するか、Azure Portal で確認
-# コンテナ: images
-# ファイル形式: {isbn}.jpg, {isbn}.png など
-```
-
-2. **画像が存在することを確認**
-```powershell
-# Azure CLI を使用
-az storage blob list --container-name images --account-name <storage-account> --output table
-```
-
-#### 期待される結果
-- 各漫画の ISBN に対応する画像ファイルが存在する
-- Content-Type が正しく設定されている（image/jpeg, image/png など）
-- 画像がダウンロード可能
-
-## フロントエンドの動作確認
-
-### テスト6: 検索機能のテスト
-
-#### 手順
-
-1. **フロントエンドを起動**
-```powershell
-cd front
-npm install
+```bash
+# フロントエンドを起動
+cd src/front
 npm run start
+
+# ユニットテストを実行
+npm run test
+
+# E2Eテストを実行
+npm run e2e
 ```
-
-2. **ブラウザでアクセス**
-```
-http://localhost:4200
-```
-
-3. **検索を実行**
-   - 検索キーワードを入力（例: "ワンピース"）
-   - 検索ボタンをクリック
-
-#### 期待される動作
-- 検索キーワードが API に送信される
-- 検索結果が表示される
-- 各漫画のタイトル、著者、発売日が表示される
-
-#### 検証項目
-- [ ] 検索フォームが正常に動作する
-- [ ] 検索結果が表示される
-- [ ] ローディング状態が適切に表示される
-- [ ] エラーハンドリングが機能する
-
-### テスト7: 画像表示のテスト
-
-#### 手順
-
-1. **画像が存在する漫画を検索**
-2. **結果一覧で画像が表示されることを確認**
-
-#### 期待される動作
-- 画像が正しく表示される
-- 画像の遅延読み込み（Lazy Loading）が機能する
-- 画像読み込み中にプレースホルダーが表示される
-
-#### 検証項目
-- [ ] 画像が正しく表示される
-- [ ] Blob Storage からの画像取得が成功する
-- [ ] 画像がキャッシュされる
-
-### テスト8: 画像なし表示のテスト
-
-#### 手順
-
-1. **画像が存在しない漫画を検索（または画像URLを意図的に無効化）**
-2. **404エラー時に "画像なし" が表示されることを確認**
-
-#### 期待される動作
-- 画像読み込みが失敗した場合、デフォルト画像または "画像なし" テキストが表示される
-- エラーが UI に影響を与えない（アプリがクラッシュしない）
-
-#### 検証項目
-- [ ] 画像404時にフォールバックが機能する
-- [ ] ユーザーに適切なメッセージが表示される
-- [ ] エラーがログに記録される
-
-## E2Eテストシナリオ
-
-### シナリオ1: 新規漫画の登録から表示まで
-
-1. **Batch処理を実行** → 楽天APIから最新データを取得
-2. **Cosmos DB を確認** → 新しいデータが登録されている
-3. **Blob Storage を確認** → 画像が保存されている
-4. **フロントエンドで検索** → 新しい漫画が検索結果に表示される
-5. **画像をクリック** → 画像が正しく表示される
-
-### シナリオ2: 設定移行機能の動作確認
-
-1. **フロントエンドで検索キーワードを設定**
-2. **"コードを生成" ボタンをクリック** → Migration ID が生成される
-3. **別のブラウザで Migration ID を入力** → 検索キーワードが復元される
-4. **検索を実行** → 同じ検索結果が表示される
 
 ## トラブルシューティング
 
-### Cosmos DB 接続エラー
+### PostgreSQL 接続エラー
 
-**症状**: `Unable to connect to Cosmos DB`
-
-**解決方法**:
-- 接続文字列が正しいか確認
-- Cosmos DB アカウント/エミュレータが起動しているか確認
-- ファイアウォール設定を確認
-- ネットワーク接続を確認
-
-### Blob Storage 接続エラー
-
-**症状**: `Blob Storage container not found`
-
-**解決方法**:
-- Storage アカウントに `images` コンテナが存在するか確認
-- 接続文字列が正しいか確認
-- Azurite が起動しているか確認（ローカル開発の場合）
-
-### 楽天API エラー
-
-**症状**: `Rakuten API returned error`
-
-**解決方法**:
-- Application ID が正しいか確認
-- APIクォータを確認（1秒あたりのリクエスト数制限）
-- ネットワーク接続を確認
-
-### フロントエンド CORS エラー
-
-**症状**: `CORS policy: No 'Access-Control-Allow-Origin' header`
-
-**解決方法**:
-- API の CORS 設定を確認（host.json）
-- ローカル開発では SWA CLI を使用 (`npm run start:swa`)
-
-## 自動化テストスクリプト
-
-統合テストを自動化するには、`scripts/test-integration.ps1` スクリプトを使用します：
-
-```powershell
-cd scripts
-.\test-integration.ps1 -Environment Local -RunAllTests
+```
+Npgsql.NpgsqlException: Connection refused
 ```
 
-オプション:
-- `-Environment Local|Dev|Prod`: テスト環境
-- `-RunAllTests`: すべてのテストを実行
-- `-TestApi`: API テストのみ実行
-- `-TestBatch`: Batch テストのみ実行
-- `-TestFrontend`: フロントエンドテストのみ実行
+**解決方法**:
+- PostgreSQL が起動しているか確認（`docker ps | grep postgres`）
+- 接続文字列が正しいか確認
+- ポート 5432 が使用可能か確認
 
-## 継続的インテグレーション
+### Azure Functions 起動エラー
 
-GitHub Actions を使用した自動テスト:
-- `.github/workflows/integration-tests.yml` を参照
-- プルリクエスト作成時に自動実行
-- マージ前に統合テストが成功することを確認
+```
+Failed to start Azure Functions runtime
+```
 
-## 次のステップ
+**解決方法**:
+- Azure Functions Core Tools のバージョンを確認（`func --version` で 4.x.x であることを確認）
+- `FUNCTIONS_WORKER_RUNTIME` が `dotnet-isolated` に設定されているか確認
+- `local.settings.json` が正しく設定されているか確認
+- .NET 10 SDK がインストールされているか確認（`dotnet --version`）
 
-- [本番環境へのデプロイ](./DEPLOYMENT_CHECKLIST.md)
-- [コスト監視の設定](./COSMOS_DB_MIGRATION.md#cost-monitoring)
-- [トラブルシューティングガイド](./COSMOS_DB_MIGRATION.md#troubleshooting)
+### Azurite 接続エラー
+
+```
+Unable to connect to Azure Storage
+```
+
+**解決方法**:
+- Azurite が起動しているか確認
+- StorageConnectionString が正しく設定されているか確認
+- ポート 10000, 10001, 10002 が使用可能か確認
+
+### テストがタイムアウトする
+
+**解決方法**:
+- `ResponseTimeThresholdMs` パラメータを調整
+- ネットワーク接続を確認
+- Azure リソースの状態を確認（Dev/Staging/Prod 環境）
+
+## CI/CD パイプラインでのテスト
+
+GitHub Actions や Azure DevOps での自動テスト実行については、以下の設定を確認してください：
+
+1. **.NET 10 SDK のインストール**
+   ```yaml
+   - uses: actions/setup-dotnet@v3
+     with:
+       dotnet-version: '10.0.x'
+   ```
+
+2. **Azure Functions Core Tools v4 のインストール**
+   ```yaml
+   - run: npm install -g azure-functions-core-tools@4 --unsafe-perm true
+   ```
+
+3. **環境変数の設定**
+   - `FUNCTIONS_WORKER_RUNTIME=dotnet-isolated`
+   - `PostgresConnectionString` (PostgreSQL接続文字列)
+   - `StorageConnectionString` (Blob Storage接続文字列)
+   - `AzureWebJobsStorage` (Durable Functions用ストレージ接続文字列)
+
+## ベストプラクティス
+
+1. **テスト前にサービスを起動する**: PostgreSQL、Azurite などの依存サービスをテスト前に起動してください
+2. **テスト環境を分離する**: ローカル、開発、ステージング環境を適切に分離してください
+3. **定期的にテストを実行する**: コードの変更後は必ず統合テストを実行してください
+4. **ログを確認する**: テスト失敗時は詳細なログを確認してください
+5. **.NET 10 固有の設定を確認**: Isolated worker model の設定が正しいことを確認してください
+
+## 参考リンク
+
+- [Azure Functions (.NET 10 Isolated) ドキュメント](https://learn.microsoft.com/azure/azure-functions/dotnet-isolated-process-guide)
+- [Azure Functions Core Tools v4](https://learn.microsoft.com/azure/azure-functions/functions-run-local)
+- [Durable Functions](https://learn.microsoft.com/azure/azure-functions/durable/)
+- [PostgreSQL 接続](https://www.npgsql.org/doc/connection-string-parameters.html)

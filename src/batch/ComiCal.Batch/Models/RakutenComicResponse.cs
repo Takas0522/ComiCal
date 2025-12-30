@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.Serialization;
+using System.Text.Json.Serialization;
 using System.Text;
 
 namespace ComiCal.Batch.Models
@@ -8,93 +8,93 @@ namespace ComiCal.Batch.Models
 
     public class RakutenComicResponse
     {
-        [DataMember(Name = "Items")]
+        [JsonPropertyName("Items")]
         public IEnumerable<ComicInfo> Comics { get; set; }
-        [DataMember(Name = "pageCount")]
+        [JsonPropertyName("pageCount")]
         public int PageCount { get; set; }
-        [DataMember(Name = "hits")]
+        [JsonPropertyName("hits")]
         public int Hits { get; set; }
-        [DataMember(Name = "last")]
+        [JsonPropertyName("last")]
         public int Last { get; set; }
-        [DataMember(Name = "count")]
+        [JsonPropertyName("count")]
         public int Count { get; set; }
-        [DataMember(Name = "page")]
+        [JsonPropertyName("page")]
         public int Page { get; set; }
-        [DataMember(Name = "carrier")]
+        [JsonPropertyName("carrier")]
         public int Carrier { get; set; }
-        [DataMember(Name = "GenreInformation")]
+        [JsonPropertyName("GenreInformation")]
         public IEnumerable<object> GenreInformation { get; set; }
-        [DataMember(Name = "first")]
+        [JsonPropertyName("first")]
         public int First { get; set; }
     }
 
     public class ComicInfo
     {
-        [DataMember(Name = "Item")]
+        [JsonPropertyName("Item")]
         public ComicInfos Info { get; set; }
     }
 
     public class ComicInfos
     {
-        [DataMember(Name = "limitedFlag")]
+        [JsonPropertyName("limitedFlag")]
         public int LimitedFlag { get; set; }
-        [DataMember(Name = "authorKana")]
+        [JsonPropertyName("authorKana")]
         public string AuthorKana { get; set; }
-        [DataMember(Name = "author")]
+        [JsonPropertyName("author")]
         public string Author { get; set; }
-        [DataMember(Name = "subTitle")]
+        [JsonPropertyName("subTitle")]
         public string subTitle { get; set; }
-        [DataMember(Name = "seriesNameKana")]
+        [JsonPropertyName("seriesNameKana")]
         public string SeriesNameKana { get; set; }
-        [DataMember(Name = "title")]
+        [JsonPropertyName("title")]
         public string Title { get; set; }
-        [DataMember(Name = "subTitleKana")]
+        [JsonPropertyName("subTitleKana")]
         public string SubTitleKana { get; set; }
-        [DataMember(Name = "itemCaption")]
+        [JsonPropertyName("itemCaption")]
         public string ItemCaption { get; set; }
-        [DataMember(Name = "publisherName")]
+        [JsonPropertyName("publisherName")]
         public string PublisherName { get; set; }
-        [DataMember(Name = "listPrice")]
+        [JsonPropertyName("listPrice")]
         public int ListPrice { get; set; }
-        [DataMember(Name = "isbn")]
+        [JsonPropertyName("isbn")]
         public string Isbn { get; set; }
-        [DataMember(Name = "largeImageUrl")]
+        [JsonPropertyName("largeImageUrl")]
         public string LargeImageUrl { get; set; }
-        [DataMember(Name = "mediumImageUrl")]
+        [JsonPropertyName("mediumImageUrl")]
         public string MediumImageUrl { get; set; }
-        [DataMember(Name = "titleKana")]
+        [JsonPropertyName("titleKana")]
         public string TitleKana { get; set; }
-        [DataMember(Name = "availability")]
+        [JsonPropertyName("availability")]
         public string Availability { get; set; }
-        [DataMember(Name = "postageFlag")]
+        [JsonPropertyName("postageFlag")]
         public int PostageFlag { get; set; }
-        [DataMember(Name = "salesDate")]
+        [JsonPropertyName("salesDate")]
         public string SalesDate { get; set; }
-        [DataMember(Name = "contents")]
+        [JsonPropertyName("contents")]
         public string Contents { get; set; }
-        [DataMember(Name = "smallImageUrl")]
+        [JsonPropertyName("smallImageUrl")]
         public string SmallImageUrl { get; set; }
-        [DataMember(Name = "discountPrice")]
+        [JsonPropertyName("discountPrice")]
         public int DiscountPrice { get; set; }
-        [DataMember(Name = "itemPrice")]
+        [JsonPropertyName("itemPrice")]
         public int ItemPrice { get; set; }
-        [DataMember(Name = "size")]
+        [JsonPropertyName("size")]
         public string Size { get; set; }
-        [DataMember(Name = "booksGenreId")]
+        [JsonPropertyName("booksGenreId")]
         public string BooksGenreId { get; set; }
-        [DataMember(Name = "affiliateUrl")]
+        [JsonPropertyName("affiliateUrl")]
         public string AffiliateUrl { get; set; }
-        [DataMember(Name = "seriesName")]
+        [JsonPropertyName("seriesName")]
         public string SeriesName { get; set; }
-        [DataMember(Name = "reviewCount")]
+        [JsonPropertyName("reviewCount")]
         public int ReviewCount { get; set; }
-        [DataMember(Name = "reviewAverage")]
+        [JsonPropertyName("reviewAverage")]
         public string ReviewAverage { get; set; }
-        [DataMember(Name = "discountRate")]
+        [JsonPropertyName("discountRate")]
         public int DiscountRate { get; set; }
-        [DataMember(Name = "chirayomiUrl")]
+        [JsonPropertyName("chirayomiUrl")]
         public string ChirayomiUrl { get; set; }
-        [DataMember(Name = "itemUrl")]
+        [JsonPropertyName("itemUrl")]
         public string ItemUrl { get; set; }
     }
 

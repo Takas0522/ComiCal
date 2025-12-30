@@ -8,7 +8,30 @@ import { ScheduleStatusType, scheduleStatus } from 'src/app/models/comic.interfa
 })
 export class SalesDatePipe implements PipeTransform {
 
-  transform(value: Date, scheduleStatusValue: ScheduleStatusType): string {
+  transform(value: Date | string | null | undefined, scheduleStatusValue: ScheduleStatusType): string {
+    // 未定の場合は日付を使用しない
+    if (scheduleStatusValue === scheduleStatus.Undecided) {
+      return '未定';
+    }
+
+    // 値が存在しない場合
+    if (!value) {
+      return '未定';
+    }
+
+    // Date型に変換
+    let dateValue: Date;
+    if (value instanceof Date) {
+      dateValue = value;
+    } else {
+      dateValue = new Date(value);
+    }
+
+    // 無効な日付をチェック
+    if (isNaN(dateValue.getTime())) {
+      return '未定';
+    }
+
     let format = 'yyyy/MM/dd';
     switch (scheduleStatusValue) {
       case (scheduleStatus.Confirm):
@@ -22,13 +45,16 @@ export class SalesDatePipe implements PipeTransform {
       case (scheduleStatus.UntilYear):
         format = 'yyyy年頃';
         break;
-      case (scheduleStatus.Undecided):
-        format = '未定';
-        break;
       default:
         break;
     }
-    return formatDate(value, format, 'en');
+    
+    try {
+      return formatDate(dateValue, format, 'en');
+    } catch (error) {
+      console.error('Date formatting error:', error, 'value:', value);
+      return '未定';
+    }
   }
 
 }
