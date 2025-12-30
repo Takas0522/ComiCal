@@ -17,7 +17,11 @@ flowchart LR
   BATCH --> BLOB
 ```
 
-## 技術スタック（現状）
+**主要技術スタック**:
+- **フロントエンド**: Angular 17, Azure Static Web Apps
+- **API**: Azure Functions (.NET 10 LTS + Isolated worker model), PostgreSQL
+- **Batch**: Azure Durable Functions (.NET 10 LTS + Isolated worker model), Blob Storage
+- **外部API**: 楽天ブックスAPI
 
 - フロントエンド: Angular（package.json上は Angular 21 系）
 - API/Batch: Azure Functions v4 / dotnet-isolated（プロジェクトは net10.0）
@@ -58,6 +62,24 @@ Dev Container を開くと、同一 compose ネットワーク上で以下が利
 
 ```bash
 cp src/api/local.settings.json.template src/api/local.settings.json
+```
+
+```json
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "PostgresConnectionString": "Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password",
+    "StorageConnectionString": "DefaultEndpointsProtocol=https;AccountName=<storage-account>;AccountKey=<your-key>;EndpointSuffix=core.windows.net"
+  }
+}
+```
+
+**Batch層の設定** (`src/batch/local.settings.json`):
+
+```bash
+# テンプレートからコピー
 cp src/batch/local.settings.json.template src/batch/local.settings.json
 ```
 
@@ -74,9 +96,112 @@ func start
 
 Batch（APIと併走する場合はポートを変える）:
 
+| 変数名 | 説明 | 例 |
+|--------|------|-----|
+| `PostgresConnectionString` | PostgreSQL 接続文字列（ローカル開発） | `Host=localhost;Port=5432;Database=comical;Username=postgres;Password=password` |
+| `PostgresConnectionString` | PostgreSQL 接続文字列（Azure with Managed Identity） | `Host=<server>.postgres.database.azure.com;Database=comical;Username=<managed-identity-name>` |
+| `StorageConnectionString` | Blob Storage 接続文字列 | `DefaultEndpointsProtocol=https;AccountName=...` |
+| `blobBaseUrl` | Blob Storage の画像ベースURL | `https://<account>.blob.core.windows.net/images` |
+
+> **セキュリティ注意**: 本番環境では、接続文字列にパスワードを含めるのではなく、Azure Managed Identity を使用することを強く推奨します。これにより、設定ファイルに機密情報を保存する必要がなくなり、自動的にローテーションされる資格情報を使用できます。
+
+#### .NET 10 Isolated移行後の設定
+
+プロジェクトは .NET 10 LTS と Isolated worker model に移行されています。以下の設定手順に従ってください：
+
+**手順**:
+
+1. **local.settings.jsonを作成** (テンプレートからコピー)
+
 ```bash
-cd src/batch/ComiCal.Batch
-func start --port 7072
+# API層
+cp src/api/local.settings.json.template src/api/local.settings.json
+
+# Batch層
+cp src/batch/local.settings.json.template src/batch/local.settings.json
+```
+
+2. **FUNCTIONS_WORKER_RUNTIMEを`dotnet-isolated`に設定**
+   
+local.settings.json内で以下を確認してください：
+
+```json
+"FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated"
+```
+
+> **重要**: .NET 10 Isolated worker modelを使用するため、`dotnet-isolated`の設定が必須です。
+
+3. **ローカル開発: StorageConnectionStringのみ設定 (Azurite)**
+   
+ローカル開発環境では、Azuriteを使用します：
+
+```json
+"StorageConnectionString": "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1;"
+```
+
+> **注**: 上記はAzuriteの標準的な開発用接続文字列です。local.settings.json.templateから完全な接続文字列を確認してください。
+
+4. **Azure環境: StorageAccountNameを追加してManaged Identity有効化**
+   
+Azure環境では、Managed Identityを使用することを推奨します：
+- `StorageAccountName` を設定してManaged Identity認証を有効化
+- `StorageConnectionString` はフォールバック用に保持
+
+Application Settingsでの設定例：
+
+```
+StorageAccountName=<your-storage-account-name>
+StorageConnectionString=DefaultEndpointsProtocol=https;AccountName=<account>;AccountKey=<key>;...
+```
+
+5. **AzureWebJobsStorageは接続文字列形式を継続**
+   
+Durable Functions互換性のため、`AzureWebJobsStorage`は接続文字列形式を維持します：
+```json
+"AzureWebJobsStorage": "DefaultEndpointsProtocol=https;AccountName=<account>;AccountKey=<key>;..."
+```
+
+6. **Azure Functions Core Tools v4を使用**
+   
+開発には Azure Functions Core Tools v4 を使用してください：
+
+```bash
+# バージョン確認
+func --version  # 4.x.x であることを確認
+
+# インストール（必要な場合）
+npm install -g azure-functions-core-tools@4 --unsafe-perm true
+```
+
+#### 4. ローカル開発実行
+
+**前提条件**:
+- PostgreSQLが起動していること（Docker: `docker start comical-postgres`）
+- Azurite（ローカルストレージエミュレータ）が起動していること
+
+**実行手順**:
+1. apiデバッグ実行/apiディレクトリで`func start`
+2. frontディレクトリで`npm run start`
+3. frontディレクトリで`npm run start:swa`
+4. http://localhost:4280
+
+## 統合テストとデプロイ
+
+### 統合テストの実行
+
+詳細な統合テスト手順は [統合テストガイド](./docs/INTEGRATION_TESTS.md) を参照してください。
+
+**クイックスタート**:
+```powershell
+# すべてのテストを実行（ローカル環境）
+cd scripts
+.\test-integration.ps1 -Environment Local -RunAllTests
+
+# API層のテストのみ実行
+.\test-integration.ps1 -Environment Local -TestApi
+
+# 開発環境でテスト実行
+.\test-integration.ps1 -Environment Dev -RunAllTests
 ```
 
 Front（APIは `proxy.conf.json` で `http://localhost:7071` に転送）:
