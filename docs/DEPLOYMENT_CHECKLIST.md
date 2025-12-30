@@ -89,7 +89,7 @@ API層とBatch層の両方で以下の設定を行います。
 
 | 設定名 | 値 | 説明 |
 |--------|-----|------|
-| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorage01`）<br>※3-24文字、小文字と数字のみ、Azure全体で一意である必要があります<br>この設定があると Managed Identity 認証が優先されます |
+| `StorageAccountName` | `<storage-account-name>` | ストレージアカウント名（例: `comicalstorage01`）<br>※3-24文字、小文字(a-z)と数字(0-9)のみ（ハイフンや特殊文字は使用不可）、Azure全体で一意である必要があります<br>この設定があると Managed Identity 認証が優先されます |
 | `StorageConnectionString` | `DefaultEndpointsProtocol=https;...` | **開発環境または移行期間のみ推奨**<br>本番環境では StorageAccountName + Managed Identity を使用すること<br>機密情報を含むためセキュリティリスクがあります |
 
 Azure CLI での設定例：
@@ -279,8 +279,11 @@ Azure環境では UTC 0:00～0:05 のみ実行するガードロジックが実�
 機密情報は Azure Key Vault に保存し、Key Vault参照を使用することを推奨：
 
 ```bash
-# Key Vault 参照の例
+# Key Vault 参照の例（versionless形式 - 最新バージョンを自動取得）
 @Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/<secret-name>/)
+
+# Key Vault 参照の例（特定バージョンを指定）
+@Microsoft.KeyVault(SecretUri=https://<vault-name>.vault.azure.net/secrets/<secret-name>/<version>)
 ```
 
 ## デプロイ後の確認
