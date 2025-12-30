@@ -16,7 +16,7 @@
       <PackageReference Include="Npgsql" Version="10.0.1" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\ComiCal.Server\ComiCal.Shared\ComiCal.Shared.csproj" />
+    <ProjectReference Include="..\ComiCal.Shared\ComiCal.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Update="host.json">
