@@ -65,8 +65,8 @@ var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 var planConfig = {
   dev: {
     sku: {
-      name: 'Y1'  // Consumption Plan (Y1) for dev
-      tier: 'Dynamic'
+      name: 'B1'  // Basic Plan (B1) for dev - no Dynamic VM quota limit
+      tier: 'Basic'
     }
     kind: 'functionapp'
   }

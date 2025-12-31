@@ -30,13 +30,13 @@ var locationAbbreviation = {
 
 var locationShort = locationAbbreviation[location]
 var envShort = {
-  dev: 'd'
-  prod: 'p'
+  dev: 'dev'
+  prod: 'prd'
 }[environmentName]
 
 // Storage Account Naming: st{project}{env}{location}
 // Note: Storage account names must be globally unique, lowercase, and max 24 characters
-// Current: 'stcomicald<location>' or 'stcomicalp<location>'
+// Current: 'stcomicaldev<location>' or 'stcomicalprd<location>'
 var storageAccountName = 'st${projectName}${envShort}${locationShort}'
 
 // Environment-specific SKU configuration

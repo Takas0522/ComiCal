@@ -126,10 +126,10 @@ resource cdnEndpoint 'Microsoft.Cdn/profiles/endpoints@2023-05-01' = if (deployC
   }
 }
 
-// Outputs
+// Outputs with proper conditional referencing
 output cdnProfileId string = deployCdn ? cdnProfile.id : ''
 output cdnProfileName string = deployCdn ? cdnProfile.name : ''
-output cdnEndpointId string = deployCdn ? cdnEndpoint.id : ''
-output cdnEndpointName string = deployCdn ? cdnEndpoint.name : ''
-output cdnEndpointHostname string = deployCdn ? cdnEndpoint.properties.hostName : ''
+output cdnEndpointId string = deployCdn ? resourceId('Microsoft.Cdn/profiles/endpoints', cdnProfile.name, cdnEndpointName) : ''
+output cdnEndpointName string = deployCdn ? cdnEndpointName : ''
+output cdnEndpointHostname string = deployCdn ? '${cdnEndpointName}.azureedge.net' : ''
 output cdnEnabled bool = deployCdn
