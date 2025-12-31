@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_LOCATION: westus2  # eastusから変更 - より制限の緩いリージョンを試行
+  AZURE_LOCATION: centralus  # westus2でもクォータエラーのため次のリージョンを試行
 
 jobs:
   validate:
