@@ -80,8 +80,11 @@ resource blobService 'Microsoft.Storage/storageAccounts/blobServices@2023-01-01'
     cors: {
       corsRules: [
         {
-          allowedOrigins: [
-            '*'  // Allow all origins for development; restrict in production as needed
+          allowedOrigins: environmentName == 'dev' ? [
+            '*'  // Allow all origins for development
+          ] : [
+            'https://*.azurestaticapps.net'  // Restrict to SWA in production
+            'https://cdn-comical-prod-jpe.azureedge.net'  // CDN endpoint
           ]
           allowedMethods: [
             'GET'

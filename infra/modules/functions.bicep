@@ -106,6 +106,8 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2023-01-01' = {
 }
 
 // Get storage account key for connection string
+// Note: AzureWebJobsStorage requires a connection string for the Functions runtime
+// Application code uses Managed Identity via StorageAccountName setting
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
   name: storageAccountName
 }
@@ -132,8 +134,11 @@ resource apiFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
       alwaysOn: environmentName == 'prod'  // Always On only for prod (Premium Plan)
       use32BitWorkerProcess: false
       cors: {
-        allowedOrigins: [
-          '*'  // Allow all origins; restrict in production as needed
+        allowedOrigins: environmentName == 'dev' ? [
+          '*'  // Allow all origins for development
+        ] : [
+          'https://*.azurestaticapps.net'  // Restrict to SWA in production
+          'https://cdn-comical-prod-jpe.azureedge.net'  // CDN endpoint
         ]
         supportCredentials: false
       }
