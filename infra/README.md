@@ -202,6 +202,7 @@ az deployment sub create \
 - 環境: `dev`
 - リージョン: `japaneast`
 - タグ: 開発用タグ（costCenter, owner, purpose）
+- PostgreSQL: Burstable SKU でコスト最適化
 
 ### prod.bicepparam
 
@@ -210,6 +211,36 @@ az deployment sub create \
 - 環境: `prod`
 - リージョン: `japaneast`
 - タグ: 本番用タグ（costCenter, owner, purpose, criticality）
+- PostgreSQL: General Purpose SKU で高可用性
+
+### セキュアパラメータの指定
+
+PostgreSQL の管理者認証情報は、デプロイ時にコマンドラインで指定してください：
+
+```bash
+# 開発環境
+az deployment sub create \
+  --name "comical-infra-dev-$(date +%Y%m%d-%H%M%S)" \
+  --location japaneast \
+  --template-file infra/main.bicep \
+  --parameters infra/parameters/dev.bicepparam \
+  --parameters postgresAdminLogin=comicaladmin \
+  --parameters postgresAdminPassword='YourSecurePassword123!'
+
+# 本番環境（GitHub Actions からは Key Vault を使用）
+az deployment sub create \
+  --name "comical-infra-prod-$(date +%Y%m%d-%H%M%S)" \
+  --location japaneast \
+  --template-file infra/main.bicep \
+  --parameters infra/parameters/prod.bicepparam \
+  --parameters postgresAdminLogin=comicaladmin \
+  --parameters postgresAdminPassword='YourSecurePassword123!' \
+  --parameters gitTag=$(git describe --tags --abbrev=0)
+```
+
+**セキュリティのベストプラクティス**:
+- パスワードはコマンド履歴に残らないよう、環境変数から読み取ることを推奨します
+- 本番環境では、GitHub Secrets や Azure Key Vault を使用してください
 
 ## テンプレートの検証
 
@@ -228,10 +259,21 @@ az bicep lint --file infra/main.bicep
 ### デプロイメント検証
 
 ```bash
+# 開発環境
 az deployment sub validate \
   --location japaneast \
   --template-file infra/main.bicep \
-  --parameters infra/parameters/dev.bicepparam
+  --parameters infra/parameters/dev.bicepparam \
+  --parameters postgresAdminLogin=comicaladmin \
+  --parameters postgresAdminPassword='YourSecurePassword123!'
+
+# 本番環境
+az deployment sub validate \
+  --location japaneast \
+  --template-file infra/main.bicep \
+  --parameters infra/parameters/prod.bicepparam \
+  --parameters postgresAdminLogin=comicaladmin \
+  --parameters postgresAdminPassword='YourSecurePassword123!'
 ```
 
 ## CI/CD 統合
@@ -280,6 +322,131 @@ az role assignment list \
   --output table
 ```
 
+### PostgreSQL 接続エラー
+
+Managed Identity の設定後に接続エラーが発生する場合：
+
+1. **azure_ad 拡張の確認**:
+```bash
+psql -h <server-fqdn> -U <admin-user> -d comical -c "SELECT * FROM pg_extension WHERE extname = 'azure_ad';"
+```
+
+2. **ロールの確認**:
+```bash
+psql -h <server-fqdn> -U <admin-user> -d comical -c "\du"
+```
+
+3. **ファイアウォールルールの確認**:
+```bash
+az postgres flexible-server firewall-rule list \
+  --resource-group rg-comical-d-jpe \
+  --name psql-comical-d-jpe \
+  --output table
+```
+
+## Functions アプリとの統合
+
+### 1. デプロイ後の出力確認
+
+インフラストラクチャのデプロイ後、以下のコマンドで PostgreSQL 接続情報を取得：
+
+```bash
+az deployment sub show \
+  --name <deployment-name> \
+  --query 'properties.outputs' \
+  --output json
+```
+
+主な出力値：
+- `postgresServerFqdn`: PostgreSQL サーバーの FQDN
+- `postgresDatabaseName`: データベース名
+- `postgresConnectionString`: Managed Identity 用の接続文字列
+- `postgresSkuName`: 使用中の SKU 名
+- `postgresSkuTier`: 使用中の SKU ティア
+
+### 2. Managed Identity のセットアップ
+
+Functions アプリのデプロイ後、Managed Identity を PostgreSQL に登録：
+
+```bash
+# 開発環境
+./infra/scripts/setup-postgres-identity.sh --environment dev
+
+# 本番環境
+./infra/scripts/setup-postgres-identity.sh --environment prod
+```
+
+スクリプトは以下を実行：
+- Azure AD 拡張の有効化と検証
+- Managed Identity のデータベースロール作成
+- 必要な権限の付与（CONNECT, USAGE, CREATE, SELECT, INSERT, UPDATE, DELETE）
+- 将来のテーブルに対するデフォルト権限の設定
+
+### 3. Functions アプリの設定
+
+Functions アプリの Application Settings に接続文字列を追加：
+
+```bash
+# Managed Identity を使用する場合（推奨）
+az functionapp config appsettings set \
+  --name func-comical-api-d-jpe \
+  --resource-group rg-comical-d-jpe \
+  --settings PostgresConnectionString="Host=psql-comical-d-jpe.postgres.database.azure.com;Database=comical"
+
+# または Azure Portal から手動で設定
+# Configuration > Application settings > New application setting
+# Name: PostgresConnectionString
+# Value: Host=<server-fqdn>;Database=comical
+```
+
+**重要**: Managed Identity を使用する場合、接続文字列にユーザー名やパスワードは不要です。
+
+### 4. Functions コードでの使用例
+
+```csharp
+// .NET での例
+var connectionString = Environment.GetEnvironmentVariable("PostgresConnectionString");
+
+// Managed Identity トークンの取得
+var credential = new DefaultAzureCredential();
+var token = await credential.GetTokenAsync(
+    new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" })
+);
+
+// Npgsql での接続
+var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+dataSourceBuilder.UsePeriodicPasswordProvider(
+    async (_, ct) => {
+        var token = await credential.GetTokenAsync(
+            new TokenRequestContext(new[] { "https://ossrdbms-aad.database.windows.net/.default" }),
+            ct
+        );
+        return token.Token;
+    },
+    TimeSpan.FromHours(1),
+    TimeSpan.FromSeconds(10)
+);
+
+await using var dataSource = dataSourceBuilder.Build();
+await using var connection = await dataSource.OpenConnectionAsync();
+```
+
+### 5. 動作確認
+
+Functions アプリから PostgreSQL への接続をテスト：
+
+```bash
+# Functions ログの確認
+az functionapp log tail \
+  --name func-comical-api-d-jpe \
+  --resource-group rg-comical-d-jpe
+
+# または Application Insights でクエリ
+az monitor app-insights query \
+  --app <app-insights-name> \
+  --analytics-query "traces | where message contains 'PostgreSQL' | order by timestamp desc | take 10"
+```
+
 ## ベストプラクティス
 
 1. **環境の分離**: 開発環境と本番環境は完全に分離されたリソースグループを使用
@@ -287,6 +454,11 @@ az role assignment list \
 3. **命名規則**: Azure CAF に準拠した一貫性のある命名規則
 4. **バージョン管理**: 本番環境へのデプロイは必ずセマンティックバージョンタグを使用
 5. **検証**: デプロイ前に必ず `what-if` または `validate` を実行
+6. **セキュリティ**:
+   - Managed Identity を使用してパスワードレス認証を実装
+   - 本番環境では allowAzureServices を false に設定し、特定の IP 範囲のみ許可することを検討
+   - 管理者パスワードは Azure Key Vault に保存
+   - 接続文字列にパスワードを含めない
 
 ## 参考資料
 
@@ -294,14 +466,18 @@ az role assignment list \
 - [Azure CAF - Naming Conventions](https://docs.microsoft.com/azure/cloud-adoption-framework/ready/azure-best-practices/naming-and-tagging)
 - [GitHub Actions Setup Guide](../docs/GITHUB_ACTIONS_SETUP.md)
 - [Semantic Versioning](https://semver.org/)
+- [Azure Database for PostgreSQL - Flexible Server](https://docs.microsoft.com/azure/postgresql/flexible-server/)
+- [Managed Identity with PostgreSQL](https://docs.microsoft.com/azure/postgresql/flexible-server/how-to-connect-with-managed-identity)
 
 ## 次のステップ
 
-1. モジュールの追加（Storage, Function App, PostgreSQL など）
-2. GitHub Actions ワークフローの作成
-3. 環境変数とシークレットの管理（Key Vault 統合）
-4. ネットワーク設定の追加（VNet, Private Endpoint など）
+1. ✅ PostgreSQL Flexible Server モジュールの実装（完了）
+2. Storage Account モジュールの追加
+3. Function App モジュールの追加
+4. Key Vault 統合によるシークレット管理
+5. ネットワーク設定の追加（VNet, Private Endpoint など）
+6. GitHub Actions ワークフローへの統合
 
 ---
 
-**最終更新日：** 2025-12-30
+**最終更新日：** 2025-12-31
