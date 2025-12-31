@@ -167,10 +167,32 @@ create_database_user() {
     
     print_step "Creating database user for Managed Identity: $IDENTITY_NAME"
     
-    # Create SQL commands
+    # Check if user already exists
+    local USER_EXISTS=$(PGPASSWORD="$ADMIN_PASSWORD" psql \
+        --host="$POSTGRES_FQDN" \
+        --port=5432 \
+        --username="$ADMIN_USER" \
+        --dbname=postgres \
+        --set=sslmode=require \
+        --tuples-only \
+        --no-align \
+        --command="SELECT 1 FROM pg_roles WHERE rolname='${IDENTITY_NAME}';" 2>/dev/null || echo "")
+    
+    if [ "$USER_EXISTS" = "1" ]; then
+        print_warning "User '${IDENTITY_NAME}' already exists. Updating permissions..."
+    fi
+    
+    # Create SQL commands (idempotent - will not fail if user exists)
     local SQL_COMMANDS=$(cat <<EOF
--- Create user for Managed Identity
-CREATE USER "${IDENTITY_NAME}" WITH LOGIN;
+-- Create user for Managed Identity if not exists
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${IDENTITY_NAME}') THEN
+        CREATE USER "${IDENTITY_NAME}" WITH LOGIN;
+    END IF;
+END
+\$\$;
+
 GRANT CONNECT ON DATABASE ${DATABASE} TO "${IDENTITY_NAME}";
 
 -- Grant necessary permissions
@@ -185,16 +207,20 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO "$
 EOF
 )
     
-    # Execute SQL commands
-    print_info "Executing SQL commands to create database user..."
-    echo "$SQL_COMMANDS" | PGPASSWORD="$ADMIN_PASSWORD" psql \
+    # Execute SQL commands with better error handling
+    print_info "Executing SQL commands to create/update database user..."
+    if echo "$SQL_COMMANDS" | PGPASSWORD="$ADMIN_PASSWORD" psql \
         --host="$POSTGRES_FQDN" \
         --port=5432 \
         --username="$ADMIN_USER" \
         --dbname=postgres \
-        --set=sslmode=require 2>&1 | grep -v "already exists" || true
-    
-    print_info "Database user created successfully."
+        --set=sslmode=require \
+        --set ON_ERROR_STOP=on 2>&1 | tee /tmp/psql-output.log; then
+        print_info "Database user created/updated successfully."
+    else
+        print_error "Failed to create/update database user. Check /tmp/psql-output.log for details."
+        return 1
+    fi
 }
 
 # Function to display connection information
@@ -247,8 +273,17 @@ main() {
     # Prompt for admin password if not provided
     if [ -z "$ADMIN_PASSWORD" ]; then
         print_info "PostgreSQL admin password is required to create database users."
+        print_warning "SECURITY NOTE: Password will not be visible while typing."
+        print_warning "For production use, consider using environment variables:"
+        print_warning "  export PGPASSWORD='your-password'"
+        print_warning "  Or use Azure Key Vault for secure password retrieval."
         read -s -p "Enter PostgreSQL admin password: " ADMIN_PASSWORD
         echo
+        
+        if [ -z "$ADMIN_PASSWORD" ]; then
+            print_error "Password is required."
+            exit 1
+        fi
     fi
     
     # Setup Azure AD admin (optional)

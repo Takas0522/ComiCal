@@ -37,6 +37,16 @@ param aadAdminPrincipalName string = ''
 ])
 param aadAdminPrincipalType string = 'User'
 
+@description('PostgreSQL server version')
+@allowed([
+  '16'
+  '15'
+  '14'
+  '13'
+  '12'
+])
+param postgresVersion string = '16'
+
 @description('Tags to apply to resources')
 param tags object = {}
 
@@ -120,7 +130,7 @@ resource postgresServer 'Microsoft.DBforPostgreSQL/flexibleServers@2023-03-01-pr
     tier: skuConfig[environmentName].tier
   }
   properties: {
-    version: '16'  // PostgreSQL 16 for latest features
+    version: postgresVersion
     administratorLogin: administratorLogin
     administratorLoginPassword: administratorLoginPassword
     storage: {
