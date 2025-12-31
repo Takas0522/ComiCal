@@ -36,3 +36,7 @@ param rakutenApiKey = ''  // Must be provided during deployment
 param githubToken = ''  // Must be provided during deployment
 param repositoryUrl = 'https://github.com/Takas0522/ComiCal'
 param repositoryBranch = 'main'
+
+// Alert notification email addresses (required for production monitoring)
+// Example: alertEmailAddresses = ['admin@example.com', 'ops@example.com']
+param alertEmailAddresses = []

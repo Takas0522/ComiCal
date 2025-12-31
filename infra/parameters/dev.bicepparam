@@ -38,3 +38,7 @@ param skipRbacAssignments = true  // Service Principalに権限不足のため�
 param githubToken = ''  // Must be provided during deployment
 param repositoryUrl = 'https://github.com/Takas0522/ComiCal'
 param repositoryBranch = 'main'
+
+// Alert notification email addresses (optional)
+// Example: alertEmailAddresses = ['admin@example.com', 'ops@example.com']
+param alertEmailAddresses = []

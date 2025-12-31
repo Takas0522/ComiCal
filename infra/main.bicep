@@ -62,6 +62,9 @@ param repositoryUrl string = 'https://github.com/Takas0522/ComiCal'
 @description('GitHub repository branch for Static Web Apps')
 param repositoryBranch string = 'main'
 
+@description('Alert notification email addresses for monitoring')
+param alertEmailAddresses array = []
+
 // Variables for naming conventions following Azure CAF
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -149,6 +152,22 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
+// Monitoring Module - Application Insights (deployed first so Container Apps can use it)
+module monitoringBase 'modules/monitoring.bicep' = {
+  name: 'monitoring-base-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    alertEmailAddresses: [] // Don't create alerts yet
+    apiContainerAppId: '' 
+    batchContainerAppId: '' 
+    postgresServerId: ''
+    tags: commonTags
+  }
+}
+
 // Container Apps deployment (VMクォータ制限のためFunction Appsから変更)
 module containerApps 'modules/container-apps.bicep' = {
   name: 'container-apps-deployment'
@@ -158,7 +177,7 @@ module containerApps 'modules/container-apps.bicep' = {
     location: location
     projectName: projectName
     storageAccountName: storage.outputs.storageAccountName
-    appInsightsConnectionString: ''
+    appInsightsConnectionString: monitoringBase.outputs.appInsightsConnectionString
     postgresConnectionStringSecretUri: security.outputs.postgresConnectionStringSecretUri
     rakutenApiKeySecretUri: security.outputs.rakutenApiKeySecretUri
     tags: commonTags
@@ -181,6 +200,38 @@ module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
     apiFunctionAppPrincipalId: containerApps.outputs.apiContainerAppPrincipalId
     batchFunctionAppPrincipalId: containerApps.outputs.batchContainerAppPrincipalId
     storageAccountName: storage.outputs.storageAccountName
+    tags: commonTags
+  }
+}
+
+// Monitoring Module - Application Insights and Alert Rules
+module monitoring 'modules/monitoring.bicep' = {
+  name: 'monitoring-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    alertEmailAddresses: alertEmailAddresses
+    apiContainerAppId: containerApps.outputs.apiContainerAppId
+    batchContainerAppId: containerApps.outputs.batchContainerAppId
+    postgresServerId: database.outputs.postgresServerId
+    tags: commonTags
+  }
+}
+
+// Monitoring Alerts Module - Deploy alert rules after Container Apps are ready
+module monitoringAlerts 'modules/monitoring.bicep' = {
+  name: 'monitoring-alerts-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    alertEmailAddresses: alertEmailAddresses
+    apiContainerAppId: containerApps.outputs.apiContainerAppId
+    batchContainerAppId: containerApps.outputs.batchContainerAppId
+    postgresServerId: database.outputs.postgresServerId
     tags: commonTags
   }
 }
@@ -269,7 +320,17 @@ output apiFunctionAppHostname string = containerApps.outputs.apiContainerAppUrl
 output batchFunctionAppId string = containerApps.outputs.batchContainerAppId
 output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
 output batchFunctionAppHostname string = ''
-output appInsightsConnectionString string = ''
+output appInsightsConnectionString string = monitoringBase.outputs.appInsightsConnectionString
+
+// Monitoring outputs
+output appInsightsId string = monitoringBase.outputs.appInsightsId
+output appInsightsName string = monitoringBase.outputs.appInsightsName
+output appInsightsInstrumentationKey string = monitoringBase.outputs.appInsightsInstrumentationKey
+output logAnalyticsWorkspaceId string = monitoringBase.outputs.logAnalyticsWorkspaceId
+output logAnalyticsWorkspaceName string = monitoringBase.outputs.logAnalyticsWorkspaceName
+output actionGroupId string = monitoringAlerts.outputs.actionGroupId
+output actionGroupName string = monitoringAlerts.outputs.actionGroupName
+output alertsEnabled bool = monitoringAlerts.outputs.alertsEnabled
 
 // Cost Optimization outputs (RBAC権限がある場合のみ)
 output nightShutdownEnabled bool = skipRbacAssignments ? false : costOptimization!.outputs.nightShutdownEnabled
