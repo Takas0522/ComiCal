@@ -65,17 +65,17 @@ var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 var planConfig = {
   dev: {
     sku: {
-      name: 'B1'  // Basic Plan (B1) for dev - no Dynamic VM quota limit
-      tier: 'Basic'
+      name: 'Y1'  // Consumption Plan (Y1) for dev - 従量課金で最安
+      tier: 'Dynamic'
     }
     kind: 'functionapp'
   }
   prod: {
     sku: {
-      name: 'EP1'  // Elastic Premium Plan (EP1) for prod
-      tier: 'ElasticPremium'
+      name: 'Y1'  // Consumption Plan (Y1) for prod - 初期利用者少数のため従量課金
+      tier: 'Dynamic'
     }
-    kind: 'elastic'
+    kind: 'functionapp'
   }
 }
 
@@ -131,7 +131,7 @@ resource apiFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
       linuxFxVersion: 'DOTNET-ISOLATED|8.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
-      alwaysOn: environmentName == 'prod'  // Always On only for prod (Premium Plan)
+      alwaysOn: false  // Always On not supported in Consumption Plan
       use32BitWorkerProcess: false
       cors: {
         allowedOrigins: environmentName == 'dev' ? [
@@ -205,7 +205,7 @@ resource batchFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
       linuxFxVersion: 'DOTNET-ISOLATED|8.0'
       ftpsState: 'Disabled'
       minTlsVersion: '1.2'
-      alwaysOn: environmentName == 'prod'  // Always On only for prod (Premium Plan)
+      alwaysOn: false  // Always On not supported in Consumption Plan
       use32BitWorkerProcess: false
       appSettings: [
         {
