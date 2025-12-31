@@ -11,10 +11,18 @@ infra/
 │   ├── dev.bicepparam         # 開発環境パラメータ
 │   └── prod.bicepparam        # 本番環境パラメータ
 ├── modules/                    # 再利用可能な Bicep モジュール
-│   ├── README.md              # モジュールドキュメント
+│   ├── README.md              # モジュール概要ドキュメント
+│   ├── SECURITY.md            # セキュリティモジュールドキュメント
+│   ├── STORAGE.md             # ストレージモジュールドキュメント
+│   ├── FUNCTIONS.md           # Functions モジュールドキュメント
+│   ├── COST_OPTIMIZATION.md  # コスト最適化モジュールドキュメント
+│   ├── CDN.md                 # CDN モジュールドキュメント
 │   ├── database.bicep         # PostgreSQL Flexible Server モジュール
-│   ├── storage.bicep          # Storage Account モジュール（TODO）
-│   └── function-app.bicep     # Function App モジュール（TODO）
+│   ├── security.bicep         # Key Vault とセキュリティモジュール
+│   ├── storage.bicep          # Storage Account モジュール
+│   ├── functions.bicep        # Function Apps モジュール
+│   ├── cost-optimization.bicep # 夜間停止モジュール（dev のみ）
+│   └── cdn.bicep              # CDN モジュール（prod のみ）
 └── scripts/                    # セットアップ・管理スクリプト
     ├── initial-setup.sh       # 初回セットアップスクリプト
     └── setup-postgres-identity.sh  # PostgreSQL Managed Identity セットアップ
@@ -125,13 +133,30 @@ psql-{project}-{environment}-{location}
 - `psql-comical-d-jpe` (開発環境)
 - `psql-comical-p-jpe` (本番環境)
 
-### 将来のリソース命名規則
+### その他のリソース命名規則
 
 ```
-st{project}{env}{location}{unique}              # Storage Account
-func-{project}-{resource}-{env}-{location}      # Function App
-plan-{project}-{env}-{location}                 # App Service Plan
-postgres-{project}-{env}-{location}             # PostgreSQL Server
+# Storage Account
+st{project}{env}{location}                       # 例: stcomicaldjpe, stcomicalpjpe
+
+# Function Apps
+func-{project}-{resource}-{env}-{location}       # 例: func-comical-api-dev-jpe, func-comical-batch-prod-jpe
+
+# App Service Plan
+plan-{project}-{env}-{location}                  # 例: plan-comical-dev-jpe
+
+# Application Insights
+appi-{project}-{env}-{location}                  # 例: appi-comical-dev-jpe
+
+# Logic Apps
+logic-{project}-{purpose}-{env}-{location}       # 例: logic-comical-stop-dev-jpe
+
+# CDN
+cdn-{project}-{env}                              # 例: cdn-comical-prod
+cdn-{project}-{env}-{location}                   # 例: cdn-comical-prod-jpe (endpoint)
+
+# Key Vault
+kv-{project}-{env}-{location}                    # 例: kv-comical-dev-jpe
 ```
 
 ## セマンティックバージョニング
@@ -273,6 +298,43 @@ az role assignment list \
   --assignee <service-principal-app-id> \
   --output table
 ```
+
+## デプロイされるリソース
+
+### 全環境共通
+
+1. **Resource Group**: `rg-comical-{env}-{location}`
+2. **PostgreSQL Flexible Server**: `psql-comical-{env}-{location}`
+3. **Key Vault**: `kv-comical-{env}-{location}`
+4. **Storage Account**: `st{project}{env}{location}`
+5. **Function Apps**:
+   - API: `func-comical-api-{env}-{location}`
+   - Batch: `func-comical-batch-{env}-{location}`
+6. **App Service Plan**: `plan-comical-{env}-{location}`
+7. **Application Insights**: `appi-comical-{env}-{location}`
+
+### 開発環境専用
+
+8. **Logic Apps**（夜間停止用）:
+   - 停止: `logic-comical-stop-dev-{location}`
+   - 起動: `logic-comical-start-dev-{location}`
+
+### 本番環境専用
+
+9. **CDN**:
+   - Profile: `cdn-comical-prod`
+   - Endpoint: `cdn-comical-prod-{location}`
+
+## モジュールドキュメント
+
+各モジュールの詳細なドキュメントは以下を参照してください：
+
+- [Database モジュール](./modules/README.md) - PostgreSQL Flexible Server
+- [Security モジュール](./modules/SECURITY.md) - Key Vault とシークレット管理
+- [Storage モジュール](./modules/STORAGE.md) - Storage Account と静的ウェブサイトホスティング
+- [Functions モジュール](./modules/FUNCTIONS.md) - Function Apps（API + Batch）
+- [Cost Optimization モジュール](./modules/COST_OPTIMIZATION.md) - 夜間停止機能（dev のみ）
+- [CDN モジュール](./modules/CDN.md) - Azure CDN（prod のみ）
 
 ## ベストプラクティス
 
