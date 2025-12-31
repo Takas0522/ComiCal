@@ -73,6 +73,9 @@ param postgresAdminPassword string
 @description('Database name to create')
 param databaseName string = 'comical'
 
+@description('Allow Azure services to access PostgreSQL (set to false for stricter production security)')
+param allowAzureServices bool = true
+
 module database 'modules/database.bicep' = {
   name: 'database-deployment-${environmentName}'
   scope: resourceGroup
@@ -86,7 +89,7 @@ module database 'modules/database.bicep' = {
     administratorLogin: postgresAdminLogin
     administratorPassword: postgresAdminPassword
     databaseName: databaseName
-    allowAzureServices: true
+    allowAzureServices: allowAzureServices
   }
 }
 

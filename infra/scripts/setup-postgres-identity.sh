@@ -250,16 +250,37 @@ print_info "✓ Administrator username: $ADMIN_USERNAME"
 # Create SQL script for Managed Identity setup
 SQL_SCRIPT=$(cat << EOF
 -- Create Azure AD extension if not exists
-CREATE EXTENSION IF NOT EXISTS azure_ad;
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'azure_ad') THEN
+        CREATE EXTENSION azure_ad;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        RAISE WARNING 'Failed to create azure_ad extension: %', SQLERRM;
+        RAISE EXCEPTION 'Azure AD extension is required but could not be created. Please ensure it is available on your PostgreSQL Flexible Server.';
+END
+\$\$;
 
 -- Set Azure AD authentication
 SET aad_validate_oids_in_tenant = off;
+
+-- Verify azure_ad_user role exists
+DO \$\$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = 'azure_ad_user') THEN
+        RAISE EXCEPTION 'The azure_ad_user role does not exist. This role should be created automatically by the azure_ad extension.';
+    END IF;
+END
+\$\$;
 
 -- Create database role for Managed Identity
 DO \$\$
 BEGIN
     IF NOT EXISTS (SELECT FROM pg_catalog.pg_roles WHERE rolname = '${IDENTITY_NAME}') THEN
         CREATE ROLE "${IDENTITY_NAME}" WITH LOGIN PASSWORD NULL IN ROLE azure_ad_user;
+    ELSE
+        RAISE NOTICE 'Role ${IDENTITY_NAME} already exists, skipping creation.';
     END IF;
 END
 \$\$;

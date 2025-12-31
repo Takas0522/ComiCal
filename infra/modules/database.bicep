@@ -38,8 +38,11 @@ param databaseName string = 'comical'
 @description('Managed Identity principal ID for database access')
 param managedIdentityPrincipalId string = ''
 
-@description('Allow Azure services to access the server')
+@description('Allow Azure services to access the server (dev: true, prod: consider restricting)')
 param allowAzureServices bool = true
+
+@description('Additional allowed IP ranges for firewall rules')
+param allowedIpRanges array = []
 
 // SKU configuration based on environment
 var skuConfig = {
@@ -139,6 +142,16 @@ resource firewallRuleAzureServices 'Microsoft.DBforPostgreSQL/flexibleServers/fi
     endIpAddress: '0.0.0.0'
   }
 }
+
+// Additional firewall rules for specific IP ranges
+resource firewallRules 'Microsoft.DBforPostgreSQL/flexibleServers/firewallRules@2023-03-01-preview' = [for (ipRange, index) in allowedIpRanges: {
+  parent: postgresServer
+  name: 'AllowedIpRange-${index}'
+  properties: {
+    startIpAddress: ipRange.startIpAddress
+    endIpAddress: ipRange.endIpAddress
+  }
+}]
 
 // Azure AD Administrator configuration (if Managed Identity is provided)
 resource aadAdministrator 'Microsoft.DBforPostgreSQL/flexibleServers/administrators@2023-03-01-preview' = if (!empty(managedIdentityPrincipalId)) {
