@@ -142,8 +142,6 @@ module functions 'modules/functions.bicep' = {
     location: location
     projectName: projectName
     storageAccountName: storage.outputs.storageAccountName
-    storageConnectionStringTemplate: storage.outputs.storageAccountConnectionStringTemplate
-    keyVaultUri: security.outputs.keyVaultUri
     postgresConnectionStringSecretUri: security.outputs.postgresConnectionStringSecretUri
     rakutenApiKeySecretUri: security.outputs.rakutenApiKeySecretUri
     tags: commonTags

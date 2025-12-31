@@ -21,17 +21,11 @@ param tags object = {}
 @description('Storage Account name for Functions runtime')
 param storageAccountName string
 
-@description('Storage Account connection string template')
-param storageConnectionStringTemplate string = ''
-
 @description('Application Insights connection string')
 param appInsightsConnectionString string = ''
 
 @description('Application Insights instrumentation key')
 param appInsightsInstrumentationKey string = ''
-
-@description('Key Vault URI for secrets')
-param keyVaultUri string = ''
 
 @description('PostgreSQL connection string secret URI')
 param postgresConnectionStringSecretUri string
@@ -62,20 +56,22 @@ var appServicePlanName = 'plan-${projectName}-${environmentName}-${locationShort
 var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 
 // Environment-specific App Service Plan configuration
+// Note: 一部のサブスクリプションでDynamic/Basic VMクォータ制限があるため
+// 必要に応じてリージョン変更やStandardプランに切り替え
 var planConfig = {
   dev: {
     sku: {
-      name: 'B1'  // Basic B1 Plan for dev - 最安の固定プラン（約￥1,500/月）
-      tier: 'Basic'
+      name: 'Y1'  // Consumption Plan - 従量課金（クォータ制限時はwestusなど他リージョン検討）
+      tier: 'Dynamic'
     }
-    kind: 'app'
+    kind: 'functionapp'
   }
   prod: {
     sku: {
-      name: 'S1'  // Standard S1 Plan for prod - 初期利用者向けコスト抑制（約￥2,000/月）
-      tier: 'Standard'
+      name: 'Y1'  // Consumption Plan - 初期利用者少数のため従量課金
+      tier: 'Dynamic'
     }
-    kind: 'app'
+    kind: 'functionapp'
   }
 }
 
@@ -165,7 +161,7 @@ resource apiFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: !empty(appInsightsConnectionString) ? appInsightsConnectionString : appInsights.properties.ConnectionString
+          value: !empty(appInsightsConnectionString) ? appInsightsConnectionString : (empty(appInsightsConnectionString) ? appInsights!.properties.ConnectionString : appInsightsConnectionString)
         }
         {
           name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
@@ -230,7 +226,7 @@ resource batchFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: !empty(appInsightsConnectionString) ? appInsightsConnectionString : appInsights.properties.ConnectionString
+          value: !empty(appInsightsConnectionString) ? appInsightsConnectionString : (empty(appInsightsConnectionString) ? appInsights!.properties.ConnectionString : appInsightsConnectionString)
         }
         {
           name: 'ApplicationInsightsAgent_EXTENSION_VERSION'
@@ -272,7 +268,7 @@ output batchFunctionAppName string = batchFunctionApp.name
 output batchFunctionAppPrincipalId string = batchFunctionApp.identity.principalId
 output batchFunctionAppHostname string = batchFunctionApp.properties.defaultHostName
 
-output appInsightsId string = !empty(appInsightsConnectionString) ? '' : appInsights.id
-output appInsightsName string = !empty(appInsightsConnectionString) ? '' : appInsights.name
-output appInsightsConnectionString string = !empty(appInsightsConnectionString) ? appInsightsConnectionString : appInsights.properties.ConnectionString
-output appInsightsInstrumentationKey string = !empty(appInsightsConnectionString) ? appInsightsInstrumentationKey : appInsights.properties.InstrumentationKey
+output appInsightsId string = !empty(appInsightsConnectionString) ? '' : appInsights!.id
+output appInsightsName string = !empty(appInsightsConnectionString) ? '' : appInsights!.name
+output appInsightsConnectionString string = !empty(appInsightsConnectionString) ? appInsightsConnectionString : (empty(appInsightsConnectionString) ? appInsights!.properties.ConnectionString : '')
+output appInsightsInstrumentationKey string = !empty(appInsightsConnectionString) ? appInsightsInstrumentationKey : (empty(appInsightsConnectionString) ? appInsights!.properties.InstrumentationKey : '')
