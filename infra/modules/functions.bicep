@@ -39,6 +39,7 @@ var locationAbbreviation = {
   japanwest: 'jpw'
   eastus: 'eus'
   westus: 'wus'
+  westus2: 'wu2'
   eastasia: 'eas'
   southeastasia: 'sea'
 }
@@ -56,22 +57,23 @@ var appServicePlanName = 'plan-${projectName}-${environmentName}-${locationShort
 var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 
 // Environment-specific App Service Plan configuration
-// Note: クォータ制限回避のため段階的にプランを調整
-// 1. F1 (Free) -> 2. B1 (Basic) -> 3. S1 (Standard) の順で試行
+// Note: 厳しいクォータ制限環境での段階的対応
+// 1. まずwestus2リージョンで試行
+// 2. すべてのVMクォータが0の場合は Container Apps への移行を検討
 var planConfig = {
   dev: {
     sku: {
-      name: 'F1'  // Free Plan - クォータ制限を最小化（制限: 1GB, 60分/日）
-      tier: 'Free'
+      name: 'Y1'  // Consumption Plan - サーバーレス（VMクォータ影響最小）
+      tier: 'Dynamic'
     }
-    kind: 'app'
+    kind: 'functionapp'
   }
   prod: {
     sku: {
-      name: 'B1'  // Basic B1 Plan - 最小の有料プラン（制限回避しつつ本格運用可能）
-      tier: 'Basic'
+      name: 'Y1'  // Consumption Plan - VMクォータが厳しい環境での最後の手段
+      tier: 'Dynamic'
     }
-    kind: 'app'
+    kind: 'functionapp'
   }
 }
 

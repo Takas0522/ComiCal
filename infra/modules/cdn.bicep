@@ -30,6 +30,7 @@ var locationAbbreviation = {
   japanwest: 'jpw'
   eastus: 'eus'
   westus: 'wus'
+  westus2: 'wu2'
   eastasia: 'eas'
   southeastasia: 'sea'
 }

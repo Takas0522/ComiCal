@@ -281,22 +281,30 @@ az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
    # GitHub Actions ワークフローファイルでリージョン変更
    # .github/workflows/infra-deploy.yml の AZURE_LOCATION を変更
    env:
-     AZURE_LOCATION: eastus  # または westus2, centralus など
+     AZURE_LOCATION: westus2  # クォータ制限が緩いリージョン
    ```
 
-2. **クォータ状況の確認**
+2. **複数リージョンでの試行順序**
+   - `westus2` (推奨) - 制限が緩い
+   - `centralus` - 代替選択肢
+   - `eastus` - 標準的なリージョン
+   - `southcentralus` - 最後の手段
+
+3. **すべてのVMクォータが0の場合**
    ```bash
-   # 現在のクォータ確認
-   az vm list-usage --location japaneast --query "[?contains(name.value, 'Standard')]" -o table
+   # 現在の設定: Consumption Plan (サーバーレス)
+   # VMクォータ影響を最小化
+   # それでもダメな場合はContainer Appsへの移行を検討
+   ```
+
+4. **クォータ状況の詳細確認**
+   ```bash
+   # 現在のクォータ確認（複数リージョン）
+   az vm list-usage --location westus2 --query "[?contains(name.value, 'VMs')]" -o table
+   az vm list-usage --location centralus --query "[?contains(name.value, 'VMs')]" -o table
    
    # 利用可能リージョンの確認
-   az account list-locations --query "[].{Name:name, DisplayName:displayName}" -o table
-   ```
-
-3. **プラン変更によるクォータ回避**
-   ```bash
-   # functions.bicep で軽量プランに変更済み
-   # F1 (Free) → B1 (Basic) → S1 (Standard) の順で段階的調整
+   az account list-locations --query "[?metadata.regionCategory=='Recommended'].{Name:name, DisplayName:displayName}" -o table
    ```
 
 ### デプロイエラー
