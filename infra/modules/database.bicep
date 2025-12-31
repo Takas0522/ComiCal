@@ -76,8 +76,8 @@ var skuConfig = {
     tier: 'Burstable'
   }
   prod: {
-    name: 'Standard_D2s_v3'  // General Purpose SKU for prod environment
-    tier: 'GeneralPurpose'
+    name: 'Standard_B2s'  // Same as dev for small-scale production usage (cost-optimized)
+    tier: 'Burstable'
   }
 }
 
@@ -87,7 +87,7 @@ var storageConfig = {
     storageSizeGB: 32  // Minimum storage for dev
   }
   prod: {
-    storageSizeGB: 128  // Larger storage for prod
+    storageSizeGB: 32  // Same as dev for small-scale production usage
   }
 }
 
@@ -98,8 +98,8 @@ var backupConfig = {
     geoRedundantBackup: 'Disabled'
   }
   prod: {
-    backupRetentionDays: 30
-    geoRedundantBackup: 'Enabled'
+    backupRetentionDays: 7  // Same as dev for cost optimization
+    geoRedundantBackup: 'Disabled'  // Disabled for cost optimization
   }
 }
 
@@ -112,10 +112,9 @@ var availabilityConfig = {
     }
   }
   prod: {
-    availabilityZone: '1'  // Zone 1 for prod
+    availabilityZone: ''  // Same as dev for cost optimization
     highAvailability: {
-      mode: 'ZoneRedundant'
-      standbyAvailabilityZone: '2'
+      mode: 'Disabled'  // Disabled for cost optimization (small-scale usage)
     }
   }
 }
