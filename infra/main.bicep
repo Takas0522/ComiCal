@@ -133,15 +133,16 @@ module storage 'modules/storage.bicep' = {
   }
 }
 
-// Function Apps deployment
-module functions 'modules/functions.bicep' = {
-  name: 'functions-deployment'
+// Container Apps deployment (VMクォータ制限のためFunction Appsから変更)
+module containerApps 'modules/container-apps.bicep' = {
+  name: 'container-apps-deployment'
   scope: resourceGroup
   params: {
     environmentName: environmentName
     location: location
     projectName: projectName
     storageAccountName: storage.outputs.storageAccountName
+    appInsightsConnectionString: ''
     postgresConnectionStringSecretUri: security.outputs.postgresConnectionStringSecretUri
     rakutenApiKeySecretUri: security.outputs.rakutenApiKeySecretUri
     tags: commonTags
@@ -161,8 +162,8 @@ module securityRbac 'modules/security.bicep' = {
     postgresAdminUsername: postgresAdminUsername
     postgresAdminPassword: postgresAdminPassword
     rakutenApiKey: rakutenApiKey
-    apiFunctionAppPrincipalId: functions.outputs.apiFunctionAppPrincipalId
-    batchFunctionAppPrincipalId: functions.outputs.batchFunctionAppPrincipalId
+    apiFunctionAppPrincipalId: containerApps.outputs.apiContainerAppPrincipalId
+    batchFunctionAppPrincipalId: containerApps.outputs.batchContainerAppPrincipalId
     storageAccountName: storage.outputs.storageAccountName
     tags: commonTags
   }
@@ -176,8 +177,8 @@ module costOptimization 'modules/cost-optimization.bicep' = {
     environmentName: environmentName
     location: location
     projectName: projectName
-    apiFunctionAppId: functions.outputs.apiFunctionAppId
-    batchFunctionAppId: functions.outputs.batchFunctionAppId
+    apiFunctionAppId: containerApps.outputs.apiContainerAppId
+    batchFunctionAppId: containerApps.outputs.batchContainerAppId
     tags: commonTags
   }
 }
@@ -226,16 +227,16 @@ output storageAccountWebEndpoint string = storage.outputs.storageAccountWebEndpo
 output imagesContainerName string = storage.outputs.imagesContainerName
 
 // Functions outputs
-output appServicePlanId string = functions.outputs.appServicePlanId
-output appServicePlanName string = functions.outputs.appServicePlanName
-output appServicePlanSku string = functions.outputs.appServicePlanSku
-output apiFunctionAppId string = functions.outputs.apiFunctionAppId
-output apiFunctionAppName string = functions.outputs.apiFunctionAppName
-output apiFunctionAppHostname string = functions.outputs.apiFunctionAppHostname
-output batchFunctionAppId string = functions.outputs.batchFunctionAppId
-output batchFunctionAppName string = functions.outputs.batchFunctionAppName
-output batchFunctionAppHostname string = functions.outputs.batchFunctionAppHostname
-output appInsightsConnectionString string = functions.outputs.appInsightsConnectionString
+output appServicePlanId string = ''
+output appServicePlanName string = ''
+output appServicePlanSku string = ''
+output apiFunctionAppId string = containerApps.outputs.apiContainerAppId
+output apiFunctionAppName string = containerApps.outputs.apiContainerAppName
+output apiFunctionAppHostname string = containerApps.outputs.apiContainerAppUrl
+output batchFunctionAppId string = containerApps.outputs.batchContainerAppId
+output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
+output batchFunctionAppHostname string = ''
+output appInsightsConnectionString string = ''
 
 // Cost Optimization outputs
 output nightShutdownEnabled bool = costOptimization.outputs.nightShutdownEnabled

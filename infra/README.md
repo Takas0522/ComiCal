@@ -313,6 +313,19 @@ az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
    - ✅ サーバーレス、自動スケール
    - ✅ より安価（使用分のみ課金）
    - ✅ モダンなコンテナベース
+   - ✅ **Container App Jobs** でタイマートリガー相当を実現
+
+5. **Functions タイマートリガーの代替**
+   ```yaml
+   # Container App Job での定時実行設定
+   scheduleTriggerConfig:
+     cronExpression: '0 0 2 * * *'  # 毎日午前2時
+     parallelism: 1
+     replicaCompletionCount: 1
+   ```
+   - Functions の `[TimerTrigger("0 0 2 * * *")]` と同等
+   - Cron式での柔軟なスケジュール設定
+   - バッチ処理の定時実行が可能
 
 5. **クォータ状況の詳細確認**
    ```bash
