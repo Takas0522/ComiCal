@@ -57,8 +57,11 @@ var locationAbbreviation = {
   japaneast: 'jpe'
   japanwest: 'jpw'
   eastus: 'eus'
+  eastus2: 'eu2'  // VMクォータ制限回避のため追加
   westus: 'wus'
-  eastasia: 'ea'
+  westus2: 'wu2'
+  centralus: 'cus'
+  eastasia: 'eas'
   southeastasia: 'sea'
 }
 
@@ -241,10 +244,10 @@ output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
 output batchFunctionAppHostname string = ''
 output appInsightsConnectionString string = ''
 
-// Cost Optimization outputs
-output nightShutdownEnabled bool = costOptimization.outputs.nightShutdownEnabled
-output stopLogicAppName string = costOptimization.outputs.stopLogicAppName
-output startLogicAppName string = costOptimization.outputs.startLogicAppName
+// Cost Optimization outputs (RBAC権限がある場合のみ)
+output nightShutdownEnabled bool = skipRbacAssignments ? false : costOptimization!.outputs.nightShutdownEnabled
+output stopLogicAppName string = skipRbacAssignments ? '' : costOptimization!.outputs.stopLogicAppName
+output startLogicAppName string = skipRbacAssignments ? '' : costOptimization!.outputs.startLogicAppName
 
 // CDN outputs
 output cdnEnabled bool = cdn.outputs.cdnEnabled
