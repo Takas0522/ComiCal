@@ -56,37 +56,49 @@ Azure Service Principal と GitHub Secrets を自動設定：
 
 #### 開発環境
 
+**セキュアなデプロイ方法**:
 ```bash
+# 環境変数からパスワードを提供（推奨）
+export POSTGRES_PASSWORD="$(openssl rand -base64 32)"
 az deployment sub create \
   --name "comical-infra-dev-$(date +%Y%m%d-%H%M%S)" \
   --location japaneast \
   --template-file infra/main.bicep \
   --parameters infra/parameters/dev.bicepparam \
-  --parameters postgresAdminPassword='YourSecurePassword123!'
+  --parameters postgresAdminPassword="$POSTGRES_PASSWORD"
 ```
+
+**注意**: パスワードを直接コマンドラインに書かないでください。環境変数または Azure Key Vault から取得することを推奨します。
 
 #### 本番環境
 
+**セキュアなデプロイ方法**:
 ```bash
+# 環境変数からパスワードを提供（推奨）
+export POSTGRES_PASSWORD="$(openssl rand -base64 32)"
 az deployment sub create \
   --name "comical-infra-prod-$(date +%Y%m%d-%H%M%S)" \
   --location japaneast \
   --template-file infra/main.bicep \
   --parameters infra/parameters/prod.bicepparam \
   --parameters gitTag=$(git describe --tags --abbrev=0) \
-  --parameters postgresAdminPassword='YourSecurePassword123!'
+  --parameters postgresAdminPassword="$POSTGRES_PASSWORD"
 ```
+
+**注意**: パスワードを直接コマンドラインに書かないでください。環境変数または Azure Key Vault から取得することを推奨します。
 
 **注意**: パスワードはコマンドラインではなく、環境変数または Azure Key Vault から取得することを推奨します。
 
 ### 4. デプロイの検証（What-If）
 
 ```bash
+# 環境変数からパスワードを提供
+export POSTGRES_PASSWORD="$(openssl rand -base64 32)"
 az deployment sub what-if \
   --location japaneast \
   --template-file infra/main.bicep \
   --parameters infra/parameters/dev.bicepparam \
-  --parameters postgresAdminPassword='YourSecurePassword123!'
+  --parameters postgresAdminPassword="$POSTGRES_PASSWORD"
 ```
 
 ## 命名規則
