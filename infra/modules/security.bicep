@@ -121,5 +121,6 @@ output keyVaultId string = keyVault.id
 output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
 output postgresConnectionStringSecretUri string = postgresConnectionStringSecret.properties.secretUri
+// Note: We construct the URI manually for conditional secrets to avoid null reference warnings
 #disable-next-line outputs-should-not-contain-secrets
 output rakutenApiKeySecretUri string = !empty(rakutenApiKey) ? '${keyVault.properties.vaultUri}secrets/RakutenApiKey' : ''
