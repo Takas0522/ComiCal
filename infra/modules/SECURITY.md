@@ -104,7 +104,7 @@ module security 'modules/security.bicep' = {
 ### 1. PostgreSQL 接続文字列
 
 - **シークレット名**: `PostgresConnectionString`
-- **形式**: `Host={fqdn};Database={dbname};Username={username};Password={password};SSL Mode=Require`
+- **形式**: `Host={fqdn};Database={dbname};Username={username};Password={password};SslMode=Require`
 - **使用先**: API Function App、Batch Function App
 
 ### 2. 楽天 API キー
