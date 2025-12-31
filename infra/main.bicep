@@ -51,8 +51,8 @@ var commonTags = union(tags, {
   version: !empty(versionTag) ? versionTag : 'untagged'
 })
 
-// Resource Group Naming: rg-{project}-{environment}-{location}
-var resourceGroupName = 'rg-${projectName}-${environmentName}-${locationShort}'
+// Resource Group Naming: rg-{project}-{envShort}-{location}
+var resourceGroupName = 'rg-${projectName}-${envShort}-${locationShort}'
 
 // Resource group for main application resources
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {

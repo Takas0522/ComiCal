@@ -201,6 +201,30 @@ setup_federated_credentials() {
         }' > /dev/null 2>&1 || print_warning "Federated credential for pull requests might already exist"
     
     print_info "Federated identity credentials configured successfully."
+    
+    # Setup federated credentials for environments
+    print_info "Creating federated credential for dev environment..."
+    az ad app federated-credential create \
+        --id $SP_APP_ID \
+        --parameters '{
+            "name": "'$REPO_NAME'-env-dev",
+            "issuer": "https://token.actions.githubusercontent.com",
+            "subject": "repo:'$REPO':environment:dev",
+            "description": "GitHub Actions OIDC for dev environment",
+            "audiences": ["api://AzureADTokenExchange"]
+        }' > /dev/null 2>&1 || print_warning "Federated credential for dev environment might already exist"
+    
+    # Setup federated credentials for prod environment
+    print_info "Creating federated credential for prod environment..."
+    az ad app federated-credential create \
+        --id $SP_APP_ID \
+        --parameters '{
+            "name": "'$REPO_NAME'-env-prod",
+            "issuer": "https://token.actions.githubusercontent.com",
+            "subject": "repo:'$REPO':environment:prod",
+            "description": "GitHub Actions OIDC for prod environment",
+            "audiences": ["api://AzureADTokenExchange"]
+        }' > /dev/null 2>&1 || print_warning "Federated credential for prod environment might already exist"
 }
 
 # Function to set GitHub secret
