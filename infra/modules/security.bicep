@@ -36,7 +36,14 @@ param postgresAdminPassword string
 @secure()
 param rakutenApiKey string = ''
 
+@description('API Function App principal ID for RBAC')
+param apiFunctionAppPrincipalId string = ''
 
+@description('Batch Function App principal ID for RBAC')
+param batchFunctionAppPrincipalId string = ''
+
+@description('Storage Account name for RBAC')
+param storageAccountName string = ''
 
 // Variables for naming conventions
 var locationAbbreviation = {
@@ -104,18 +111,58 @@ resource rakutenApiKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if
 
 
 
-// RBAC: Grant deployment principal access to Key Vault secrets (for CI/CD)
-// Note: Temporarily disabled to avoid permission issues during initial deployment
-// Uncomment and configure proper Service Principal permissions for production use
-// resource deploymentKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deploymentPrincipalObjectId)) {
-//   name: guid(keyVault.id, deploymentPrincipalObjectId, keyVaultSecretsUserRoleId)
-//   scope: keyVault
-//   properties: {
-//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
-//     principalId: deploymentPrincipalObjectId
-//     principalType: 'ServicePrincipal'
-//   }
-// }
+// RBAC Role IDs
+var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+var storageBlobDataContributorRoleId = 'ba92f5b4-2d11-453d-a403-e96b0029c9fe'
+
+// Reference to storage account for RBAC
+resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = if (!empty(storageAccountName)) {
+  name: storageAccountName
+}
+
+// RBAC: Grant API Function App access to Key Vault secrets
+resource apiFunctionAppKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(apiFunctionAppPrincipalId)) {
+  name: guid(keyVault.id, apiFunctionAppPrincipalId, keyVaultSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+    principalId: apiFunctionAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Batch Function App access to Key Vault secrets
+resource batchFunctionAppKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(batchFunctionAppPrincipalId)) {
+  name: guid(keyVault.id, batchFunctionAppPrincipalId, keyVaultSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+    principalId: batchFunctionAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant API Function App access to Storage Blob
+resource apiFunctionAppStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(apiFunctionAppPrincipalId) && !empty(storageAccountName)) {
+  name: guid(storageAccount.id, apiFunctionAppPrincipalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: apiFunctionAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Batch Function App access to Storage Blob
+resource batchFunctionAppStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(batchFunctionAppPrincipalId) && !empty(storageAccountName)) {
+  name: guid(storageAccount.id, batchFunctionAppPrincipalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: batchFunctionAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
 
 // Outputs
 output keyVaultId string = keyVault.id

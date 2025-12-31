@@ -121,6 +121,82 @@ module security 'modules/security.bicep' = {
   }
 }
 
+// Storage Account deployment
+module storage 'modules/storage.bicep' = {
+  name: 'storage-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    tags: commonTags
+  }
+}
+
+// Function Apps deployment
+module functions 'modules/functions.bicep' = {
+  name: 'functions-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    storageAccountName: storage.outputs.storageAccountName
+    storageConnectionStringTemplate: storage.outputs.storageAccountConnectionStringTemplate
+    keyVaultUri: security.outputs.keyVaultUri
+    postgresConnectionStringSecretUri: security.outputs.postgresConnectionStringSecretUri
+    rakutenApiKeySecretUri: security.outputs.rakutenApiKeySecretUri
+    tags: commonTags
+  }
+}
+
+// Update Security Module with Function App RBAC
+module securityRbac 'modules/security.bicep' = {
+  name: 'security-rbac-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    postgresServerFqdn: database.outputs.postgresServerFqdn
+    databaseName: database.outputs.databaseName
+    postgresAdminUsername: postgresAdminUsername
+    postgresAdminPassword: postgresAdminPassword
+    rakutenApiKey: rakutenApiKey
+    apiFunctionAppPrincipalId: functions.outputs.apiFunctionAppPrincipalId
+    batchFunctionAppPrincipalId: functions.outputs.batchFunctionAppPrincipalId
+    storageAccountName: storage.outputs.storageAccountName
+    tags: commonTags
+  }
+}
+
+// Cost Optimization Module - Night shutdown for dev environment
+module costOptimization 'modules/cost-optimization.bicep' = {
+  name: 'cost-optimization-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    apiFunctionAppId: functions.outputs.apiFunctionAppId
+    batchFunctionAppId: functions.outputs.batchFunctionAppId
+    tags: commonTags
+  }
+}
+
+// CDN Module - Production only
+module cdn 'modules/cdn.bicep' = {
+  name: 'cdn-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    storageWebEndpoint: storage.outputs.storageAccountWebEndpoint
+    tags: commonTags
+  }
+}
+
 // Outputs
 output resourceGroupName string = resourceGroup.name
 output resourceGroupId string = resourceGroup.id
@@ -143,3 +219,32 @@ output keyVaultName string = security.outputs.keyVaultName
 output keyVaultUri string = security.outputs.keyVaultUri
 output postgresConnectionStringSecretUri string = security.outputs.postgresConnectionStringSecretUri
 output rakutenApiKeySecretUri string = security.outputs.rakutenApiKeySecretUri
+
+// Storage outputs
+output storageAccountId string = storage.outputs.storageAccountId
+output storageAccountName string = storage.outputs.storageAccountName
+output storageAccountBlobEndpoint string = storage.outputs.storageAccountBlobEndpoint
+output storageAccountWebEndpoint string = storage.outputs.storageAccountWebEndpoint
+output imagesContainerName string = storage.outputs.imagesContainerName
+
+// Functions outputs
+output appServicePlanId string = functions.outputs.appServicePlanId
+output appServicePlanName string = functions.outputs.appServicePlanName
+output appServicePlanSku string = functions.outputs.appServicePlanSku
+output apiFunctionAppId string = functions.outputs.apiFunctionAppId
+output apiFunctionAppName string = functions.outputs.apiFunctionAppName
+output apiFunctionAppHostname string = functions.outputs.apiFunctionAppHostname
+output batchFunctionAppId string = functions.outputs.batchFunctionAppId
+output batchFunctionAppName string = functions.outputs.batchFunctionAppName
+output batchFunctionAppHostname string = functions.outputs.batchFunctionAppHostname
+output appInsightsConnectionString string = functions.outputs.appInsightsConnectionString
+
+// Cost Optimization outputs
+output nightShutdownEnabled bool = costOptimization.outputs.nightShutdownEnabled
+output stopLogicAppName string = costOptimization.outputs.stopLogicAppName
+output startLogicAppName string = costOptimization.outputs.startLogicAppName
+
+// CDN outputs
+output cdnEnabled bool = cdn.outputs.cdnEnabled
+output cdnEndpointHostname string = cdn.outputs.cdnEndpointHostname
+output cdnEndpointName string = cdn.outputs.cdnEndpointName
