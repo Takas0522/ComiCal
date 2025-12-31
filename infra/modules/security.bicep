@@ -36,8 +36,7 @@ param postgresAdminPassword string
 @secure()
 param rakutenApiKey string = ''
 
-@description('Object ID of the deployment principal for Key Vault access')
-param deploymentPrincipalObjectId string = ''
+
 
 // Variables for naming conventions
 var locationAbbreviation = {
@@ -73,29 +72,15 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-07-01' = {
       name: keyVaultSku
     }
     tenantId: subscription().tenantId
-    enableRbacAuthorization: environmentName == 'prod' // Use RBAC for prod, Access Policies for dev
+    enableRbacAuthorization: true // Always use RBAC for consistency
     enableSoftDelete: true
     softDeleteRetentionInDays: 90
-    enablePurgeProtection: environmentName == 'prod' // Only enable for production
+    enablePurgeProtection: true // Always enabled - cannot be disabled once set
     publicNetworkAccess: 'Enabled'
     networkAcls: {
       defaultAction: 'Allow'
       bypass: 'AzureServices'
     }
-    // Access policies for dev environment (simpler permission model)
-    accessPolicies: environmentName == 'dev' && !empty(deploymentPrincipalObjectId) ? [
-      {
-        objectId: deploymentPrincipalObjectId
-        tenantId: subscription().tenantId
-        permissions: {
-          secrets: [
-            'get'
-            'list'
-            'set'
-          ]
-        }
-      }
-    ] : []
   }
 }
 
@@ -117,21 +102,20 @@ resource rakutenApiKeySecret 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = if
   }
 }
 
-// Key Vault Secrets User role definition
-var keyVaultSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+
 
 // RBAC: Grant deployment principal access to Key Vault secrets (for CI/CD)
-// Note: Only enabled for production environment with proper Service Principal permissions
-// Development environment uses Access Policies instead of RBAC for simplicity
-resource deploymentKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deploymentPrincipalObjectId) && environmentName == 'prod') {
-  name: guid(keyVault.id, deploymentPrincipalObjectId, keyVaultSecretsUserRoleId)
-  scope: keyVault
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
-    principalId: deploymentPrincipalObjectId
-    principalType: 'ServicePrincipal'
-  }
-}
+// Note: Temporarily disabled to avoid permission issues during initial deployment
+// Uncomment and configure proper Service Principal permissions for production use
+// resource deploymentKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(deploymentPrincipalObjectId)) {
+//   name: guid(keyVault.id, deploymentPrincipalObjectId, keyVaultSecretsUserRoleId)
+//   scope: keyVault
+//   properties: {
+//     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+//     principalId: deploymentPrincipalObjectId
+//     principalType: 'ServicePrincipal'
+//   }
+// }
 
 // Outputs
 output keyVaultId string = keyVault.id

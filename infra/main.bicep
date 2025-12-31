@@ -49,9 +49,6 @@ param postgresAadAdminPrincipalType string = 'User'
 @secure()
 param rakutenApiKey string = ''
 
-@description('Object ID of the deployment principal for Key Vault access')
-param deploymentPrincipalObjectId string = ''
-
 // Variables for naming conventions following Azure CAF
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -120,7 +117,6 @@ module security 'modules/security.bicep' = {
     postgresAdminUsername: postgresAdminUsername
     postgresAdminPassword: postgresAdminPassword
     rakutenApiKey: rakutenApiKey
-    deploymentPrincipalObjectId: deploymentPrincipalObjectId
     tags: commonTags
   }
 }
