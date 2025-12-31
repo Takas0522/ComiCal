@@ -57,6 +57,7 @@ var locationShort = locationAbbreviation[location]
 var staticWebAppName = 'stapp-${projectName}-${environmentName}-${locationShort}'
 
 // Environment-specific SKU configuration
+// Dev always uses Free, Prod uses the sku parameter (default: Free, can be Standard)
 var skuConfig = {
   dev: {
     name: 'Free'
@@ -112,6 +113,7 @@ resource staticWebAppConfig 'Microsoft.Web/staticSites/config@2023-12-01' = {
 output staticWebAppId string = staticWebApp.id
 output staticWebAppName string = staticWebApp.name
 output staticWebAppDefaultHostname string = staticWebApp.properties.defaultHostname
+#disable-next-line outputs-should-not-contain-secrets
 output staticWebAppApiKey string = staticWebApp.listSecrets().properties.apiKey
 output staticWebAppRepositoryUrl string = staticWebApp.properties.repositoryUrl
 output staticWebAppBranch string = staticWebApp.properties.branch

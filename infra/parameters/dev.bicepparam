@@ -32,3 +32,9 @@ param rakutenApiKey = ''  // Must be provided during deployment
 
 // RBAC configuration  
 param skipRbacAssignments = true  // Service Principalに権限不足のため一時的にスキップ
+
+// GitHub configuration for Static Web Apps
+// Note: These should be provided securely via GitHub Secrets
+param githubToken = ''  // Must be provided during deployment
+param repositoryUrl = 'https://github.com/Takas0522/ComiCal'
+param repositoryBranch = 'main'

@@ -30,3 +30,9 @@ param postgresAadAdminPrincipalType = 'User'
 // Security configuration
 // Note: These should be provided securely via GitHub Secrets
 param rakutenApiKey = ''  // Must be provided during deployment
+
+// GitHub configuration for Static Web Apps
+// Note: These should be provided securely via GitHub Secrets
+param githubToken = ''  // Must be provided during deployment
+param repositoryUrl = 'https://github.com/Takas0522/ComiCal'
+param repositoryBranch = 'main'
