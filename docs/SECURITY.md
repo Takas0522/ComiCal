@@ -29,6 +29,30 @@
 
 本番環境では、以下の設定でKey Vault参照を使用することを推奨：
 
+#### Application Settings での Key Vault 参照例
+```json
+{
+  "DefaultConnection": "@Microsoft.KeyVault(VaultName=kv-comical-p-jpe;SecretName=postgres-connection-string)",
+  "RAKUTEN_APP_ID": "@Microsoft.KeyVault(VaultName=kv-comical-p-jpe;SecretName=rakuten-api-key)"
+}
+```
+
+### 3. データベースシーディング時のセキュリティ
+
+データベースシードスクリプト使用時の注意点：
+
+1. **環境変数ファイルの作成**
+   ```bash
+   cd src/database
+   cp .env.template .env
+   # .env ファイルに適切な値を設定
+   ```
+
+2. **環境変数チェックの実装**
+   - 必要な環境変数が未設定の場合はエラーで停止
+   - 開発用のデフォルト値はハードコードしない
+   - 本番環境では適切な認証方式（Managed Identity等）を使用
+
 ```bash
 # Key Vault参照の例
 AzureWebJobsStorage="@Microsoft.KeyVault(SecretUri=https://vault-name.vault.azure.net/secrets/AzureWebJobsStorage/)"

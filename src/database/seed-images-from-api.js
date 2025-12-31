@@ -20,8 +20,13 @@ const http = require('http');
 
 // Configuration
 const RAKUTEN_APP_ID = process.env.RAKUTEN_APP_ID;
-const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING || 
-  'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;';
+const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING;
+
+if (!STORAGE_CONNECTION_STRING) {
+  console.error('ERROR: STORAGE_CONNECTION_STRING environment variable is required');
+  console.log('For local development, set: STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"');
+  process.exit(1);
+}
 
 const CONTAINER_NAME = '$web';
 
