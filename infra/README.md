@@ -281,30 +281,44 @@ az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
    # GitHub Actions ワークフローファイルでリージョン変更
    # .github/workflows/infra-deploy.yml の AZURE_LOCATION を変更
    env:
-     AZURE_LOCATION: westus2  # クォータ制限が緩いリージョン
+     AZURE_LOCATION: centralus  # 現在のリージョン
    ```
 
 2. **複数リージョンでの試行順序**
-   - `westus2` (推奨) - 制限が緩い
-   - `centralus` - 代替選択肢
-   - `eastus` - 標準的なリージョン
-   - `southcentralus` - 最後の手段
+   - `centralus` (現在) - バランス良好
+   - `southcentralus` - 代替選択肢  
+   - `northcentralus` - 最後の手段
+   - ※ 日本リージョン（japaneast/japanwest）は厳しい制限
 
-3. **すべてのVMクォータが0の場合**
+3. **すべてのVMクォータが0の場合：Container Apps移行**
    ```bash
-   # 現在の設定: Consumption Plan (サーバーレス)
-   # VMクォータ影響を最小化
-   # それでもダメな場合はContainer Appsへの移行を検討
+   # main.bicep でfunctionsモジュールをcontainer-appsに変更
+   # module functions 'modules/functions.bicep' = {
+   module containerApps 'modules/container-apps.bicep' = {
+     name: 'container-apps-deployment'
+     params: {
+       environmentName: environmentName
+       location: location
+       projectName: projectName
+       storageAccountName: storage.outputs.storageAccountName
+       postgresConnectionStringSecretUri: security.outputs.postgresConnectionStringSecretUri
+       rakutenApiKeySecretUri: security.outputs.rakutenApiKeySecretUri
+       tags: commonTags
+     }
+   }
    ```
 
-4. **クォータ状況の詳細確認**
+4. **Container Appsの利点**
+   - ✅ VMクォータ制限なし
+   - ✅ サーバーレス、自動スケール
+   - ✅ より安価（使用分のみ課金）
+   - ✅ モダンなコンテナベース
+
+5. **クォータ状況の詳細確認**
    ```bash
    # 現在のクォータ確認（複数リージョン）
-   az vm list-usage --location westus2 --query "[?contains(name.value, 'VMs')]" -o table
    az vm list-usage --location centralus --query "[?contains(name.value, 'VMs')]" -o table
-   
-   # 利用可能リージョンの確認
-   az account list-locations --query "[?metadata.regionCategory=='Recommended'].{Name:name, DisplayName:displayName}" -o table
+   az vm list-usage --location southcentralus --query "[?contains(name.value, 'VMs')]" -o table
    ```
 
 ### デプロイエラー

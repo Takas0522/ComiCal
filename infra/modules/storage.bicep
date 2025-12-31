@@ -26,6 +26,7 @@ var locationAbbreviation = {
   eastus: 'eus'
   westus: 'wus'
   westus2: 'wu2'
+  centralus: 'cus'
   eastasia: 'eas'
   southeastasia: 'sea'
 }
