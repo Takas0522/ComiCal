@@ -1,6 +1,7 @@
 export const environment = {
   production: true,
-  gapiClientId: '233960289934-6b9n1qacd622qnsearludssoturlqiq3.apps.googleusercontent.com',
-  // TODO: Update to production blob storage URL when available
-  blobBaseUrl: 'https://comicalstoragedev.blob.core.windows.net/images'
+  gapiClientId: process.env['GOOGLE_OAUTH_CLIENT_ID'] || '',
+  // Note: blobBaseUrl should be configured via Azure Static Web Apps configuration
+  // and injected at build time to avoid exposing resource names in source code
+  blobBaseUrl: process.env['BLOB_BASE_URL'] || 'https://comicalstoragedev.blob.core.windows.net/images'
 };
