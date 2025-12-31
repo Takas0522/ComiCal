@@ -3,7 +3,7 @@ using '../main.bicep'
 
 // Environment configuration
 param environmentName = 'dev'
-param location = 'japaneast'
+param location = 'eastus2'  // japaneastから変更 - VMクォータ制限回避
 param projectName = 'comical'
 
 // Tags for development resources
@@ -29,3 +29,6 @@ param postgresAadAdminPrincipalType = 'User'
 // Security configuration
 // Note: These should be provided securely via GitHub Secrets
 param rakutenApiKey = ''  // Must be provided during deployment
+
+// RBAC configuration  
+param skipRbacAssignments = true  // Service Principalに権限不足のため一時的にスキップ

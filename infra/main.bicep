@@ -49,6 +49,9 @@ param postgresAadAdminPrincipalType string = 'User'
 @secure()
 param rakutenApiKey string = ''
 
+@description('Skip RBAC assignments (for Service Principal permission issues)')
+param skipRbacAssignments bool = false
+
 // Variables for naming conventions following Azure CAF
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -149,8 +152,8 @@ module containerApps 'modules/container-apps.bicep' = {
   }
 }
 
-// Update Security Module with Function App RBAC
-module securityRbac 'modules/security.bicep' = {
+// Update Security Module with Container App RBAC (RBAC権限がある場合のみ)
+module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
   name: 'security-rbac-deployment'
   scope: resourceGroup
   params: {
@@ -169,8 +172,8 @@ module securityRbac 'modules/security.bicep' = {
   }
 }
 
-// Cost Optimization Module - Night shutdown for dev environment
-module costOptimization 'modules/cost-optimization.bicep' = {
+// Cost Optimization Module - Night shutdown for dev environment (RBAC権限がある場合のみ)
+module costOptimization 'modules/cost-optimization.bicep' = if (!skipRbacAssignments) {
   name: 'cost-optimization-deployment'
   scope: resourceGroup
   params: {

@@ -333,6 +333,39 @@ az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
    az vm list-usage --location southcentralus --query "[?contains(name.value, 'VMs')]" -o table
    ```
 
+### RBAC権限エラーへの対応
+
+`Microsoft.Authorization/roleAssignments/write`権限エラーが発生した場合：
+
+1. **一時的なRBACスキップ** (推奨 - 初回デプロイ時)
+   ```bicep
+   // dev.bicepparam で設定済み
+   param skipRbacAssignments = true  // RBAC割り当てを一時的にスキップ
+   ```
+
+2. **Service Principalに権限付与** (本格運用時)
+   ```bash
+   # User Access Administrator ロールを付与
+   az role assignment create \
+     --assignee <service-principal-id> \
+     --role "User Access Administrator" \
+     --scope "/subscriptions/<subscription-id>"
+   ```
+
+3. **手動でRBAC設定**
+   ```bash
+   # Container Appsに必要な権限を手動付与
+   az role assignment create \
+     --assignee <container-app-principal-id> \
+     --role "Storage Blob Data Contributor" \
+     --scope "/subscriptions/<subscription-id>/resourceGroups/<rg-name>/providers/Microsoft.Storage/storageAccounts/<storage-name>"
+   ```
+
+4. **現在のデプロイ状況**
+   - ✅ Core Resources (Container Apps, Storage, Database)
+   - ⚠️ RBAC Assignments (スキップ中)
+   - ⚠️ Cost Optimization (RBAC依存のためスキップ中)
+
 ### デプロイエラー
 
 デプロイが失敗した場合の確認事項：
