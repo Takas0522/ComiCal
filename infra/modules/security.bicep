@@ -90,7 +90,7 @@ resource postgresConnectionStringSecret 'Microsoft.KeyVault/vaults/secrets@2023-
   parent: keyVault
   name: 'PostgresConnectionString'
   properties: {
-    value: 'Host=${postgresServerFqdn};Database=${databaseName};Username=${postgresAdminUsername};Password=${postgresAdminPassword};SSL Mode=Require'
+    value: 'Host=${postgresServerFqdn};Database=${databaseName};Username=${postgresAdminUsername};Password=${postgresAdminPassword};SslMode=Require'
   }
 }
 
@@ -123,5 +123,6 @@ output keyVaultName string = keyVault.name
 output keyVaultUri string = keyVault.properties.vaultUri
 output postgresConnectionStringSecretUri string = postgresConnectionStringSecret.properties.secretUri
 // Note: We construct the URI manually for conditional secrets to avoid null reference warnings
+// The URI itself is not a secret, only a reference to where the secret is stored
 #disable-next-line outputs-should-not-contain-secrets
 output rakutenApiKeySecretUri string = !empty(rakutenApiKey) ? '${keyVault.properties.vaultUri}secrets/RakutenApiKey' : ''

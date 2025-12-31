@@ -168,7 +168,8 @@ applicationid="@Microsoft.KeyVault(SecretUri=https://kv-comical-dev-jpe.vault.az
 
 ```bash
 # 現在ログインしているユーザーの Object ID を取得
-az ad signed-in-user show --query id -o tsv
+USER_NAME=$(az account show --query user.name -o tsv)
+az ad user show --id "$USER_NAME" --query id -o tsv
 
 # Service Principal の Object ID を取得（App ID から）
 az ad sp show --id <app-id> --query id -o tsv
