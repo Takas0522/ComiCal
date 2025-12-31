@@ -272,6 +272,33 @@ az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
 
 ## トラブルシューティング
 
+### VMクォータエラーへの対応
+
+`SubscriptionIsOverQuotaForSku` エラーが発生した場合：
+
+1. **リージョン変更** (推奨)
+   ```bash
+   # GitHub Actions ワークフローファイルでリージョン変更
+   # .github/workflows/infra-deploy.yml の AZURE_LOCATION を変更
+   env:
+     AZURE_LOCATION: eastus  # または westus2, centralus など
+   ```
+
+2. **クォータ状況の確認**
+   ```bash
+   # 現在のクォータ確認
+   az vm list-usage --location japaneast --query "[?contains(name.value, 'Standard')]" -o table
+   
+   # 利用可能リージョンの確認
+   az account list-locations --query "[].{Name:name, DisplayName:displayName}" -o table
+   ```
+
+3. **プラン変更によるクォータ回避**
+   ```bash
+   # functions.bicep で軽量プランに変更済み
+   # F1 (Free) → B1 (Basic) → S1 (Standard) の順で段階的調整
+   ```
+
 ### デプロイエラー
 
 デプロイが失敗した場合の確認事項：

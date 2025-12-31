@@ -56,19 +56,20 @@ var appServicePlanName = 'plan-${projectName}-${environmentName}-${locationShort
 var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 
 // Environment-specific App Service Plan configuration
-// Note: このサブスクリプションではDynamic VMクォータが0のため、Standardプラン使用
+// Note: クォータ制限回避のため段階的にプランを調整
+// 1. F1 (Free) -> 2. B1 (Basic) -> 3. S1 (Standard) の順で試行
 var planConfig = {
   dev: {
     sku: {
-      name: 'S1'  // Standard S1 Plan for dev - Dynamic VMクォータ制限により最小固定プラン
-      tier: 'Standard'
+      name: 'F1'  // Free Plan - クォータ制限を最小化（制限: 1GB, 60分/日）
+      tier: 'Free'
     }
     kind: 'app'
   }
   prod: {
     sku: {
-      name: 'S1'  // Standard S1 Plan for prod - 同じくクォータ制限により固定プラン
-      tier: 'Standard'  
+      name: 'B1'  // Basic B1 Plan - 最小の有料プラン（制限回避しつつ本格運用可能）
+      tier: 'Basic'
     }
     kind: 'app'
   }
