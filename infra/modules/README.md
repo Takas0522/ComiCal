@@ -14,6 +14,31 @@ PostgreSQL Flexible Server Bicep モジュールは、以下の機能を提供�
 
 ## 使用方法
 
+### セキュアなデプロイ例
+
+**推奨方法**: 環境変数またはGitHub Secretsからパスワードを提供
+
+```bash
+# Azure CLI デプロイ（環境変数使用）
+export POSTGRES_PASSWORD="$(openssl rand -base64 32)"
+az deployment group create \
+  --resource-group rg-comical-d-jpe \
+  --template-file main.bicep \
+  --parameters @parameters/dev.bicepparam \
+  --parameters postgresAdminPassword="$POSTGRES_PASSWORD"
+```
+
+**GitHub Actions での例**:
+```yaml
+- name: Deploy Infrastructure
+  uses: azure/arm-deploy@v1
+  with:
+    template: ./infra/main.bicep
+    parameters: |
+      postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+      environmentName=prod
+```
+
 ### 基本的な使用例
 
 ```bicep
@@ -25,7 +50,7 @@ module database 'modules/database.bicep' = {
     location: 'japaneast'
     projectName: 'comical'
     administratorLogin: 'psqladmin'
-    administratorLoginPassword: 'SecurePassword123!'
+    administratorLoginPassword: postgresAdminPassword  // 外部から安全に提供
     tags: commonTags
   }
 }
@@ -42,7 +67,7 @@ module database 'modules/database.bicep' = {
     location: 'japaneast'
     projectName: 'comical'
     administratorLogin: 'psqladmin'
-    administratorLoginPassword: 'SecurePassword123!'
+    administratorLoginPassword: postgresAdminPassword  // 外部から安全に提供
     aadAdminObjectId: '00000000-0000-0000-0000-000000000000'
     aadAdminPrincipalName: 'admin@example.com'
     aadAdminPrincipalType: 'User'
@@ -80,14 +105,14 @@ module database 'modules/database.bicep' = {
 
 ### 本番環境 (prod)
 
-- **SKU**: Standard_D2s_v3 (General Purpose)
-  - 本番ワークロード向けの汎用 SKU
-  - 一貫したパフォーマンス
-- **ストレージ**: 128 GB
-- **バックアップ保持期間**: 30 日
-- **Geo 冗長バックアップ**: 有効
-- **高可用性**: ゾーン冗長
-- **可用性ゾーン**: ゾーン 1 (スタンバイ: ゾーン 2)
+- **SKU**: Standard_B2s (Burstable)
+  - 少人数利用向けのコスト最適化された SKU
+  - 開発環境と同等のスペック
+- **ストレージ**: 32 GB
+- **バックアップ保持期間**: 7 日
+- **Geo 冗長バックアップ**: 無効 (コスト最適化)
+- **高可用性**: 無効 (コスト最適化)
+- **可用性ゾーン**: なし
 
 ## 出力
 
@@ -104,8 +129,12 @@ module database 'modules/database.bicep' = {
 ## セキュリティ考慮事項
 
 1. **パスワード管理**
-   - `administratorLoginPassword` は必ず安全な方法で提供してください
-   - GitHub Secrets または Azure Key Vault の使用を推奨
+   - `administratorLoginPassword` は**絶対にハードコードしないでください**
+   - 以下の安全な方法で提供してください：
+     - GitHub Secrets: `${{ secrets.POSTGRES_ADMIN_PASSWORD }}`
+     - Azure Key Vault からの取得
+     - Azure CLI デプロイ時の `--parameters` オプション
+     - 環境変数からの取得
 
 2. **Azure AD 認証**
    - 本番環境では Azure AD 認証を有効化することを推奨
