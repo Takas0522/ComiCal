@@ -98,7 +98,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ./infra/parameters/dev.bicepparam
+          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
           deploymentName: comical-infra-dev-${{ github.run_number }}
 
   deploy-prod:
@@ -136,7 +136,7 @@ jobs:
       - name: What-If Deployment (Preview Changes)
         if: github.event.inputs.dry_run == 'true'
         run: |
-          PARAMS="infra/parameters/prod.bicepparam"
+          PARAMS="infra/parameters/prod.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}"
           if [ -n "${{ steps.version.outputs.version }}" ]; then
             PARAMS="$PARAMS gitTag=${{ steps.version.outputs.version }}"
           fi
@@ -155,7 +155,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ${{ steps.version.outputs.version != '' && format('./infra/parameters/prod.bicepparam gitTag={0}', steps.version.outputs.version) || './infra/parameters/prod.bicepparam' }}
+          parameters: ${{ steps.version.outputs.version != '' && format('./infra/parameters/prod.bicepparam gitTag={0} postgresAdminPassword={1}', steps.version.outputs.version, secrets.POSTGRES_ADMIN_PASSWORD) || format('./infra/parameters/prod.bicepparam postgresAdminPassword={0}', secrets.POSTGRES_ADMIN_PASSWORD) }}
           deploymentName: comical-infra-prod-${{ github.run_number }}
 
       - name: Validate semantic version

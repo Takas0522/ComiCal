@@ -15,3 +15,13 @@ param tags = {
 
 // Git tag - set by CI/CD pipeline or leave empty
 param gitTag = ''
+
+// PostgreSQL configuration for dev environment
+// Note: In production deployment, these should be provided securely via GitHub Secrets or Azure Key Vault
+param postgresAdminUsername = 'psqladmin'
+param postgresAdminPassword = ''  // Must be provided during deployment
+
+// Azure AD Admin configuration (optional, can be set via GitHub Actions)
+param postgresAadAdminObjectId = ''
+param postgresAadAdminPrincipalName = ''
+param postgresAadAdminPrincipalType = 'User'
