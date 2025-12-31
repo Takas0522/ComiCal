@@ -88,7 +88,10 @@ jobs:
             --name "comical-infra-dev-${{ github.run_number }}" \
             --location ${{ env.AZURE_LOCATION }} \
             --template-file infra/main.bicep \
-            --parameters infra/parameters/dev.bicepparam
+            --parameters infra/parameters/dev.bicepparam \
+            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+            --parameters rakutenApiKey="${{ secrets.RAKUTEN_API_KEY }}" \
+            --parameters deploymentPrincipalObjectId="${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}"
 
       - name: Deploy Infrastructure
         if: github.event.inputs.dry_run != 'true'
@@ -98,7 +101,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
           deploymentName: comical-infra-dev-${{ github.run_number }}
 
   deploy-prod:
@@ -136,7 +139,7 @@ jobs:
       - name: What-If Deployment (Preview Changes)
         if: github.event.inputs.dry_run == 'true'
         run: |
-          PARAMS="infra/parameters/prod.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}"
+          PARAMS="infra/parameters/prod.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}"
           if [ -n "${{ steps.version.outputs.version }}" ]; then
             PARAMS="$PARAMS gitTag=${{ steps.version.outputs.version }}"
           fi
@@ -155,7 +158,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ${{ steps.version.outputs.version != '' && format('./infra/parameters/prod.bicepparam gitTag={0} postgresAdminPassword={1}', steps.version.outputs.version, secrets.POSTGRES_ADMIN_PASSWORD) || format('./infra/parameters/prod.bicepparam postgresAdminPassword={0}', secrets.POSTGRES_ADMIN_PASSWORD) }}
+          parameters: ${{ steps.version.outputs.version != '' && format('./infra/parameters/prod.bicepparam gitTag={0} postgresAdminPassword={1} rakutenApiKey={2} deploymentPrincipalObjectId={3}', steps.version.outputs.version, secrets.POSTGRES_ADMIN_PASSWORD, secrets.RAKUTEN_API_KEY, secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID) || format('./infra/parameters/prod.bicepparam postgresAdminPassword={0} rakutenApiKey={1} deploymentPrincipalObjectId={2}', secrets.POSTGRES_ADMIN_PASSWORD, secrets.RAKUTEN_API_KEY, secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID) }}
           deploymentName: comical-infra-prod-${{ github.run_number }}
 
       - name: Validate semantic version
