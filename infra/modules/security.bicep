@@ -53,6 +53,7 @@ var locationShort = locationAbbreviation[location]
 
 // Key Vault Naming: kv-{project}-{env}-{location}
 // Note: Key Vault names must be globally unique and max 24 characters
+// Current: 'kv-comical-dev-jpe' = 18 chars, 'kv-comical-prod-jpe' = 19 chars
 var keyVaultName = 'kv-${projectName}-${environmentName}-${locationShort}'
 
 // SKU for Key Vault

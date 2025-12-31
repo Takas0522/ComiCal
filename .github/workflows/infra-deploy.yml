@@ -154,10 +154,13 @@ jobs:
         if: github.event.inputs.dry_run != 'true'
         id: params
         run: |
+          # Common parameters for all deployments
+          BASE_PARAMS="postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}"
+          
           if [ -n "${{ steps.version.outputs.version }}" ]; then
-            echo "parameters=./infra/parameters/prod.bicepparam gitTag=${{ steps.version.outputs.version }} postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "parameters=./infra/parameters/prod.bicepparam gitTag=${{ steps.version.outputs.version }} $BASE_PARAMS" >> $GITHUB_OUTPUT
           else
-            echo "parameters=./infra/parameters/prod.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}" >> $GITHUB_OUTPUT
+            echo "parameters=./infra/parameters/prod.bicepparam $BASE_PARAMS" >> $GITHUB_OUTPUT
           fi
 
       - name: Deploy Infrastructure
