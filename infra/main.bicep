@@ -52,6 +52,16 @@ param rakutenApiKey string = ''
 @description('Skip RBAC assignments (for Service Principal permission issues)')
 param skipRbacAssignments bool = false
 
+@description('GitHub repository token for Static Web Apps auto-linking')
+@secure()
+param githubToken string = ''
+
+@description('GitHub repository URL for Static Web Apps')
+param repositoryUrl string = 'https://github.com/Takas0522/ComiCal'
+
+@description('GitHub repository branch for Static Web Apps')
+param repositoryBranch string = 'main'
+
 // Variables for naming conventions following Azure CAF
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -202,6 +212,23 @@ module cdn 'modules/cdn.bicep' = {
   }
 }
 
+// Static Web Apps Module - Environment-specific frontend hosting
+module staticWebApp 'modules/staticwebapp.bicep' = {
+  name: 'staticwebapp-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    repositoryUrl: repositoryUrl
+    repositoryBranch: repositoryBranch
+    repositoryToken: githubToken
+    apiBackendUrl: containerApps.outputs.apiContainerAppUrl
+    sku: environmentName == 'prod' ? 'Standard' : 'Free'
+    tags: commonTags
+  }
+}
+
 // Outputs
 output resourceGroupName string = resourceGroup.name
 output resourceGroupId string = resourceGroup.id
@@ -253,3 +280,11 @@ output startLogicAppName string = skipRbacAssignments ? '' : costOptimization!.o
 output cdnEnabled bool = cdn.outputs.cdnEnabled
 output cdnEndpointHostname string = cdn.outputs.cdnEndpointHostname
 output cdnEndpointName string = cdn.outputs.cdnEndpointName
+
+// Static Web Apps outputs
+output staticWebAppId string = staticWebApp.outputs.staticWebAppId
+output staticWebAppName string = staticWebApp.outputs.staticWebAppName
+output staticWebAppDefaultHostname string = staticWebApp.outputs.staticWebAppDefaultHostname
+output staticWebAppRepositoryUrl string = staticWebApp.outputs.staticWebAppRepositoryUrl
+output staticWebAppBranch string = staticWebApp.outputs.staticWebAppBranch
+output stagingEnvironmentPolicy string = staticWebApp.outputs.stagingEnvironmentPolicy
