@@ -223,7 +223,7 @@ GitHub Actions ワークフローで使用する際の例：
     subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     region: japaneast
     template: ./infra/main.bicep
-    parameters: ./infra/parameters/prod.bicepparam gitTag=${{ github.ref_name }} postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+    parameters: ./infra/parameters/prod.bicepparam gitTag=${{ github.ref_name }} postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }}
 ```
 
 ### 必要な GitHub Secrets

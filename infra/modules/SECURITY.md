@@ -28,8 +28,7 @@ az deployment group create \
   --template-file main.bicep \
   --parameters @parameters/dev.bicepparam \
   --parameters postgresAdminPassword="$POSTGRES_PASSWORD" \
-  --parameters rakutenApiKey="$RAKUTEN_API_KEY" \
-  --parameters deploymentPrincipalObjectId="$DEPLOYMENT_PRINCIPAL_OBJECT_ID"
+  --parameters rakutenApiKey="$RAKUTEN_API_KEY"
 ```
 
 **GitHub Actions での例**:
@@ -41,7 +40,6 @@ az deployment group create \
     parameters: |
       postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }}
       rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }}
-      deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
       environmentName=prod
 ```
 
@@ -60,7 +58,6 @@ module security 'modules/security.bicep' = {
     postgresAdminUsername: 'psqladmin'
     postgresAdminPassword: postgresAdminPassword  // 外部から安全に提供
     rakutenApiKey: rakutenApiKey  // 外部から安全に提供
-    deploymentPrincipalObjectId: deploymentPrincipalObjectId  // Service Principal Object ID
     tags: commonTags
   }
 }
@@ -78,7 +75,6 @@ module security 'modules/security.bicep' = {
 | `postgresAdminUsername` | string (secure) | Yes | PostgreSQL 管理者ユーザー名 | - |
 | `postgresAdminPassword` | string (secure) | Yes | PostgreSQL 管理者パスワード | - |
 | `rakutenApiKey` | string (secure) | No | 楽天 API アプリケーション ID | '' |
-| `deploymentPrincipalObjectId` | string | No | デプロイメントプリンシパルのオブジェクト ID | '' |
 | `tags` | object | No | リソースタグ | {} |
 
 ## 環境別設定
