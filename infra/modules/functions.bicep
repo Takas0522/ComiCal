@@ -56,22 +56,21 @@ var appServicePlanName = 'plan-${projectName}-${environmentName}-${locationShort
 var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 
 // Environment-specific App Service Plan configuration
-// Note: 一部のサブスクリプションでDynamic/Basic VMクォータ制限があるため
-// 必要に応じてリージョン変更やStandardプランに切り替え
+// Note: このサブスクリプションではDynamic VMクォータが0のため、Standardプラン使用
 var planConfig = {
   dev: {
     sku: {
-      name: 'Y1'  // Consumption Plan - 従量課金（クォータ制限時はwestusなど他リージョン検討）
-      tier: 'Dynamic'
+      name: 'S1'  // Standard S1 Plan for dev - Dynamic VMクォータ制限により最小固定プラン
+      tier: 'Standard'
     }
-    kind: 'functionapp'
+    kind: 'app'
   }
   prod: {
     sku: {
-      name: 'Y1'  // Consumption Plan - 初期利用者少数のため従量課金
-      tier: 'Dynamic'
+      name: 'S1'  // Standard S1 Plan for prod - 同じくクォータ制限により固定プラン
+      tier: 'Standard'  
     }
-    kind: 'functionapp'
+    kind: 'app'
   }
 }
 

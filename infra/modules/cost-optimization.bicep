@@ -220,48 +220,48 @@ resource startLogicApp 'Microsoft.Logic/workflows@2019-05-01' = if (deployNightS
 var contributorRoleId = 'b24988ac-6180-42a0-ab88-20f7382dd24c'
 
 resource stopLogicAppRoleAssignmentApi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployNightShutdown) {
-  name: guid(stopLogicApp.id, apiFunctionAppId, contributorRoleId)
+  name: guid(stopLogicApp!.id, apiFunctionAppId, contributorRoleId)
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', contributorRoleId)
-    principalId: stopLogicApp.identity.principalId
+    principalId: stopLogicApp!.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 resource stopLogicAppRoleAssignmentBatch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployNightShutdown) {
-  name: guid(stopLogicApp.id, batchFunctionAppId, contributorRoleId)
+  name: guid(stopLogicApp!.id, batchFunctionAppId, contributorRoleId)
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', contributorRoleId)
-    principalId: stopLogicApp.identity.principalId
+    principalId: stopLogicApp!.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 resource startLogicAppRoleAssignmentApi 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployNightShutdown) {
-  name: guid(startLogicApp.id, apiFunctionAppId, contributorRoleId)
+  name: guid(startLogicApp!.id, apiFunctionAppId, contributorRoleId)
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', contributorRoleId)
-    principalId: startLogicApp.identity.principalId
+    principalId: startLogicApp!.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 resource startLogicAppRoleAssignmentBatch 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (deployNightShutdown) {
-  name: guid(startLogicApp.id, batchFunctionAppId, contributorRoleId)
+  name: guid(startLogicApp!.id, batchFunctionAppId, contributorRoleId)
   scope: resourceGroup()
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', contributorRoleId)
-    principalId: startLogicApp.identity.principalId
+    principalId: startLogicApp!.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
 // Outputs
-output stopLogicAppId string = deployNightShutdown ? stopLogicApp.id : ''
-output stopLogicAppName string = deployNightShutdown ? stopLogicApp.name : ''
-output startLogicAppId string = deployNightShutdown ? startLogicApp.id : ''
-output startLogicAppName string = deployNightShutdown ? startLogicApp.name : ''
+output stopLogicAppId string = deployNightShutdown ? stopLogicApp!.id : ''
+output stopLogicAppName string = deployNightShutdown ? stopLogicApp!.name : ''
+output startLogicAppId string = deployNightShutdown ? startLogicApp!.id : ''
+output startLogicAppName string = deployNightShutdown ? startLogicApp!.name : ''
 output nightShutdownEnabled bool = deployNightShutdown
