@@ -10,12 +10,13 @@ infra/
 ├── parameters/                 # 環境別パラメータファイル
 │   ├── dev.bicepparam         # 開発環境パラメータ
 │   └── prod.bicepparam        # 本番環境パラメータ
-├── modules/                    # 再利用可能な Bicep モジュール（将来追加予定）
+├── modules/                    # 再利用可能な Bicep モジュール
+│   ├── database.bicep         # PostgreSQL Flexible Server モジュール
 │   ├── storage.bicep          # Storage Account モジュール（TODO）
-│   ├── function-app.bicep     # Function App モジュール（TODO）
-│   └── postgresql.bicep       # PostgreSQL モジュール（TODO）
+│   └── function-app.bicep     # Function App モジュール（TODO）
 └── scripts/                    # セットアップ・管理スクリプト
-    └── initial-setup.sh       # 初回セットアップスクリプト
+    ├── initial-setup.sh       # 初回セットアップスクリプト
+    └── setup-postgres-identity.sh  # PostgreSQL Managed Identity セットアップ
 ```
 
 ## クイックスタート
@@ -32,6 +33,8 @@ Azure Service Principal と GitHub Secrets を自動設定：
 
 ### 2. インフラストラクチャのデプロイ
 
+**重要:** PostgreSQL のデプロイには管理者の認証情報が必要です。セキュリティのため、パスワードはコマンドラインで渡してください。
+
 #### 開発環境
 
 ```bash
@@ -39,7 +42,9 @@ az deployment sub create \
   --name "comical-infra-dev-$(date +%Y%m%d-%H%M%S)" \
   --location japaneast \
   --template-file infra/main.bicep \
-  --parameters infra/parameters/dev.bicepparam
+  --parameters infra/parameters/dev.bicepparam \
+  --parameters postgresAdminLogin=comicaladmin \
+  --parameters postgresAdminPassword='<secure-password>'
 ```
 
 #### 本番環境
@@ -50,7 +55,9 @@ az deployment sub create \
   --location japaneast \
   --template-file infra/main.bicep \
   --parameters infra/parameters/prod.bicepparam \
-  --parameters gitTag=$(git describe --tags --abbrev=0)
+  --parameters gitTag=$(git describe --tags --abbrev=0) \
+  --parameters postgresAdminLogin=comicaladmin \
+  --parameters postgresAdminPassword='<secure-password>'
 ```
 
 ### 3. デプロイの検証（What-If）
@@ -82,8 +89,75 @@ rg-{project}-{environment}-{location}
 st{project}{env}{location}{unique}              # Storage Account
 func-{project}-{resource}-{env}-{location}      # Function App
 plan-{project}-{env}-{location}                 # App Service Plan
-postgres-{project}-{env}-{location}             # PostgreSQL Server
+psql-{project}-{env}-{location}                 # PostgreSQL Flexible Server
 ```
+
+## PostgreSQL データベース構成
+
+このプロジェクトでは、環境ごとに最適化された PostgreSQL Flexible Server を使用します。
+
+### 環境別 SKU 設定
+
+#### 開発環境 (dev)
+- **SKU**: `Standard_B1ms` (Burstable)
+- **ストレージ**: 32 GB
+- **バックアップ保持期間**: 7 日
+- **Geo冗長バックアップ**: 無効
+- **高可用性**: 無効
+- **目的**: コスト最適化された開発・テスト環境
+
+#### 本番環境 (prod)
+- **SKU**: `Standard_D2s_v3` (General Purpose)
+- **ストレージ**: 128 GB
+- **バックアップ保持期間**: 30 日
+- **Geo冗長バックアップ**: 有効
+- **高可用性**: ゾーン冗長
+- **目的**: 高可用性と性能を重視した本番環境
+
+### Azure AD 認証と Managed Identity
+
+PostgreSQL サーバーは Azure AD 認証と従来のパスワード認証の両方をサポートしています。
+Functions アプリからのアクセスには Managed Identity を使用することを推奨します。
+
+#### Managed Identity のセットアップ
+
+インフラストラクチャのデプロイ後、以下のスクリプトを実行して Managed Identity をデータベースユーザーとして登録します：
+
+```bash
+# 開発環境の場合
+./infra/scripts/setup-postgres-identity.sh --environment dev
+
+# 本番環境の場合
+./infra/scripts/setup-postgres-identity.sh --environment prod
+
+# カスタム設定の場合
+./infra/scripts/setup-postgres-identity.sh \
+  --environment dev \
+  --server-name psql-comical-d-jpe \
+  --database comical \
+  --identity-name func-comical-api-d-jpe
+```
+
+このスクリプトは以下を実行します：
+1. Azure AD 拡張機能の有効化
+2. Managed Identity をデータベースロールとして作成
+3. 必要な権限（CONNECT, USAGE, CREATE, SELECT, INSERT, UPDATE, DELETE）の付与
+4. 将来のテーブルに対するデフォルト権限の設定
+
+#### Functions アプリの接続文字列
+
+Managed Identity を使用した接続文字列：
+```
+Host=<server-fqdn>;Database=comical;Username=<managed-identity-name>
+```
+
+**注意**: Managed Identity 認証を使用する場合、パスワードは不要です。Azure が自動的に認証を処理します。
+
+### ファイアウォール設定
+
+デフォルトで、Azure サービスからのアクセスが許可されています。これにより、同じ Azure リージョン内の Functions アプリやその他のサービスからデータベースに接続できます。
+
+追加のファイアウォールルールが必要な場合は、Azure Portal または Azure CLI で設定できます。
 
 ## セマンティックバージョニング
 

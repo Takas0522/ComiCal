@@ -61,6 +61,35 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: commonTags
 }
 
+// PostgreSQL Database Module
+@description('PostgreSQL administrator login name')
+@secure()
+param postgresAdminLogin string
+
+@description('PostgreSQL administrator password')
+@secure()
+param postgresAdminPassword string
+
+@description('Database name to create')
+param databaseName string = 'comical'
+
+module database 'modules/database.bicep' = {
+  name: 'database-deployment-${environmentName}'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    locationShort: locationShort
+    envShort: envShort
+    tags: commonTags
+    administratorLogin: postgresAdminLogin
+    administratorPassword: postgresAdminPassword
+    databaseName: databaseName
+    allowAzureServices: true
+  }
+}
+
 // Outputs
 output resourceGroupName string = resourceGroup.name
 output resourceGroupId string = resourceGroup.id
@@ -69,3 +98,12 @@ output environment string = environmentName
 output semanticVersion string = versionTag
 output isSemanticVersionDeployment bool = isSemanticVersion
 output tags object = commonTags
+
+// Database outputs
+output postgresServerName string = database.outputs.serverName
+output postgresServerId string = database.outputs.serverId
+output postgresServerFqdn string = database.outputs.serverFqdn
+output postgresDatabaseName string = database.outputs.databaseName
+output postgresConnectionString string = database.outputs.connectionStringManagedIdentity
+output postgresSkuName string = database.outputs.skuName
+output postgresSkuTier string = database.outputs.skuTier
