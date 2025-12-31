@@ -51,7 +51,7 @@ var locationAbbreviation = {
   japanwest: 'jpw'
   eastus: 'eus'
   westus: 'wus'
-  eastasia: 'ea'
+  eastasia: 'eas'
   southeastasia: 'sea'
 }
 

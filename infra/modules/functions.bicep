@@ -45,7 +45,7 @@ var locationAbbreviation = {
   japanwest: 'jpw'
   eastus: 'eus'
   westus: 'wus'
-  eastasia: 'ea'
+  eastasia: 'eas'
   southeastasia: 'sea'
 }
 
@@ -65,17 +65,17 @@ var appInsightsName = 'appi-${projectName}-${environmentName}-${locationShort}'
 var planConfig = {
   dev: {
     sku: {
-      name: 'Y1'  // Consumption Plan (Y1) for dev - 従量課金で最安
-      tier: 'Dynamic'
+      name: 'B1'  // Basic B1 Plan for dev - 最安の固定プラン（約￥1,500/月）
+      tier: 'Basic'
     }
-    kind: 'functionapp'
+    kind: 'app'
   }
   prod: {
     sku: {
-      name: 'Y1'  // Consumption Plan (Y1) for prod - 初期利用者少数のため従量課金
-      tier: 'Dynamic'
+      name: 'S1'  // Standard S1 Plan for prod - 初期利用者向けコスト抑制（約￥2,000/月）
+      tier: 'Standard'
     }
-    kind: 'functionapp'
+    kind: 'app'
   }
 }
 

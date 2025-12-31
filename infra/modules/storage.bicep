@@ -13,6 +13,7 @@ param environmentName string
 param location string = resourceGroup().location
 
 @description('Project name for resource naming')
+@minLength(3)
 param projectName string
 
 @description('Tags to apply to resources')
@@ -24,19 +25,19 @@ var locationAbbreviation = {
   japanwest: 'jpw'
   eastus: 'eus'
   westus: 'wus'
-  eastasia: 'ea'
+  eastasia: 'eas'
   southeastasia: 'sea'
 }
 
 var locationShort = locationAbbreviation[location]
 var envShort = {
   dev: 'dev'
-  prod: 'prd'
+  prod: 'prod'  // 3文字に統一してBCP334警告を回避
 }[environmentName]
 
 // Storage Account Naming: st{project}{env}{location}
 // Note: Storage account names must be globally unique, lowercase, and max 24 characters
-// Current: 'stcomicaldev<location>' or 'stcomicalprd<location>'
+// Current: 'stcomicaldev<location>' or 'stcomicalprod<location>'
 var storageAccountName = 'st${projectName}${envShort}${locationShort}'
 
 // Environment-specific SKU configuration
