@@ -35,6 +35,7 @@ var locationAbbreviation = {
   japaneast: 'jpe'
   japanwest: 'jpw'
   eastus: 'eus'
+  eastus2: 'eu2'
   westus: 'wus'
   westus2: 'wu2'
   centralus: 'cus'
@@ -162,8 +163,8 @@ resource apiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
   }
 }
 
-// Batch Container App Job (スケジュール実行用 - タイマートリガー代替)
-resource batchContainerAppJob 'Microsoft.App/jobs@2024-03-01' = {
+// Batch Container App (シンプル化 - HTTPトリガーで手動実行可能)
+resource batchContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: batchContainerAppName
   location: location
   tags: tags
@@ -171,15 +172,19 @@ resource batchContainerAppJob 'Microsoft.App/jobs@2024-03-01' = {
     type: 'SystemAssigned'
   }
   properties: {
-    environmentId: containerAppsEnvironment.id
+    managedEnvironmentId: containerAppsEnvironment.id
     configuration: {
-      triggerType: 'Schedule'
-      scheduleTriggerConfig: {
-        cronExpression: '0 0 2 * * *' // 毎日午前2時実行（Functions timer trigger相当）
-        parallelism: 1
-        replicaCompletionCount: 1
+      activeRevisionsMode: 'Single'
+      ingress: {
+        external: false // 内部のみアクセス可能
+        targetPort: 8080
+        traffic: [
+          {
+            weight: 100
+            latestRevision: true
+          }
+        ]
       }
-      replicaTimeout: 3600 // 1時間タイムアウト
       secrets: [
         {
           name: 'storage-connection-string'
@@ -197,8 +202,8 @@ resource batchContainerAppJob 'Microsoft.App/jobs@2024-03-01' = {
           image: 'mcr.microsoft.com/dotnet/aspnet:8.0'
           name: 'batch'
           resources: {
-            cpu: json('0.5')
-            memory: '1.0Gi'
+            cpu: json('0.25')
+            memory: '0.5Gi'
           }
           env: [
             {
@@ -220,6 +225,10 @@ resource batchContainerAppJob 'Microsoft.App/jobs@2024-03-01' = {
           ]
         }
       ]
+      scale: {
+        minReplicas: 0
+        maxReplicas: 1
+      }
     }
   }
 }
@@ -231,7 +240,7 @@ output apiContainerAppId string = apiContainerApp.id
 output apiContainerAppName string = apiContainerApp.name
 output apiContainerAppUrl string = 'https://${apiContainerApp.properties.configuration.ingress.fqdn}'
 output apiContainerAppPrincipalId string = apiContainerApp.identity.principalId
-output batchContainerAppId string = batchContainerAppJob.id
-output batchContainerAppName string = batchContainerAppJob.name
-output batchContainerAppPrincipalId string = batchContainerAppJob.identity.principalId
+output batchContainerAppId string = batchContainerApp.id
+output batchContainerAppName string = batchContainerApp.name
+output batchContainerAppPrincipalId string = batchContainerApp.identity.principalId
 output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id

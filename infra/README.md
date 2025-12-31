@@ -313,19 +313,18 @@ az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
    - ✅ サーバーレス、自動スケール
    - ✅ より安価（使用分のみ課金）
    - ✅ モダンなコンテナベース
-   - ✅ **Container App Jobs** でタイマートリガー相当を実現
+   - ✅ HTTPトリガーでバッチ処理を手動実行可能
 
-5. **Functions タイマートリガーの代替**
-   ```yaml
-   # Container App Job での定時実行設定
-   scheduleTriggerConfig:
-     cronExpression: '0 0 2 * * *'  # 毎日午前2時
-     parallelism: 1
-     replicaCompletionCount: 1
+5. **バッチ処理の実行方法**
+   ```bash
+   # Container App経由でバッチ処理を手動実行
+   curl -X POST https://ca-comical-batch-dev-eu2.internal/api/batch
+   
+   # 将来的にLogic AppsやScheduled Jobsでタイマー実行も可能
    ```
-   - Functions の `[TimerTrigger("0 0 2 * * *")]` と同等
-   - Cron式での柔軟なスケジュール設定
-   - バッチ処理の定時実行が可能
+   - Functions の `[TimerTrigger]` の代わりにHTTP呼び出し
+   - 必要に応じてAzure Logic Appsでスケジュール実行
+   - より柔軟な実行タイミング制御
 
 5. **クォータ状況の詳細確認**
    ```bash
