@@ -17,12 +17,15 @@ infra/
 │   ├── FUNCTIONS.md           # Functions モジュールドキュメント
 │   ├── COST_OPTIMIZATION.md  # コスト最適化モジュールドキュメント
 │   ├── CDN.md                 # CDN モジュールドキュメント
+│   ├── STATICWEBAPP.md        # Static Web Apps モジュールドキュメント
 │   ├── database.bicep         # PostgreSQL Flexible Server モジュール
 │   ├── security.bicep         # Key Vault とセキュリティモジュール
 │   ├── storage.bicep          # Storage Account モジュール
 │   ├── functions.bicep        # Function Apps モジュール
+│   ├── container-apps.bicep   # Container Apps モジュール（VM クォータ制限対応）
 │   ├── cost-optimization.bicep # 夜間停止モジュール（dev のみ）
-│   └── cdn.bicep              # CDN モジュール（prod のみ）
+│   ├── cdn.bicep              # CDN モジュール（prod のみ）
+│   └── staticwebapp.bicep     # Static Web Apps モジュール
 └── scripts/                    # セットアップ・管理スクリプト
     ├── initial-setup.sh       # 初回セットアップスクリプト
     └── setup-postgres-identity.sh  # PostgreSQL Managed Identity セットアップ
@@ -157,6 +160,9 @@ cdn-{project}-{env}-{location}                   # 例: cdn-comical-prod-jpe (en
 
 # Key Vault
 kv-{project}-{env}-{location}                    # 例: kv-comical-dev-jpe
+
+# Static Web Apps
+stapp-{project}-{env}-{location}                 # 例: stapp-comical-dev-jpe, stapp-comical-prod-jpe
 ```
 
 ## セマンティックバージョニング
@@ -262,6 +268,7 @@ GitHub Actions ワークフローで使用する際の例：
 | `AZURE_SUBSCRIPTION_ID` | Azure サブスクリプション ID | Yes |
 | `POSTGRES_ADMIN_PASSWORD` | PostgreSQL 管理者パスワード | Yes |
 | `RAKUTEN_API_KEY` | 楽天ブックス API アプリケーション ID | Yes |
+| `GITHUB_TOKEN` | GitHub Personal Access Token (Static Web Apps 用) | Yes |
 | `DEPLOYMENT_PRINCIPAL_OBJECT_ID` | デプロイメント Service Principal のオブジェクト ID | Yes |
 
 **DEPLOYMENT_PRINCIPAL_OBJECT_ID の取得方法**:
@@ -401,23 +408,24 @@ az role assignment list \
 2. **PostgreSQL Flexible Server**: `psql-comical-{env}-{location}`
 3. **Key Vault**: `kv-comical-{env}-{location}`
 4. **Storage Account**: `st{project}{env}{location}`
-5. **Function Apps**:
-   - API: `func-comical-api-{env}-{location}`
-   - Batch: `func-comical-batch-{env}-{location}`
-6. **App Service Plan**: `plan-comical-{env}-{location}`
-7. **Application Insights**: `appi-comical-{env}-{location}`
+5. **Container Apps**:
+   - API: `ca-comical-api-{env}-{location}`
+   - Batch: `ca-comical-batch-{env}-{location}`
+6. **Container Apps Environment**: `cae-comical-{env}-{location}`
+7. **Log Analytics Workspace**: `law-comical-{env}-{location}`
+8. **Static Web Apps**: `stapp-comical-{env}-{location}`
 
 ### 開発環境専用
 
-8. **Logic Apps**（夜間停止用）:
+9. **Logic Apps**（夜間停止用）:
    - 停止: `logic-comical-stop-dev-{location}`
    - 起動: `logic-comical-start-dev-{location}`
 
 ### 本番環境専用
 
-9. **CDN**:
-   - Profile: `cdn-comical-prod`
-   - Endpoint: `cdn-comical-prod-{location}`
+10. **CDN**:
+    - Profile: `cdn-comical-prod`
+    - Endpoint: `cdn-comical-prod-{location}`
 
 ## モジュールドキュメント
 
@@ -429,6 +437,7 @@ az role assignment list \
 - [Functions モジュール](./modules/FUNCTIONS.md) - Function Apps（API + Batch）
 - [Cost Optimization モジュール](./modules/COST_OPTIMIZATION.md) - 夜間停止機能（dev のみ）
 - [CDN モジュール](./modules/CDN.md) - Azure CDN（prod のみ）
+- [Static Web Apps モジュール](./modules/STATICWEBAPP.md) - Azure Static Web Apps（GitHub 自動連携）
 
 ## ベストプラクティス
 
@@ -454,4 +463,4 @@ az role assignment list \
 
 ---
 
-**最終更新日：** 2025-12-30
+**最終更新日：** 2025-12-31
