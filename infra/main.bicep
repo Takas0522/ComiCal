@@ -45,6 +45,13 @@ param postgresAadAdminPrincipalName string = ''
 ])
 param postgresAadAdminPrincipalType string = 'User'
 
+@description('Rakuten API application ID for Batch Functions')
+@secure()
+param rakutenApiKey string = ''
+
+@description('Object ID of the deployment principal for Key Vault access')
+param deploymentPrincipalObjectId string = ''
+
 // Variables for naming conventions following Azure CAF
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -100,6 +107,24 @@ module database 'modules/database.bicep' = {
   }
 }
 
+// Security Module - Key Vault and secret management
+module security 'modules/security.bicep' = {
+  name: 'security-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    postgresServerFqdn: database.outputs.postgresServerFqdn
+    databaseName: database.outputs.databaseName
+    postgresAdminUsername: postgresAdminUsername
+    postgresAdminPassword: postgresAdminPassword
+    rakutenApiKey: rakutenApiKey
+    deploymentPrincipalObjectId: deploymentPrincipalObjectId
+    tags: commonTags
+  }
+}
+
 // Outputs
 output resourceGroupName string = resourceGroup.name
 output resourceGroupId string = resourceGroup.id
@@ -115,3 +140,10 @@ output postgresServerFqdn string = database.outputs.postgresServerFqdn
 output databaseName string = database.outputs.databaseName
 output postgresConnectionStringTemplate string = database.outputs.connectionStringTemplate
 output postgresSku string = '${database.outputs.skuTier}/${database.outputs.skuName}'
+
+// Security outputs
+output keyVaultId string = security.outputs.keyVaultId
+output keyVaultName string = security.outputs.keyVaultName
+output keyVaultUri string = security.outputs.keyVaultUri
+output postgresConnectionStringSecretUri string = security.outputs.postgresConnectionStringSecretUri
+output rakutenApiKeySecretUri string = security.outputs.rakutenApiKeySecretUri

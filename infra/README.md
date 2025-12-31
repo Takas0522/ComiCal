@@ -223,7 +223,26 @@ GitHub Actions ワークフローで使用する際の例：
     subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
     region: japaneast
     template: ./infra/main.bicep
-    parameters: ./infra/parameters/prod.bicepparam gitTag=${{ github.ref_name }}
+    parameters: ./infra/parameters/prod.bicepparam gitTag=${{ github.ref_name }} postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+```
+
+### 必要な GitHub Secrets
+
+以下の Secrets を GitHub リポジトリに設定してください：
+
+| Secret 名 | 説明 | 必須 |
+|-----------|------|------|
+| `AZURE_CLIENT_ID` | Azure Service Principal のクライアント ID | Yes |
+| `AZURE_TENANT_ID` | Azure テナント ID | Yes |
+| `AZURE_SUBSCRIPTION_ID` | Azure サブスクリプション ID | Yes |
+| `POSTGRES_ADMIN_PASSWORD` | PostgreSQL 管理者パスワード | Yes |
+| `RAKUTEN_API_KEY` | 楽天ブックス API アプリケーション ID | Yes |
+| `DEPLOYMENT_PRINCIPAL_OBJECT_ID` | デプロイメント Service Principal のオブジェクト ID | Yes |
+
+**DEPLOYMENT_PRINCIPAL_OBJECT_ID の取得方法**:
+```bash
+# Service Principal の Object ID を取得
+az ad sp show --id ${{ secrets.AZURE_CLIENT_ID }} --query id -o tsv
 ```
 
 ## トラブルシューティング

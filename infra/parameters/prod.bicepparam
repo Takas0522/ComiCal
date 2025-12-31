@@ -26,3 +26,8 @@ param postgresAdminPassword = ''  // Must be provided during deployment
 param postgresAadAdminObjectId = ''
 param postgresAadAdminPrincipalName = ''
 param postgresAadAdminPrincipalType = 'User'
+
+// Security configuration
+// Note: These should be provided securely via GitHub Secrets
+param rakutenApiKey = ''  // Must be provided during deployment
+param deploymentPrincipalObjectId = ''  // Service Principal Object ID for CI/CD access
