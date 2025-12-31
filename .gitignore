@@ -3,6 +3,22 @@
 database/node_modules/
 database/package-lock.json
 
+# Environment variables and configuration files
+.env
+.env.local
+.env.production
+.env.development
+.env.*.local
+**/appsettings.json
+**/appsettings.*.json
+
+# Logs
+*.log
+**/logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
 # Infrastructure sensitive files
 *.credentials.json
 **/secrets/
