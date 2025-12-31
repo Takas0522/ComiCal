@@ -10,12 +10,14 @@ infra/
 ├── parameters/                 # 環境別パラメータファイル
 │   ├── dev.bicepparam         # 開発環境パラメータ
 │   └── prod.bicepparam        # 本番環境パラメータ
-├── modules/                    # 再利用可能な Bicep モジュール（将来追加予定）
+├── modules/                    # 再利用可能な Bicep モジュール
+│   ├── README.md              # モジュールドキュメント
+│   ├── database.bicep         # PostgreSQL Flexible Server モジュール
 │   ├── storage.bicep          # Storage Account モジュール（TODO）
-│   ├── function-app.bicep     # Function App モジュール（TODO）
-│   └── postgresql.bicep       # PostgreSQL モジュール（TODO）
+│   └── function-app.bicep     # Function App モジュール（TODO）
 └── scripts/                    # セットアップ・管理スクリプト
-    └── initial-setup.sh       # 初回セットアップスクリプト
+    ├── initial-setup.sh       # 初回セットアップスクリプト
+    └── setup-postgres-identity.sh  # PostgreSQL Managed Identity セットアップ
 ```
 
 ## クイックスタート
@@ -30,7 +32,27 @@ Azure Service Principal と GitHub Secrets を自動設定：
 
 詳細は [GitHub Actions セットアップガイド](../docs/GITHUB_ACTIONS_SETUP.md) を参照してください。
 
-### 2. インフラストラクチャのデプロイ
+### 2. PostgreSQL Managed Identity セットアップ
+
+インフラストラクチャをデプロイした後、Managed Identity を PostgreSQL に設定：
+
+```bash
+# 開発環境
+./infra/scripts/setup-postgres-identity.sh dev rg-comical-d-jpe
+
+# 本番環境
+./infra/scripts/setup-postgres-identity.sh prod rg-comical-p-jpe
+```
+
+このスクリプトは以下を実行します：
+- Function Apps の Managed Identity を有効化
+- PostgreSQL データベースユーザーを作成
+- 必要な権限を付与
+- Azure AD 管理者を設定（オプション）
+
+### 3. インフラストラクチャのデプロイ
+
+デプロイ時には、PostgreSQL の管理者パスワードを指定する必要があります：
 
 #### 開発環境
 
@@ -39,7 +61,8 @@ az deployment sub create \
   --name "comical-infra-dev-$(date +%Y%m%d-%H%M%S)" \
   --location japaneast \
   --template-file infra/main.bicep \
-  --parameters infra/parameters/dev.bicepparam
+  --parameters infra/parameters/dev.bicepparam \
+  --parameters postgresAdminPassword='YourSecurePassword123!'
 ```
 
 #### 本番環境
@@ -50,16 +73,20 @@ az deployment sub create \
   --location japaneast \
   --template-file infra/main.bicep \
   --parameters infra/parameters/prod.bicepparam \
-  --parameters gitTag=$(git describe --tags --abbrev=0)
+  --parameters gitTag=$(git describe --tags --abbrev=0) \
+  --parameters postgresAdminPassword='YourSecurePassword123!'
 ```
 
-### 3. デプロイの検証（What-If）
+**注意**: パスワードはコマンドラインではなく、環境変数または Azure Key Vault から取得することを推奨します。
+
+### 4. デプロイの検証（What-If）
 
 ```bash
 az deployment sub what-if \
   --location japaneast \
   --template-file infra/main.bicep \
-  --parameters infra/parameters/dev.bicepparam
+  --parameters infra/parameters/dev.bicepparam \
+  --parameters postgresAdminPassword='YourSecurePassword123!'
 ```
 
 ## 命名規則
@@ -75,6 +102,16 @@ rg-{project}-{environment}-{location}
 **例：**
 - `rg-comical-dev-jpe` (開発環境、日本東リージョン)
 - `rg-comical-prod-jpe` (本番環境、日本東リージョン)
+
+### PostgreSQL Server
+
+```
+psql-{project}-{environment}-{location}
+```
+
+**例：**
+- `psql-comical-d-jpe` (開発環境)
+- `psql-comical-p-jpe` (本番環境)
 
 ### 将来のリソース命名規則
 

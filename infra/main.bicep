@@ -23,6 +23,28 @@ param tags object = {}
 @description('Git tag/version for semantic versioning (optional)')
 param gitTag string = ''
 
+@description('PostgreSQL administrator username')
+@secure()
+param postgresAdminUsername string
+
+@description('PostgreSQL administrator password')
+@secure()
+param postgresAdminPassword string
+
+@description('Azure AD administrator object ID for PostgreSQL')
+param postgresAadAdminObjectId string = ''
+
+@description('Azure AD administrator principal name for PostgreSQL')
+param postgresAadAdminPrincipalName string = ''
+
+@description('Azure AD administrator principal type for PostgreSQL')
+@allowed([
+  'User'
+  'Group'
+  'ServicePrincipal'
+])
+param postgresAadAdminPrincipalType string = 'User'
+
 // Variables for naming conventions following Azure CAF
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -61,6 +83,23 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
   tags: commonTags
 }
 
+// PostgreSQL Database deployment
+module database 'modules/database.bicep' = {
+  name: 'database-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    administratorLogin: postgresAdminUsername
+    administratorLoginPassword: postgresAdminPassword
+    aadAdminObjectId: postgresAadAdminObjectId
+    aadAdminPrincipalName: postgresAadAdminPrincipalName
+    aadAdminPrincipalType: postgresAadAdminPrincipalType
+    tags: commonTags
+  }
+}
+
 // Outputs
 output resourceGroupName string = resourceGroup.name
 output resourceGroupId string = resourceGroup.id
@@ -69,3 +108,10 @@ output environment string = environmentName
 output semanticVersion string = versionTag
 output isSemanticVersionDeployment bool = isSemanticVersion
 output tags object = commonTags
+
+// Database outputs
+output postgresServerName string = database.outputs.postgresServerName
+output postgresServerFqdn string = database.outputs.postgresServerFqdn
+output databaseName string = database.outputs.databaseName
+output postgresConnectionStringTemplate string = database.outputs.connectionStringTemplate
+output postgresSku string = '${database.outputs.skuTier}/${database.outputs.skuName}'
