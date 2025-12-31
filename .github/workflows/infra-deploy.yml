@@ -90,7 +90,7 @@ jobs:
             --template-file infra/main.bicep \
             --parameters infra/parameters/dev.bicepparam \
             --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-            --parameters rakutenApiKey="${{ secrets.RAKUTEN_API_KEY }}" \
+            --parameters rakutenApiKey="${{ secrets.RAKUTEN_APP_ID }}" \
             --parameters deploymentPrincipalObjectId="${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}"
 
       - name: Deploy Infrastructure
@@ -101,7 +101,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
+          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_APP_ID }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}
           deploymentName: comical-infra-dev-${{ github.run_number }}
 
   deploy-prod:
@@ -140,7 +140,7 @@ jobs:
         id: params
         run: |
           # Common parameters for all deployments
-          BASE_PARAMS="postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_API_KEY }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}"
+          BASE_PARAMS="postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_APP_ID }} deploymentPrincipalObjectId=${{ secrets.DEPLOYMENT_PRINCIPAL_OBJECT_ID }}"
           
           if [ -n "${{ steps.version.outputs.version }}" ]; then
             PARAMS="infra/parameters/prod.bicepparam gitTag=${{ steps.version.outputs.version }} $BASE_PARAMS"
