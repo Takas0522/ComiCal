@@ -22,7 +22,7 @@ echo "3. Verifying database tables..."
 TABLES=$(docker exec comical-postgres psql -U comical -d comical -t -c "SELECT tablename FROM pg_tables WHERE schemaname='public';" | xargs)
 echo "Tables found: $TABLES"
 
-if [[ "$TABLES" == *"comic"* && "$TABLES" == *"comicimage"* && "$TABLES" == *"configmigration"* ]]; then
+if [[ "$TABLES" == *"comic"* && "$TABLES" == *"comicimage"* && "$TABLES" == *"configmigration"* && "$TABLES" == *"batch_states"* && "$TABLES" == *"batch_page_errors"* ]]; then
     echo "✓ All required tables exist"
 else
     echo "✗ Missing tables!"
@@ -35,7 +35,17 @@ docker exec comical-postgres psql -U comical -d comical -c "\d comic" | head -15
 echo "✓ Comic table structure verified"
 echo ""
 
-echo "5. Verifying Azurite is running..."
+echo "5. Verifying batch_states table structure..."
+docker exec comical-postgres psql -U comical -d comical -c "\d batch_states" | head -20
+echo "✓ batch_states table structure verified"
+echo ""
+
+echo "6. Verifying batch_page_errors table structure..."
+docker exec comical-postgres psql -U comical -d comical -c "\d batch_page_errors" | head -20
+echo "✓ batch_page_errors table structure verified"
+echo ""
+
+echo "7. Verifying Azurite is running..."
 if docker exec comical-azurite ps aux | grep -q azurite; then
     echo "✓ Azurite is running"
 else
@@ -44,7 +54,7 @@ else
 fi
 echo ""
 
-echo "6. Cleaning up..."
+echo "8. Cleaning up..."
 docker compose down -v
 echo "✓ Cleanup complete"
 echo ""
