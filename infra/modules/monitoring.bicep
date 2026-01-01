@@ -54,6 +54,11 @@ var logAnalyticsWorkspaceName = 'law-${projectName}-${environmentName}-${locatio
 // Action Group Naming: ag-{project}-alerts
 var actionGroupName = 'ag-${projectName}-alerts'
 
+// Action Group short name generation
+// Azure requires: max 12 characters, alphanumeric only, cannot start with number
+// Strategy: remove 'ag-' prefix and hyphens, take first 12 chars
+var actionGroupShortName = take(replace(replace(actionGroupName, 'ag-', ''), '-', ''), 12)
+
 // Alert Rule Naming: alert-{project}-{resource}-{metric}-{env}
 var functionErrorAlertName = 'alert-${projectName}-func-5xx-${environmentName}'
 var postgresAlertName = 'alert-${projectName}-psql-cpu-${environmentName}'
@@ -95,7 +100,7 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = if (length(a
   location: 'global'
   tags: tags
   properties: {
-    groupShortName: take(replace(replace(actionGroupName, '-', ''), 'ag', ''), 12)
+    groupShortName: actionGroupShortName
     enabled: true
     emailReceivers: [for (email, i) in alertEmailAddresses: {
       name: 'email-${i}'
@@ -136,7 +141,11 @@ resource functionErrorAlert 'Microsoft.Insights/metricAlerts@2018-03-01' = if (l
               name: 'StatusCode'
               operator: 'Include'
               values: [
-                '5*'
+                '500'
+                '501'
+                '502'
+                '503'
+                '504'
               ]
             }
           ]
