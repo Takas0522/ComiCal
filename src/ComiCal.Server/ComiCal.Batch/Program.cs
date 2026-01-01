@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ComiCal.Batch.Jobs;
 using ComiCal.Batch.Repositories;
 using ComiCal.Batch.Services;
 using ComiCal.Shared;
@@ -37,6 +38,9 @@ var host = new HostBuilder()
         services.AddSingleton<IBatchStateService, BatchStateService>();
         services.AddSingleton<JobSchedulingService>();
         services.AddSingleton<PartialRetryService>();
+
+        // Register Container Jobs
+        services.AddHostedService<RegistrationJob>();
 
         // Configure JSON serializer options
         services.Configure<JsonSerializerOptions>(options =>
