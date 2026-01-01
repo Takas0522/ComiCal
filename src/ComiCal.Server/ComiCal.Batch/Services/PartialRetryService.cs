@@ -148,9 +148,18 @@ namespace ComiCal.Batch.Services
             
             if (errorList.Any())
             {
-                _logger.LogInformation(
-                    "Found {Count} unresolved errors for batch {BatchId}" + (phase != null ? $", phase {phase}" : ""),
-                    errorList.Count, batchId);
+                if (phase != null)
+                {
+                    _logger.LogInformation(
+                        "Found {Count} unresolved errors for batch {BatchId}, phase {Phase}",
+                        errorList.Count, batchId, phase);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Found {Count} unresolved errors for batch {BatchId}",
+                        errorList.Count, batchId);
+                }
             }
 
             return errorList;

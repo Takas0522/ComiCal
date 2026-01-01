@@ -16,6 +16,11 @@ namespace ComiCal.Batch.Services
         private readonly IBatchStateRepository _batchStateRepository;
         private readonly ILogger<JobSchedulingService> _logger;
         private const int MaxRetryAttempts = 3;
+        
+        // Delay intervals for retry attempts as per business requirements
+        // First retry: 5 minutes, Second: 15 minutes, Third: 30 minutes
+        // These values are part of the business logic and should remain consistent
+        // across environments unless requirements change
         private static readonly TimeSpan[] DelayIntervals = new[]
         {
             TimeSpan.FromMinutes(5),   // First retry: 5 minutes

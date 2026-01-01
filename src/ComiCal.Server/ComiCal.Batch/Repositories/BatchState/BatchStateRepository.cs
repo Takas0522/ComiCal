@@ -157,13 +157,16 @@ namespace ComiCal.Batch.Repositories
 
         public async Task UpdatePhaseAsync(int batchId, string phase, string status)
         {
-            string sql = phase == BatchPhase.Registration
-                ? @"UPDATE batch_states 
+            string sql = phase switch
+            {
+                BatchPhase.Registration => @"UPDATE batch_states 
                     SET registration_phase = @Status, updated_at = CURRENT_TIMESTAMP 
-                    WHERE id = @BatchId"
-                : @"UPDATE batch_states 
+                    WHERE id = @BatchId",
+                BatchPhase.ImageDownload => @"UPDATE batch_states 
                     SET image_download_phase = @Status, updated_at = CURRENT_TIMESTAMP 
-                    WHERE id = @BatchId";
+                    WHERE id = @BatchId",
+                _ => throw new ArgumentException($"Invalid phase: {phase}", nameof(phase))
+            };
 
             await using var connection = await _dataSource.OpenConnectionAsync();
             await connection.ExecuteAsync(sql, new { BatchId = batchId, Status = status });
@@ -298,6 +301,8 @@ namespace ComiCal.Batch.Repositories
                     last_retry_at = EXCLUDED.last_retry_at,
                     updated_at = CURRENT_TIMESTAMP";
 
+            var lastRetryAt = error.LastRetryAt ?? DateTime.UtcNow;
+
             await using var connection = await _dataSource.OpenConnectionAsync();
             await connection.ExecuteAsync(sql, new
             {
@@ -307,7 +312,7 @@ namespace ComiCal.Batch.Repositories
                 error.ErrorType,
                 error.ErrorMessage,
                 error.RetryCount,
-                LastRetryAt = error.LastRetryAt ?? DateTime.UtcNow
+                LastRetryAt = lastRetryAt
             });
             _logger.LogWarning("Recorded error for batch {BatchId}, page {PageNumber}, phase {Phase}: {ErrorType}",
                 error.BatchId, error.PageNumber, error.Phase, error.ErrorType);
