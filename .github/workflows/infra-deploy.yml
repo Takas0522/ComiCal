@@ -94,14 +94,14 @@ jobs:
 
       - name: Deploy Infrastructure
         if: github.event.inputs.dry_run != 'true'
-        uses: azure/arm-deploy@v1
-        with:
-          scope: subscription
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          region: ${{ env.AZURE_LOCATION }}
-          template: ./infra/main.bicep
-          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_APP_ID }}
-          deploymentName: comical-infra-dev-${{ github.run_number }}
+        run: |
+          az deployment sub create \
+            --name "comical-infra-dev-${{ github.run_number }}" \
+            --location ${{ env.AZURE_LOCATION }} \
+            --template-file infra/main.bicep \
+            --parameters infra/parameters/dev.bicepparam \
+            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+            --parameters rakutenApiKey="${{ secrets.RAKUTEN_APP_ID }}"
 
   deploy-prod:
     name: Deploy to Production
@@ -167,14 +167,12 @@ jobs:
 
       - name: Deploy Infrastructure
         if: github.event.inputs.dry_run != 'true'
-        uses: azure/arm-deploy@v1
-        with:
-          scope: subscription
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          region: ${{ env.AZURE_LOCATION }}
-          template: ./infra/main.bicep
-          parameters: ${{ steps.params.outputs.parameters }}
-          deploymentName: comical-infra-prod-${{ github.run_number }}
+        run: |
+          az deployment sub create \
+            --name "comical-infra-prod-${{ github.run_number }}" \
+            --location ${{ env.AZURE_LOCATION }} \
+            --template-file infra/main.bicep \
+            --parameters ${{ steps.params.outputs.parameters }}
 
       - name: Validate semantic version
         if: steps.version.outputs.version != ''
