@@ -143,7 +143,7 @@ jobs:
     if: needs.determine-environment.outputs.deploy_infra == 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
-      url: https://portal.azure.com/#@/resource/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/rg-comical-${{ needs.determine-environment.outputs.environment }}-${{ env.AZURE_LOCATION }}
+      url: https://portal.azure.com/#@/browse/resourcegroups
     outputs:
       resource_group: ${{ steps.deploy.outputs.resourceGroupName }}
       api_function_name: ${{ steps.deploy.outputs.apiFunctionAppName }}
@@ -197,14 +197,34 @@ jobs:
       - name: Deploy Infrastructure
         id: deploy
         if: github.event.inputs.dry_run != 'true'
-        uses: azure/arm-deploy@v1
-        with:
-          scope: subscription
-          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          region: ${{ env.AZURE_LOCATION }}
-          template: ./infra/main.bicep
-          parameters: ${{ steps.params.outputs.parameters }}
-          deploymentName: comical-infra-${{ needs.determine-environment.outputs.environment }}-${{ github.run_number }}
+        run: |
+          echo "🚀 Deploying infrastructure..."
+          az deployment sub create \
+            --name "comical-infra-${{ needs.determine-environment.outputs.environment }}-${{ github.run_number }}" \
+            --location ${{ env.AZURE_LOCATION }} \
+            --template-file infra/main.bicep \
+            --parameters ${{ steps.params.outputs.parameters }} \
+            --query 'properties.outputs' \
+            --output json > deployment_outputs.json
+          
+          # Extract outputs for other jobs
+          RESOURCE_GROUP=$(jq -r '.resourceGroupName.value' deployment_outputs.json)
+          API_FUNCTION_NAME=$(jq -r '.apiFunctionAppName.value' deployment_outputs.json)
+          BATCH_FUNCTION_NAME=$(jq -r '.batchFunctionAppName.value' deployment_outputs.json)
+          POSTGRES_SERVER=$(jq -r '.postgresServerName.value' deployment_outputs.json)
+          APP_INSIGHTS_NAME=$(jq -r '.appInsightsName.value // "N/A"' deployment_outputs.json)
+          APP_INSIGHTS_ID=$(jq -r '.appInsightsId.value // "N/A"' deployment_outputs.json)
+          ALERTS_ENABLED=$(jq -r '.alertsEnabled.value // "false"' deployment_outputs.json)
+          ACTION_GROUP_NAME=$(jq -r '.actionGroupName.value // "N/A"' deployment_outputs.json)
+          
+          echo "resourceGroupName=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
+          echo "apiFunctionAppName=$API_FUNCTION_NAME" >> $GITHUB_OUTPUT
+          echo "batchFunctionAppName=$BATCH_FUNCTION_NAME" >> $GITHUB_OUTPUT
+          echo "postgresServerName=$POSTGRES_SERVER" >> $GITHUB_OUTPUT
+          echo "appInsightsName=$APP_INSIGHTS_NAME" >> $GITHUB_OUTPUT
+          echo "appInsightsId=$APP_INSIGHTS_ID" >> $GITHUB_OUTPUT
+          echo "alertsEnabled=$ALERTS_ENABLED" >> $GITHUB_OUTPUT
+          echo "actionGroupName=$ACTION_GROUP_NAME" >> $GITHUB_OUTPUT
 
       - name: Configure PostgreSQL Managed Identity
         if: github.event.inputs.dry_run != 'true'
