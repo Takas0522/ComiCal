@@ -41,6 +41,7 @@ var host = new HostBuilder()
 
         // Register Container Jobs
         services.AddHostedService<RegistrationJob>();
+        services.AddHostedService<ImageDownloadJob>();
 
         // Configure JSON serializer options
         services.Configure<JsonSerializerOptions>(options =>
