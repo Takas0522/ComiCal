@@ -30,6 +30,9 @@ param postgresConnectionStringSecretUri string
 @description('Rakuten API key secret URI')
 param rakutenApiKeySecretUri string = ''
 
+@description('Existing Container Apps Environment ID (optional - if not provided, creates new one)')
+param existingContainerAppsEnvironmentId string = ''
+
 // Variables for naming conventions
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -58,8 +61,8 @@ var containerAppsEnvironmentName = 'cae-${projectName}-${environmentName}-${loca
 // Log Analytics Workspace Naming: law-{project}-{env}-{location}
 var logAnalyticsWorkspaceName = 'law-${projectName}-${environmentName}-${locationShort}'
 
-// Log Analytics Workspace
-resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+// Log Analytics Workspace (only if not using existing Container Apps Environment)
+resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = if (empty(existingContainerAppsEnvironmentId)) {
   name: logAnalyticsWorkspaceName
   location: location
   tags: tags
@@ -73,8 +76,8 @@ resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09
   }
 }
 
-// Container Apps Environment
-resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = {
+// Container Apps Environment (only if not using existing one)
+resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' = if (empty(existingContainerAppsEnvironmentId)) {
   name: containerAppsEnvironmentName
   location: location
   tags: tags
@@ -82,12 +85,20 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
     appLogsConfiguration: {
       destination: 'log-analytics'
       logAnalyticsConfiguration: {
-        customerId: logAnalyticsWorkspace.properties.customerId
-        sharedKey: logAnalyticsWorkspace.listKeys().primarySharedKey
+        customerId: logAnalyticsWorkspace!.properties.customerId
+        sharedKey: logAnalyticsWorkspace!.listKeys().primarySharedKey
       }
     }
   }
 }
+
+// Reference to existing Container Apps Environment (if provided)
+resource existingContainerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01' existing = if (!empty(existingContainerAppsEnvironmentId)) {
+  name: last(split(existingContainerAppsEnvironmentId, '/'))
+}
+
+// Use either the existing or newly created Container Apps Environment
+var effectiveContainerAppsEnvironmentId = !empty(existingContainerAppsEnvironmentId) ? existingContainerAppsEnvironmentId : containerAppsEnvironment.id
 
 // Get storage account key for connection string
 resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing = {
@@ -105,7 +116,7 @@ resource dataRegistrationJob 'Microsoft.App/jobs@2024-03-01' = {
     type: 'SystemAssigned'
   }
   properties: {
-    environmentId: containerAppsEnvironment.id
+    environmentId: effectiveContainerAppsEnvironmentId
     configuration: {
       scheduleTriggerConfig: {
         cronExpression: '0 0 * * *' // Daily at UTC 0:00
@@ -172,7 +183,7 @@ resource imageDownloadJob 'Microsoft.App/jobs@2024-03-01' = {
     type: 'SystemAssigned'
   }
   properties: {
-    environmentId: containerAppsEnvironment.id
+    environmentId: effectiveContainerAppsEnvironmentId
     configuration: {
       scheduleTriggerConfig: {
         cronExpression: '0 4 * * *' // Daily at UTC 4:00
@@ -239,7 +250,7 @@ resource manualBatchContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
     type: 'SystemAssigned'
   }
   properties: {
-    managedEnvironmentId: containerAppsEnvironment.id
+    managedEnvironmentId: effectiveContainerAppsEnvironmentId
     configuration: {
       activeRevisionsMode: 'Single'
       ingress: {
@@ -301,8 +312,8 @@ resource manualBatchContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
 }
 
 // Outputs
-output containerAppsEnvironmentId string = containerAppsEnvironment.id
-output containerAppsEnvironmentName string = containerAppsEnvironment.name
+output containerAppsEnvironmentId string = effectiveContainerAppsEnvironmentId
+output containerAppsEnvironmentName string = !empty(existingContainerAppsEnvironmentId) ? existingContainerAppsEnvironment.name : containerAppsEnvironment!.name
 output dataRegistrationJobId string = dataRegistrationJob.id
 output dataRegistrationJobName string = dataRegistrationJob.name
 output dataRegistrationJobPrincipalId string = dataRegistrationJob.identity.principalId
@@ -313,4 +324,4 @@ output manualBatchContainerAppId string = manualBatchContainerApp.id
 output manualBatchContainerAppName string = manualBatchContainerApp.name
 output manualBatchContainerAppUrl string = 'https://${manualBatchContainerApp.properties.configuration.ingress.fqdn}'
 output manualBatchContainerAppPrincipalId string = manualBatchContainerApp.identity.principalId
-output logAnalyticsWorkspaceId string = logAnalyticsWorkspace.id
+output logAnalyticsWorkspaceId string = !empty(existingContainerAppsEnvironmentId) ? '' : logAnalyticsWorkspace!.id

@@ -45,6 +45,15 @@ param batchFunctionAppPrincipalId string = ''
 @description('Storage Account name for RBAC')
 param storageAccountName string = ''
 
+@description('Data Registration Job principal ID for RBAC')
+param dataRegistrationJobPrincipalId string = ''
+
+@description('Image Download Job principal ID for RBAC')
+param imageDownloadJobPrincipalId string = ''
+
+@description('Manual Batch Container App principal ID for RBAC')
+param manualBatchContainerAppPrincipalId string = ''
+
 // Variables for naming conventions
 var locationAbbreviation = {
   japaneast: 'jpe'
@@ -163,6 +172,72 @@ resource batchFunctionAppStorageRoleAssignment 'Microsoft.Authorization/roleAssi
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
     principalId: batchFunctionAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Data Registration Job access to Key Vault secrets
+resource dataRegistrationJobKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(dataRegistrationJobPrincipalId)) {
+  name: guid(keyVault.id, dataRegistrationJobPrincipalId, keyVaultSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+    principalId: dataRegistrationJobPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Image Download Job access to Key Vault secrets
+resource imageDownloadJobKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(imageDownloadJobPrincipalId)) {
+  name: guid(keyVault.id, imageDownloadJobPrincipalId, keyVaultSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+    principalId: imageDownloadJobPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Manual Batch Container App access to Key Vault secrets
+resource manualBatchContainerAppKeyVaultRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(manualBatchContainerAppPrincipalId)) {
+  name: guid(keyVault.id, manualBatchContainerAppPrincipalId, keyVaultSecretsUserRoleId)
+  scope: keyVault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretsUserRoleId)
+    principalId: manualBatchContainerAppPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Data Registration Job access to Storage Blob
+resource dataRegistrationJobStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(dataRegistrationJobPrincipalId) && !empty(storageAccountName)) {
+  name: guid(storageAccount.id, dataRegistrationJobPrincipalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: dataRegistrationJobPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Image Download Job access to Storage Blob
+resource imageDownloadJobStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(imageDownloadJobPrincipalId) && !empty(storageAccountName)) {
+  name: guid(storageAccount.id, imageDownloadJobPrincipalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: imageDownloadJobPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+// RBAC: Grant Manual Batch Container App access to Storage Blob
+resource manualBatchContainerAppStorageRoleAssignment 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (!empty(manualBatchContainerAppPrincipalId) && !empty(storageAccountName)) {
+  name: guid(storageAccount.id, manualBatchContainerAppPrincipalId, storageBlobDataContributorRoleId)
+  scope: storageAccount
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataContributorRoleId)
+    principalId: manualBatchContainerAppPrincipalId
     principalType: 'ServicePrincipal'
   }
 }
