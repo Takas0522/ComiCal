@@ -63,6 +63,11 @@ var actionGroupShortName = take(replace(replace(actionGroupName, 'ag-', ''), '-'
 var functionErrorAlertName = 'alert-${projectName}-func-5xx-${environmentName}'
 var postgresAlertName = 'alert-${projectName}-psql-cpu-${environmentName}'
 var appInsightsExceptionAlertName = 'alert-${projectName}-appi-exceptions-${environmentName}'
+var jobFailureAlertName = 'alert-${projectName}-job-failure-${environmentName}'
+var jobDelayAlertName = 'alert-${projectName}-job-delay-${environmentName}'
+var jobLongRunningAlertName = 'alert-${projectName}-job-longrun-${environmentName}'
+var apiKeyUnauthorizedAlertName = 'alert-${projectName}-apikey-unauth-${environmentName}'
+var workbookName = 'workbook-${projectName}-batch-dashboard-${environmentName}'
 
 // Log Analytics Workspace
 resource logAnalyticsWorkspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
@@ -232,6 +237,322 @@ resource appInsightsExceptionAlert 'Microsoft.Insights/metricAlerts@2018-03-01' 
   }
 }
 
+// Scheduled Query Alert Rule: Batch Job Failure Detection
+resource jobFailureAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (length(alertEmailAddresses) > 0) {
+  name: jobFailureAlertName
+  location: location
+  tags: tags
+  properties: {
+    displayName: 'Batch Job Failure Alert'
+    description: 'Alert when batch jobs (data registration or image download) fail or encounter dependency failures'
+    severity: 1
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    scopes: [
+      appInsights.id
+    ]
+    windowSize: 'PT15M'
+    criteria: {
+      allOf: [
+        {
+          query: '''
+            traces
+            | where message has "Job failed" or message has "dependency failure" or message has "manual intervention required"
+            | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+            | summarize Count = count() by JobType = tostring(customDimensions.JobType)
+            '''
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 0
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        actionGroup.id
+      ]
+    }
+  }
+}
+
+// Scheduled Query Alert Rule: Job Delay Detection (3+ retries)
+resource jobDelayAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (length(alertEmailAddresses) > 0) {
+  name: jobDelayAlertName
+  location: location
+  tags: tags
+  properties: {
+    displayName: 'Batch Job Delay Alert'
+    description: 'Alert when batch jobs experience 3 or more delays/retries'
+    severity: 2
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    scopes: [
+      appInsights.id
+    ]
+    windowSize: 'PT30M'
+    criteria: {
+      allOf: [
+        {
+          query: '''
+            traces
+            | where message has "retry" or message has "delay"
+            | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+            | summarize RetryCount = count() by JobType = tostring(customDimensions.JobType), JobId = tostring(customDimensions.JobId)
+            | where RetryCount >= 3
+            '''
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 0
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        actionGroup.id
+      ]
+    }
+  }
+}
+
+// Scheduled Query Alert Rule: Long-Running Job Detection
+resource jobLongRunningAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (length(alertEmailAddresses) > 0) {
+  name: jobLongRunningAlertName
+  location: location
+  tags: tags
+  properties: {
+    displayName: 'Long-Running Job Alert'
+    description: 'Alert when batch jobs run for more than 30 minutes (potential timeout)'
+    severity: 2
+    enabled: true
+    evaluationFrequency: 'PT15M'
+    scopes: [
+      appInsights.id
+    ]
+    windowSize: 'PT30M'
+    criteria: {
+      allOf: [
+        {
+          query: '''
+            traces
+            | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+            | where message has "Job started"
+            | extend StartTime = timestamp
+            | join kind=leftouter (
+                traces
+                | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+                | where message has "Job completed" or message has "Job failed"
+                | extend EndTime = timestamp
+            ) on $left.customDimensions.JobId == $right.customDimensions.JobId
+            | where isnull(EndTime) or (EndTime - StartTime) > 30m
+            | summarize Count = count() by JobType = tostring(customDimensions.JobType)
+            '''
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 0
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        actionGroup.id
+      ]
+    }
+  }
+}
+
+// Scheduled Query Alert Rule: API Key Unauthorized Access
+resource apiKeyUnauthorizedAlert 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = if (length(alertEmailAddresses) > 0) {
+  name: apiKeyUnauthorizedAlertName
+  location: location
+  tags: tags
+  properties: {
+    displayName: 'API Key Unauthorized Access Alert'
+    description: 'Alert when API key unauthorized access or invalid API key errors are detected'
+    severity: 1
+    enabled: true
+    evaluationFrequency: 'PT5M'
+    scopes: [
+      appInsights.id
+    ]
+    windowSize: 'PT15M'
+    criteria: {
+      allOf: [
+        {
+          query: '''
+            union traces, exceptions
+            | where message has "unauthorized" or message has "401" or message has "403" or message has "invalid API key"
+            | where customDimensions.ApiKeySource == "Rakuten" or message has "API key"
+            | summarize Count = count() by ResultCode = tostring(customDimensions.ResultCode)
+            '''
+          timeAggregation: 'Count'
+          operator: 'GreaterThan'
+          threshold: 3
+          failingPeriods: {
+            numberOfEvaluationPeriods: 1
+            minFailingPeriodsToAlert: 1
+          }
+        }
+      ]
+    }
+    actions: {
+      actionGroups: [
+        actionGroup.id
+      ]
+    }
+  }
+}
+
+// Batch Progress Dashboard Workbook
+resource batchDashboard 'Microsoft.Insights/workbooks@2023-06-01' = {
+  name: guid(workbookName)
+  location: location
+  tags: tags
+  kind: 'shared'
+  properties: {
+    displayName: 'Batch Job Progress Dashboard - ${environmentName}'
+    serializedData: string({
+      version: 'Notebook/1.0'
+      items: [
+        {
+          type: 1
+          content: {
+            json: '## Batch Job Progress Dashboard\n\nMonitoring dashboard for Container Jobs batch processing (Data Registration & Image Download)'
+          }
+        }
+        {
+          type: 3
+          content: {
+            version: 'KqlItem/1.0'
+            query: '''
+              traces
+              | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+              | summarize 
+                  TotalJobs = dcount(tostring(customDimensions.JobId)),
+                  SuccessfulJobs = dcountif(tostring(customDimensions.JobId), message has "Job completed"),
+                  FailedJobs = dcountif(tostring(customDimensions.JobId), message has "Job failed")
+              | extend SuccessRate = round(100.0 * SuccessfulJobs / TotalJobs, 2)
+              | project TotalJobs, SuccessfulJobs, FailedJobs, SuccessRate
+              '''
+            size: 3
+            title: 'Job Summary (Last 24 hours)'
+            timeContext: {
+              durationMs: 86400000
+            }
+            queryType: 0
+            resourceType: 'microsoft.insights/components'
+            visualization: 'tiles'
+            tileSettings: {
+              showBorder: false
+            }
+          }
+        }
+        {
+          type: 3
+          content: {
+            version: 'KqlItem/1.0'
+            query: '''
+              traces
+              | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+              | where isnotempty(customDimensions.ProgressRate)
+              | extend ProgressRate = todouble(customDimensions.ProgressRate)
+              | summarize avg(ProgressRate) by bin(timestamp, 5m), JobType = tostring(customDimensions.JobType)
+              | render timechart
+              '''
+            size: 0
+            title: 'Job Progress Rate (%)'
+            timeContext: {
+              durationMs: 86400000
+            }
+            queryType: 0
+            resourceType: 'microsoft.insights/components'
+            visualization: 'timechart'
+          }
+        }
+        {
+          type: 3
+          content: {
+            version: 'KqlItem/1.0'
+            query: '''
+              traces
+              | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+              | where isnotempty(customDimensions.ProcessingTimeMs)
+              | extend ProcessingTime = todouble(customDimensions.ProcessingTimeMs) / 1000
+              | summarize avg(ProcessingTime), percentile(ProcessingTime, 95) by bin(timestamp, 5m), JobType = tostring(customDimensions.JobType)
+              | render timechart
+              '''
+            size: 0
+            title: 'Job Processing Time (seconds)'
+            timeContext: {
+              durationMs: 86400000
+            }
+            queryType: 0
+            resourceType: 'microsoft.insights/components'
+            visualization: 'timechart'
+          }
+        }
+        {
+          type: 3
+          content: {
+            version: 'KqlItem/1.0'
+            query: '''
+              traces
+              | where message has "Job failed" or message has "error"
+              | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+              | summarize Count = count() by JobType = tostring(customDimensions.JobType), ErrorMessage = tostring(customDimensions.ErrorMessage)
+              | order by Count desc
+              | take 10
+              '''
+            size: 0
+            title: 'Top 10 Error Messages'
+            timeContext: {
+              durationMs: 86400000
+            }
+            queryType: 0
+            resourceType: 'microsoft.insights/components'
+            visualization: 'table'
+          }
+        }
+        {
+          type: 3
+          content: {
+            version: 'KqlItem/1.0'
+            query: '''
+              traces
+              | where customDimensions.JobType in ("DataRegistration", "ImageDownload")
+              | where message has "retry" or message has "delay"
+              | summarize RetryCount = count() by JobType = tostring(customDimensions.JobType), JobId = tostring(customDimensions.JobId)
+              | order by RetryCount desc
+              | take 10
+              '''
+            size: 0
+            title: 'Jobs with Most Retries'
+            timeContext: {
+              durationMs: 86400000
+            }
+            queryType: 0
+            resourceType: 'microsoft.insights/components'
+            visualization: 'table'
+          }
+        }
+      ]
+    })
+    category: 'workbook'
+    sourceId: appInsights.id
+  }
+}
+
 // Outputs
 output appInsightsId string = appInsights.id
 output appInsightsName string = appInsights.name
@@ -242,3 +563,5 @@ output logAnalyticsWorkspaceName string = logAnalyticsWorkspace.name
 output actionGroupId string = length(alertEmailAddresses) > 0 ? actionGroup.id : ''
 output actionGroupName string = length(alertEmailAddresses) > 0 ? actionGroup.name : ''
 output alertsEnabled bool = length(alertEmailAddresses) > 0
+output batchDashboardId string = batchDashboard.id
+output batchDashboardName string = batchDashboard.properties.displayName
