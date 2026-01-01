@@ -1,7 +1,9 @@
+// Environment variables will be replaced during Azure Static Web Apps build process
+// See staticwebapp.config.json for environment variable configuration
 export const environment = {
   production: true,
-  gapiClientId: process.env['GOOGLE_OAUTH_CLIENT_ID'] || '',
+  gapiClientId: '#{GOOGLE_OAUTH_CLIENT_ID}#',
   // Note: blobBaseUrl MUST be configured via Azure Static Web Apps configuration
-  // or build-time environment variables. Never hardcode resource names in source code.
-  blobBaseUrl: process.env['BLOB_BASE_URL'] || ''
+  // The placeholder will be replaced by Azure Static Web Apps build process
+  blobBaseUrl: '#{BLOB_BASE_URL}#'
 };
