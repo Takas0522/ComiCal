@@ -189,7 +189,7 @@ jobs:
         run: |
           echo "🔍 Running what-if deployment..."
           az deployment sub what-if \
-            --name "comical-infra-${{ needs.determine-environment.outputs.environment }}-${{ github.run_number }}" \
+            --name "comical-infra-${{ needs.determine-environment.outputs.environment }}-eu2-${{ github.run_number }}" \
             --location ${{ env.AZURE_LOCATION }} \
             --template-file infra/main.bicep \
             --parameters ${{ steps.params.outputs.parameters }}
@@ -200,7 +200,7 @@ jobs:
         run: |
           echo "🚀 Deploying infrastructure..."
           az deployment sub create \
-            --name "comical-infra-${{ needs.determine-environment.outputs.environment }}-${{ github.run_number }}" \
+            --name "comical-infra-${{ needs.determine-environment.outputs.environment }}-eu2-${{ github.run_number }}" \
             --location ${{ env.AZURE_LOCATION }} \
             --template-file infra/main.bicep \
             --parameters ${{ steps.params.outputs.parameters }} \
