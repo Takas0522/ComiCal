@@ -313,7 +313,7 @@ resource manualBatchContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
 
 // Outputs
 output containerAppsEnvironmentId string = effectiveContainerAppsEnvironmentId
-output containerAppsEnvironmentName string = !empty(existingContainerAppsEnvironmentId) ? existingContainerAppsEnvironment.name : containerAppsEnvironment.name
+output containerAppsEnvironmentName string = !empty(existingContainerAppsEnvironmentId) ? existingContainerAppsEnvironment.name : containerAppsEnvironment!.name
 output dataRegistrationJobId string = dataRegistrationJob.id
 output dataRegistrationJobName string = dataRegistrationJob.name
 output dataRegistrationJobPrincipalId string = dataRegistrationJob.identity.principalId
@@ -324,4 +324,4 @@ output manualBatchContainerAppId string = manualBatchContainerApp.id
 output manualBatchContainerAppName string = manualBatchContainerApp.name
 output manualBatchContainerAppUrl string = 'https://${manualBatchContainerApp.properties.configuration.ingress.fqdn}'
 output manualBatchContainerAppPrincipalId string = manualBatchContainerApp.identity.principalId
-output logAnalyticsWorkspaceId string = !empty(existingContainerAppsEnvironmentId) ? '' : logAnalyticsWorkspace.id
+output logAnalyticsWorkspaceId string = !empty(existingContainerAppsEnvironmentId) ? '' : logAnalyticsWorkspace!.id
