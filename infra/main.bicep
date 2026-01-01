@@ -315,6 +315,8 @@ output logAnalyticsWorkspaceName string = monitoringBase.outputs.logAnalyticsWor
 output actionGroupId string = monitoringAlerts.outputs.actionGroupId
 output actionGroupName string = monitoringAlerts.outputs.actionGroupName
 output alertsEnabled bool = monitoringAlerts.outputs.alertsEnabled
+output batchDashboardId string = monitoringAlerts.outputs.batchDashboardId
+output batchDashboardName string = monitoringAlerts.outputs.batchDashboardName
 
 // Cost Optimization outputs (RBAC権限がある場合のみ)
 output nightShutdownEnabled bool = skipRbacAssignments ? false : costOptimization!.outputs.nightShutdownEnabled
