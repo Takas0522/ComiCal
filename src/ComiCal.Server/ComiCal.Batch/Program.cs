@@ -38,6 +38,7 @@ var host = new HostBuilder()
         services.AddSingleton<IBatchStateService, BatchStateService>();
         services.AddSingleton<JobSchedulingService>();
         services.AddSingleton<PartialRetryService>();
+        services.AddSingleton<IJobTriggerService, JobTriggerService>();
 
         // Register Container Jobs
         services.AddHostedService<RegistrationJob>();
