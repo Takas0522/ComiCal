@@ -143,7 +143,7 @@ jobs:
     if: needs.determine-environment.outputs.deploy_infra == 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
-      url: https://portal.azure.com/#@/resource/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-comical-${{ needs.determine-environment.outputs.environment }}-${{ env.AZURE_LOCATION }}
+      url: https://portal.azure.com/#@/resource/subscriptions/YOUR_SUBSCRIPTION_ID/resourceGroups/rg-comical-${{ needs.determine-environment.outputs.environment }}-${{ env.AZURE_LOCATION }}
     outputs:
       resource_group: ${{ steps.deploy.outputs.resourceGroupName }}
       api_function_name: ${{ steps.deploy.outputs.apiFunctionAppName }}
