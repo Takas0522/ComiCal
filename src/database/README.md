@@ -94,6 +94,14 @@ psql -U comical -h postgres -d comical -f /workspaces/ComiCal/database/seed.sql
 
 ### 画像シードの実行
 
+**事前準備**: 環境変数の設定
+```bash
+# セキュリティのため、環境変数テンプレートから.envファイルを作成
+cp .env.template .env
+# .env ファイルを編集して適切な接続文字列を設定
+```
+
+**画像シード実行**:
 ```bash
 cd /workspaces/ComiCal/database
 npm install

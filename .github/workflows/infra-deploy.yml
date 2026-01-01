@@ -34,7 +34,7 @@ permissions:
   contents: read
 
 env:
-  AZURE_LOCATION: japaneast
+  AZURE_LOCATION: eastus2  # centralusでもエラーのため、より安定したリージョンに変更
 
 jobs:
   validate:
@@ -69,7 +69,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'dev')
     environment:
       name: dev
-      url: https://portal.azure.com/#@/resource/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-comical-dev-jpe
+      url: https://portal.azure.com/#@/resource/subscriptions//resourceGroups/rg-comical-dev-jpe
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -88,7 +88,9 @@ jobs:
             --name "comical-infra-dev-${{ github.run_number }}" \
             --location ${{ env.AZURE_LOCATION }} \
             --template-file infra/main.bicep \
-            --parameters infra/parameters/dev.bicepparam
+            --parameters infra/parameters/dev.bicepparam \
+            --parameters postgresAdminPassword="${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
+            --parameters rakutenApiKey="${{ secrets.RAKUTEN_APP_ID }}"
 
       - name: Deploy Infrastructure
         if: github.event.inputs.dry_run != 'true'
@@ -98,7 +100,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ./infra/parameters/dev.bicepparam
+          parameters: ./infra/parameters/dev.bicepparam postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_APP_ID }}
           deploymentName: comical-infra-dev-${{ github.run_number }}
 
   deploy-prod:
@@ -110,7 +112,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'prod')
     environment:
       name: prod
-      url: https://portal.azure.com/#@/resource/subscriptions/${{ secrets.AZURE_SUBSCRIPTION_ID }}/resourceGroups/rg-comical-prod-jpe
+      url: https://portal.azure.com/#@/resource/subscriptions//resourceGroups/rg-comical-prod-jpe
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -133,19 +135,28 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Build deployment parameters
+        id: params
+        run: |
+          # Common parameters for all deployments
+          BASE_PARAMS="postgresAdminPassword=${{ secrets.POSTGRES_ADMIN_PASSWORD }} rakutenApiKey=${{ secrets.RAKUTEN_APP_ID }}"
+          
+          if [ -n "${{ steps.version.outputs.version }}" ]; then
+            PARAMS="infra/parameters/prod.bicepparam gitTag=${{ steps.version.outputs.version }} $BASE_PARAMS"
+          else
+            PARAMS="infra/parameters/prod.bicepparam $BASE_PARAMS"
+          fi
+          
+          echo "parameters=$PARAMS" >> $GITHUB_OUTPUT
+
       - name: What-If Deployment (Preview Changes)
         if: github.event.inputs.dry_run == 'true'
         run: |
-          PARAMS="infra/parameters/prod.bicepparam"
-          if [ -n "${{ steps.version.outputs.version }}" ]; then
-            PARAMS="$PARAMS gitTag=${{ steps.version.outputs.version }}"
-          fi
-          
           az deployment sub what-if \
             --name "comical-infra-prod-${{ github.run_number }}" \
             --location ${{ env.AZURE_LOCATION }} \
             --template-file infra/main.bicep \
-            --parameters $PARAMS
+            --parameters ${{ steps.params.outputs.parameters }}
 
       - name: Deploy Infrastructure
         if: github.event.inputs.dry_run != 'true'
@@ -155,7 +166,7 @@ jobs:
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: ${{ env.AZURE_LOCATION }}
           template: ./infra/main.bicep
-          parameters: ${{ steps.version.outputs.version != '' && format('./infra/parameters/prod.bicepparam gitTag={0}', steps.version.outputs.version) || './infra/parameters/prod.bicepparam' }}
+          parameters: ${{ steps.params.outputs.parameters }}
           deploymentName: comical-infra-prod-${{ github.run_number }}
 
       - name: Validate semantic version

@@ -16,9 +16,15 @@ const { BlobServiceClient } = require('@azure/storage-blob');
 const https = require('https');
 const http = require('http');
 
-// Azurite connection string (default for local development)
-const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING || 
-  'DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;';
+// Azure Storage configuration - required environment variable
+const STORAGE_CONNECTION_STRING = process.env.STORAGE_CONNECTION_STRING;
+
+if (!STORAGE_CONNECTION_STRING) {
+  console.error('ERROR: STORAGE_CONNECTION_STRING environment variable is required');
+  console.log('For local development with Azurite, set:');
+  console.log('STORAGE_CONNECTION_STRING="DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;"');
+  process.exit(1);
+}
 
 const CONTAINER_NAME = '$web';
 
