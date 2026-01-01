@@ -32,6 +32,12 @@ var host = new HostBuilder()
         services.AddSingleton<IComicRepository, ComicRepository>();
         services.AddSingleton<IComicService, ComicService>();
 
+        // Register batch state management services
+        services.AddSingleton<IBatchStateRepository, BatchStateRepository>();
+        services.AddSingleton<IBatchStateService, BatchStateService>();
+        services.AddSingleton<JobSchedulingService>();
+        services.AddSingleton<PartialRetryService>();
+
         // Configure JSON serializer options
         services.Configure<JsonSerializerOptions>(options =>
         {
