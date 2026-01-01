@@ -1,6 +1,8 @@
 // Monitoring Module
 // This module creates Application Insights and Alert Rules for monitoring and alerting
-// Includes Function error alerts, PostgreSQL CPU alerts, and Application Insights exception alerts
+// Includes Function error alerts, PostgreSQL CPU alerts, Application Insights exception alerts,
+// Container Jobs batch monitoring (failure, delay, long-running), API Key security alerts,
+// and Batch Progress Dashboard (Workbook) for job visualization
 
 @description('Environment name (dev, prod)')
 @allowed([
