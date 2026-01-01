@@ -126,10 +126,9 @@ namespace ComiCal.Batch.Jobs
                     return;
                 }
 
-                // Determine starting page (resume from checkpoint if exists)
-                // Note: We reuse ProcessedPages/FailedPages counters from batch state
-                // For image download phase, we process all pages regardless of registration phase progress
-                int startPage = 1; // Always start from page 1 for image download
+                // Process all pages for image download
+                // Each page is processed independently, and existing images are automatically skipped
+                int startPage = 1;
                 int successfulPages = 0;
                 int failedPages = 0;
 
@@ -199,7 +198,7 @@ namespace ComiCal.Batch.Jobs
                 }
 
                 // Check if all pages were processed successfully
-                bool allPagesProcessed = successfulPages >= totalPages;
+                bool allPagesProcessed = successfulPages == totalPages;
                 bool hasFailures = failedPages > 0;
 
                 if (allPagesProcessed && !hasFailures)
