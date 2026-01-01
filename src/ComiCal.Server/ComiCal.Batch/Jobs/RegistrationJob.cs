@@ -104,13 +104,6 @@ namespace ComiCal.Batch.Jobs
                 {
                     totalPages = await _comicService.GetPageCountAsync();
                     _logger.LogInformation("Total pages to process: {TotalPages}", totalPages);
-                    
-                    // Update batch state with total pages if not already set
-                    if (!batchState.TotalPages.HasValue || batchState.TotalPages.Value != totalPages)
-                    {
-                        batchState.TotalPages = totalPages;
-                        // Note: We'd need to add a method to update TotalPages, or we update it via UpdateProgressAsync
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -265,8 +258,7 @@ namespace ComiCal.Batch.Jobs
                     "Unhandled exception in Data Registration Job. Job will terminate.");
                 
                 // This is a job-level failure, not a page-level failure
-                // Log the error but don't crash the container
-                throw;
+                // Exception is logged, and the application will terminate gracefully via finally block
             }
             finally
             {
