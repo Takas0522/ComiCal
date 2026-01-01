@@ -261,7 +261,7 @@ jobs:
       - name: Build API Functions
         run: |
           echo "🔨 Building API Functions..."
-          cd src/api/Comical.Api
+          cd src/ComiCal.Server/Comical.Api
           dotnet build --configuration Release --output ./output
           echo "✅ Build complete"
 
@@ -306,7 +306,7 @@ jobs:
       - name: Build Batch Functions
         run: |
           echo "🔨 Building Batch Functions..."
-          cd src/batch/ComiCal.Batch
+          cd src/ComiCal.Server/ComiCal.Batch
           dotnet build --configuration Release --output ./output
           echo "✅ Build complete"
 

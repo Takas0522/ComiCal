@@ -95,7 +95,7 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = if (length(a
   location: 'global'
   tags: tags
   properties: {
-    groupShortName: substring(actionGroupName, 0, min(length(actionGroupName), 12))
+    groupShortName: take(replace(replace(actionGroupName, '-', ''), 'ag', ''), 12)
     enabled: true
     emailReceivers: [for (email, i) in alertEmailAddresses: {
       name: 'email-${i}'

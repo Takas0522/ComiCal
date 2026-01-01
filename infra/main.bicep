@@ -204,22 +204,6 @@ module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
   }
 }
 
-// Monitoring Module - Application Insights and Alert Rules
-module monitoring 'modules/monitoring.bicep' = {
-  name: 'monitoring-deployment'
-  scope: resourceGroup
-  params: {
-    environmentName: environmentName
-    location: location
-    projectName: projectName
-    alertEmailAddresses: alertEmailAddresses
-    apiContainerAppId: containerApps.outputs.apiContainerAppId
-    batchContainerAppId: containerApps.outputs.batchContainerAppId
-    postgresServerId: database.outputs.postgresServerId
-    tags: commonTags
-  }
-}
-
 // Monitoring Alerts Module - Deploy alert rules after Container Apps are ready
 module monitoringAlerts 'modules/monitoring.bicep' = {
   name: 'monitoring-alerts-deployment'
