@@ -1,27 +1,79 @@
-# Front
+# ComiCal Frontend (Angular)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.1.3.
+Angular 21ベースのフロントエンドアプリケーション。漫画検索・表示機能を提供します。
 
-## Development server
+## 開発環境での起動
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+### 通常の開発サーバー
 
-## Code scaffolding
+```bash
+npm install
+npm run start
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+- URL: http://localhost:4200/
+- APIプロキシ: `proxy.conf.json` で http://localhost:7071 に自動転送
+- 変更時の自動リロードが有効
 
-## Build
+### Azure Static Web Apps エミュレーター
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+```bash
+npm run start:swa
+```
 
-## Running unit tests
+- Azure Static Web Apps のローカルエミュレーターで起動
+- API統合のテストに使用
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## 環境設定
 
-## Running end-to-end tests
+### 環境ファイル
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+- `src/environments/environment.ts` - 開発環境設定
+- `src/environments/environment.prod.ts` - 本番環境設定
 
-## Further help
+主要な設定項目：
+- `apiBaseUrl`: Azure Functions APIのベースURL
+- `blobBaseUrl`: Blob Storageの画像ベースURL
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+### DevContainer での画像URL設定
+
+DevContainerでは、画像表示用に以下のURL設定を使用：
+- **コンテナ内**: `http://azurite:10000/devstoreaccount1/images`
+- **ホストアクセス**: `http://localhost:10000/devstoreaccount1/images`
+
+## 主要コンポーネント
+
+- **検索コンポーネント**: キーワード・発売日による漫画検索
+- **一覧コンポーネント**: 検索結果の表示（画像・タイトル・著者・発売日）
+- **フィルターコンポーネント**: 検索条件の設定
+
+## ビルド
+
+```bash
+npm run build
+```
+
+成果物は `dist/` ディレクトリに出力されます。
+
+## テスト
+
+```bash
+npm run test
+```
+
+Karma + Jasmineでのユニットテストを実行します。
+
+## Linting
+
+```bash
+npm run lint
+```
+
+ESLintによるコード品質チェックを実行します。
+
+## 技術スタック
+
+- **Angular**: 21.x
+- **TypeScript**: 5.x系
+- **Angular Material**: UIコンポーネント
+- **Angular CDK**: 共通開発キット

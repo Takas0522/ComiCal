@@ -58,7 +58,7 @@ Cosmos DB データベースとコンテナを初期化するための PowerShel
 - 作成されたデータベースとコンテナの情報
 - Cosmos DB 接続文字列（アプリケーション設定に必要）
 
-接続文字列を `api/Comical.Api/local.settings.json` に設定してください：
+接続文字列を `src/ComiCal.Server/Comical.Api/local.settings.json` に設定してください：
 
 ```json
 {

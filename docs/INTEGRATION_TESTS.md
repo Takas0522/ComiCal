@@ -84,7 +84,7 @@ cd scripts
 
 ```bash
 # Azure Functions を起動
-cd src/api
+cd src/ComiCal.Server/Comical.Api
 func start
 
 # 別のターミナルでテスト実行
@@ -114,7 +114,7 @@ cd scripts
 azurite --silent --location /tmp/azurite --debug /tmp/azurite/debug.log
 
 # Azure Functions を起動
-cd src/batch
+cd src/ComiCal.Server/ComiCal.Batch
 func start
 
 # 別のターミナルでテスト実行

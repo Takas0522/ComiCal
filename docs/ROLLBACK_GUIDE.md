@@ -217,7 +217,7 @@ az functionapp deployment slot swap \
 git checkout $ROLLBACK_VERSION
 
 # Functions をビルド
-cd src/api/Comical.Api
+cd src/ComiCal.Server/Comical.Api
 dotnet build --configuration Release --output ./output
 
 # Container Image をビルドしてデプロイ（Container Apps の場合）
