@@ -297,82 +297,49 @@ output location string = location
 output environment string = environmentName
 output semanticVersion string = versionTag
 output isSemanticVersionDeployment bool = isSemanticVersion
-output tags object = commonTags
 
-// Database outputs
+// Database outputs (essential)
 output postgresServerName string = database.outputs.postgresServerName
 output postgresServerFqdn string = database.outputs.postgresServerFqdn
 output databaseName string = database.outputs.databaseName
-output postgresConnectionStringTemplate string = database.outputs.connectionStringTemplate
-output postgresSku string = '${database.outputs.skuTier}/${database.outputs.skuName}'
 
-// Security outputs
+// Security outputs (essential)
 output keyVaultId string = security.outputs.keyVaultId
 output keyVaultName string = security.outputs.keyVaultName
 output keyVaultUri string = security.outputs.keyVaultUri
-output postgresConnectionStringSecretUri string = security.outputs.postgresConnectionStringSecretUri
-output rakutenApiKeySecretUri string = security.outputs.rakutenApiKeySecretUri
 
-// Storage outputs
+// Storage outputs (essential)
 output storageAccountId string = storage.outputs.storageAccountId
 output storageAccountName string = storage.outputs.storageAccountName
 output storageAccountBlobEndpoint string = storage.outputs.storageAccountBlobEndpoint
-output storageAccountWebEndpoint string = storage.outputs.storageAccountWebEndpoint
-output imagesContainerName string = storage.outputs.imagesContainerName
 
-// Container Apps outputs
-output appServicePlanId string = ''
-output appServicePlanName string = ''
-output appServicePlanSku string = ''
-output apiFunctionAppId string = containerApps.outputs.apiContainerAppId
-output apiFunctionAppName string = containerApps.outputs.apiContainerAppName
-output apiFunctionAppHostname string = containerApps.outputs.apiContainerAppUrl
-output batchFunctionAppId string = containerApps.outputs.batchContainerAppId
-output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
-output batchFunctionAppHostname string = ''
-// New Container Apps specific outputs for CI/CD
+// Container Apps outputs (essential for CI)
 output apiContainerAppId string = containerApps.outputs.apiContainerAppId
 output apiContainerAppName string = containerApps.outputs.apiContainerAppName
 output apiContainerAppUrl string = containerApps.outputs.apiContainerAppUrl
 output batchContainerAppId string = containerApps.outputs.batchContainerAppId
 output batchContainerAppName string = containerApps.outputs.batchContainerAppName
-output appInsightsConnectionString string = monitoringBase.outputs.appInsightsConnectionString
 
-// Monitoring outputs
+// Legacy compatibility (needed for CI)
+output apiFunctionAppId string = containerApps.outputs.apiContainerAppId
+output apiFunctionAppName string = containerApps.outputs.apiContainerAppName
+output apiFunctionAppHostname string = containerApps.outputs.apiContainerAppUrl
+output batchFunctionAppId string = containerApps.outputs.batchContainerAppId
+output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
+
+// Monitoring outputs (essential for CI)
 output appInsightsId string = monitoringBase.outputs.appInsightsId
 output appInsightsName string = monitoringBase.outputs.appInsightsName
-output appInsightsInstrumentationKey string = monitoringBase.outputs.appInsightsInstrumentationKey
+output appInsightsConnectionString string = monitoringBase.outputs.appInsightsConnectionString
 output logAnalyticsWorkspaceId string = monitoringBase.outputs.logAnalyticsWorkspaceId
-output logAnalyticsWorkspaceName string = monitoringBase.outputs.logAnalyticsWorkspaceName
-output actionGroupId string = monitoringAlerts.outputs.actionGroupId
 output actionGroupName string = monitoringAlerts.outputs.actionGroupName
 output alertsEnabled bool = monitoringAlerts.outputs.alertsEnabled
-output batchDashboardId string = monitoringAlerts.outputs.batchDashboardId
-output batchDashboardName string = monitoringAlerts.outputs.batchDashboardName
 
-// Container Jobs outputs
-output dataRegistrationJobId string = containerJobs.outputs.dataRegistrationJobId
-output dataRegistrationJobName string = containerJobs.outputs.dataRegistrationJobName
-output imageDownloadJobId string = containerJobs.outputs.imageDownloadJobId
-output imageDownloadJobName string = containerJobs.outputs.imageDownloadJobName
-output manualBatchContainerAppId string = containerJobs.outputs.manualBatchContainerAppId
-output manualBatchContainerAppName string = containerJobs.outputs.manualBatchContainerAppName
-output manualBatchContainerAppUrl string = containerJobs.outputs.manualBatchContainerAppUrl
-
-// Cost Optimization outputs (RBAC権限がある場合のみ)
-output nightShutdownEnabled bool = skipRbacAssignments ? false : costOptimization!.outputs.nightShutdownEnabled
-output stopLogicAppName string = skipRbacAssignments ? '' : costOptimization!.outputs.stopLogicAppName
-output startLogicAppName string = skipRbacAssignments ? '' : costOptimization!.outputs.startLogicAppName
-
-// CDN outputs
-output cdnEnabled bool = cdn.outputs.cdnEnabled
-output cdnEndpointHostname string = cdn.outputs.cdnEndpointHostname
-output cdnEndpointName string = cdn.outputs.cdnEndpointName
-
-// Static Web Apps outputs
+// Static Web Apps outputs (essential)
 output staticWebAppId string = staticWebApp.outputs.staticWebAppId
 output staticWebAppName string = staticWebApp.outputs.staticWebAppName
 output staticWebAppDefaultHostname string = staticWebApp.outputs.staticWebAppDefaultHostname
-output staticWebAppRepositoryUrl string = staticWebApp.outputs.staticWebAppRepositoryUrl
-output staticWebAppBranch string = staticWebApp.outputs.staticWebAppBranch
-output stagingEnvironmentPolicy string = staticWebApp.outputs.stagingEnvironmentPolicy
+
+// CDN outputs (essential)
+output cdnEnabled bool = cdn.outputs.cdnEnabled
+output cdnEndpointHostname string = cdn.outputs.cdnEndpointHostname
