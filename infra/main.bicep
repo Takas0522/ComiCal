@@ -59,6 +59,9 @@ param githubToken string = ''
 @description('GitHub repository URL for Static Web Apps')
 param repositoryUrl string = 'https://github.com/Takas0522/ComiCal'
 
+@description('Current UTC timestamp for unique deployment naming')
+param utcNow string = utcNow('u')
+
 @description('GitHub repository branch for Static Web Apps')
 param repositoryBranch string = 'main'
 
@@ -88,6 +91,9 @@ var envShort = {
 var isSemanticVersion = !empty(gitTag) && startsWith(gitTag, 'v')
 var versionTag = isSemanticVersion ? gitTag : ''
 
+// Unique deployment suffix to avoid deployment name conflicts
+var deploymentSuffix = uniqueString(subscription().subscriptionId, resourceGroupName, utcNow())
+
 // Common tags including semantic version if available
 var commonTags = union(tags, {
   environment: environmentName
@@ -108,7 +114,7 @@ resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
 
 // PostgreSQL Database deployment
 module database 'modules/database.bicep' = {
-  name: 'database-deployment'
+  name: 'database-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -125,7 +131,7 @@ module database 'modules/database.bicep' = {
 
 // Security Module - Key Vault and secret management
 module security 'modules/security.bicep' = {
-  name: 'security-deployment'
+  name: 'security-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -142,7 +148,7 @@ module security 'modules/security.bicep' = {
 
 // Storage Account deployment
 module storage 'modules/storage.bicep' = {
-  name: 'storage-deployment'
+  name: 'storage-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -154,7 +160,7 @@ module storage 'modules/storage.bicep' = {
 
 // Monitoring Module - Application Insights (deployed first so Container Apps can use it)
 module monitoringBase 'modules/monitoring.bicep' = {
-  name: 'monitoring-base-deployment'
+  name: 'monitoring-base-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -170,7 +176,7 @@ module monitoringBase 'modules/monitoring.bicep' = {
 
 // Container Apps deployment (VMクォータ制限のためFunction Appsから変更)
 module containerApps 'modules/container-apps.bicep' = {
-  name: 'container-apps-deployment'
+  name: 'container-apps-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -186,7 +192,7 @@ module containerApps 'modules/container-apps.bicep' = {
 
 // Container Jobs Module - Scheduled batch processing and manual execution
 module containerJobs 'modules/container-jobs.bicep' = {
-  name: 'container-jobs-deployment'
+  name: 'container-jobs-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -203,7 +209,7 @@ module containerJobs 'modules/container-jobs.bicep' = {
 
 // Update Security Module with Container App RBAC (RBAC権限がある場合のみ)
 module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
-  name: 'security-rbac-deployment'
+  name: 'security-rbac-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -226,7 +232,7 @@ module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
 
 // Monitoring Alerts Module - Deploy alert rules after Container Apps are ready
 module monitoringAlerts 'modules/monitoring.bicep' = {
-  name: 'monitoring-alerts-deployment'
+  name: 'monitoring-alerts-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -242,7 +248,7 @@ module monitoringAlerts 'modules/monitoring.bicep' = {
 
 // Cost Optimization Module - Night shutdown for dev environment (RBAC権限がある場合のみ)
 module costOptimization 'modules/cost-optimization.bicep' = if (!skipRbacAssignments) {
-  name: 'cost-optimization-deployment'
+  name: 'cost-optimization-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -256,7 +262,7 @@ module costOptimization 'modules/cost-optimization.bicep' = if (!skipRbacAssignm
 
 // CDN Module - Production only
 module cdn 'modules/cdn.bicep' = {
-  name: 'cdn-deployment'
+  name: 'cdn-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
@@ -269,7 +275,7 @@ module cdn 'modules/cdn.bicep' = {
 
 // Static Web Apps Module - Environment-specific frontend hosting
 module staticWebApp 'modules/staticwebapp.bicep' = {
-  name: 'staticwebapp-deployment'
+  name: 'staticwebapp-deployment-${deploymentSuffix}'
   scope: resourceGroup
   params: {
     environmentName: environmentName
