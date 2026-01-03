@@ -1,4 +1,4 @@
-﻿using Castle.Core.Logging;
+﻿using Microsoft.Extensions.Logging;
 using ComiCal.Batch.Models;
 using Microsoft.Extensions.Configuration;
 using System;

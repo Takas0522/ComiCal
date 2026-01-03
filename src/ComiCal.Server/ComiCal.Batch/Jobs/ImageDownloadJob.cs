@@ -11,7 +11,7 @@ namespace ComiCal.Batch.Jobs
 {
     /// <summary>
     /// Container Job for comic image downloads from Rakuten Books API to Blob Storage
-    /// Implements checkpoint-based processing with 120-second rate limiting and dependency checking
+    /// Implements checkpoint-based processing with 30-second rate limiting and dependency checking
     /// </summary>
     public class ImageDownloadJob : BackgroundService
     {
@@ -22,8 +22,8 @@ namespace ComiCal.Batch.Jobs
         private readonly ILogger<ImageDownloadJob> _logger;
         private readonly IHostApplicationLifetime _applicationLifetime;
         
-        // Rate limiting: 120 seconds between API calls as per Rakuten API requirements
-        private const int RateLimitDelaySeconds = 120;
+        // Rate limiting: 30 seconds between API calls as per Rakuten API requirements
+        private const int RateLimitDelaySeconds = 30;
         
         // Job type identifier from environment variable
         private const string JobTypeEnvironmentVariable = "BATCH_JOB_TYPE";
@@ -47,17 +47,18 @@ namespace ComiCal.Batch.Jobs
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Check if this job should run based on environment variable
+            var jobType = _configuration[JobTypeEnvironmentVariable];
+            if (string.IsNullOrWhiteSpace(jobType) || !jobType.Equals(ExpectedJobType, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation(
+                    "Job type mismatch. Expected: {ExpectedJobType}, Actual: {ActualJobType}. Skipping execution.",
+                    ExpectedJobType, jobType ?? "null");
+                return;
+            }
+
             try
             {
-                // Check if this job should run based on environment variable
-                var jobType = _configuration[JobTypeEnvironmentVariable];
-                if (string.IsNullOrWhiteSpace(jobType) || !jobType.Equals(ExpectedJobType, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogInformation(
-                        "Job type mismatch. Expected: {ExpectedJobType}, Actual: {ActualJobType}. Skipping execution.",
-                        ExpectedJobType, jobType ?? "null");
-                    return;
-                }
 
                 _logger.LogInformation("Starting Image Download Job for {ExpectedJobType}", ExpectedJobType);
 
@@ -162,7 +163,7 @@ namespace ComiCal.Batch.Jobs
                             "Successfully processed images for page {CurrentPage}/{TotalPages}. Progress: {SuccessfulPages} successful, {FailedPages} failed",
                             currentPage, totalPages, successfulPages, failedPages);
 
-                        // Rate limiting: Wait 120 seconds before next API call (except for last page)
+                        // Rate limiting: Wait 30 seconds before next API call (except for last page)
                         if (currentPage < totalPages)
                         {
                             _logger.LogDebug(

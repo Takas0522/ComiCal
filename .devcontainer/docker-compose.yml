@@ -11,6 +11,11 @@ services:
       - node_modules_api:/workspaces/ComiCal/src/api/Comical.Api/node_modules
       - node_modules_database:/workspaces/ComiCal/database/node_modules
 
+    # Environment variables for development
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - STORAGE_CONNECTION_STRING=DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;TableEndpoint=http://azurite:10002/devstoreaccount1
+
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
 

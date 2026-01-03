@@ -5,16 +5,14 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading.Tasks;
 using System.Linq;
-using ComiCal.Batch.Util.Common;
 using System.IO;
-using Castle.Core.Logging;
+using Microsoft.Extensions.Logging;
 using ComiCal.Shared.Models;
 using Azure;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using ComiCal.Shared.Util;
 using System.Net.Http;
-using Microsoft.Extensions.Logging;
 using Npgsql;
 
 namespace ComiCal.Batch.Services
@@ -112,19 +110,36 @@ namespace ComiCal.Batch.Services
         {
             return data.Comics.Select(x =>
             {
-                var date = DateTimeUtility.JpDateToDateTimeType(x.Info.SalesDate);
+                // Parse Japanese date format (likely YYYY年MM月DD日 format)
+                DateTime? salesDate = null;
+                if (!string.IsNullOrEmpty(x.Info.SalesDate))
+                {
+                    try
+                    {
+                        // Try common Japanese date formats
+                        if (DateTime.TryParse(x.Info.SalesDate, out DateTime parsed))
+                        {
+                            salesDate = parsed;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to parse sales date: {x.Info.SalesDate}. Error: {ex.Message}");
+                    }
+                }
+
                 return new Comic
                 {
                     Author = x.Info.Author,
                     AuthorKana = x.Info.AuthorKana,
                     Isbn = x.Info.Isbn,
                     PublisherName = x.Info.PublisherName,
-                    SalesDate = date.value,
+                    SalesDate = salesDate ?? DateTime.MinValue,
                     SeriesName = x.Info.SeriesName,
                     SeriesNameKana = x.Info.SeriesNameKana,
                     Title = x.Info.Title,
                     TitleKana = x.Info.TitleKana,
-                    ScheduleStatus = (int)date.status
+                    ScheduleStatus = salesDate.HasValue ? 1 : 0  // 1 if date parsed successfully, 0 otherwise
                 };
             });
         }

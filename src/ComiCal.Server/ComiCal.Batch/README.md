@@ -115,6 +115,97 @@ func start --port 7072
 curl -X POST http://localhost:7072/api/orchestration/start
 ```
 
+## デバッグ・トラブルシューティング
+
+### バッチジョブの個別実行
+
+特定のジョブタイプを指定して実行：
+
+```bash
+# データ登録ジョブの実行
+cd /workspaces/ComiCal/src/ComiCal.Server/ComiCal.Batch
+BATCH_JOB_TYPE=DataRegistration dotnet run
+
+# 画像ダウンロードジョブの実行
+BATCH_JOB_TYPE=ImageDownload dotnet run
+```
+
+### 環境変数の設定確認
+
+```bash
+# 開発環境として実行
+ASPNETCORE_ENVIRONMENT=Development dotnet run
+
+# 環境変数の確認
+echo $ASPNETCORE_ENVIRONMENT
+echo $BATCH_JOB_TYPE
+```
+
+### バッチ状態のリセット
+
+バッチ処理が失敗状態や遅延状態でスタックした場合：
+
+```bash
+# バッチ状態とエラー情報をクリア
+cd /workspaces/ComiCal/src/database
+PGPASSWORD=comical_dev_password psql -h postgres -U comical -d comical -c "
+BEGIN;
+DELETE FROM batch_page_errors;
+DELETE FROM batch_states;
+COMMIT;
+SELECT 'Batch states reset successfully' as result;
+"
+```
+
+### バッチ状態の確認
+
+```bash
+# 現在のバッチ状態を確認
+PGPASSWORD=comical_dev_password psql -h postgres -U comical -d comical -c "
+SELECT id, batch_date, status, registration_phase, image_download_phase, delayed_until, retry_attempts 
+FROM batch_states 
+ORDER BY created_at DESC 
+LIMIT 5;
+"
+
+# バッチエラーの確認
+PGPASSWORD=comical_dev_password psql -h postgres -U comical -d comical -c "
+SELECT batch_state_id, page_number, error_count, last_error_message 
+FROM batch_page_errors 
+ORDER BY updated_at DESC 
+LIMIT 10;
+"
+```
+
+### 設定の診断
+
+```bash
+# 設定値のデバッグ出力を確認
+dotnet run | grep "DEBUG:"
+
+# 楽天APIキーの設定確認（マスクして表示）
+cd /workspaces/ComiCal/src/ComiCal.Server/ComiCal.Batch
+grep "RakutenApiKey" appsettings.Development.json
+```
+
+### よくある問題と解決方法
+
+1. **"Job type mismatch" エラー**
+   - 原因: `BATCH_JOB_TYPE` 環境変数が未設定
+   - 解決: 上記の個別実行コマンドを使用
+
+2. **"Azure Storage configuration is missing" エラー**
+   - 原因: `ASPNETCORE_ENVIRONMENT` が Production に設定されている
+   - 解決: Development 環境で実行
+
+3. **"client_id or access_token is required" エラー**
+   - 原因: RakutenApiKey の設定キー名の不一致
+   - 解決: コードで `configuration["RakutenApiKey"]` を使用するよう修正済み
+
+4. **バッチが遅延状態でスタック**
+   - 原因: 前回の失敗によりリトライ待機中
+   - 解決: バッチ状態リセットコマンドを実行
+
 ## 本番環境
 
 ### Azure環境での設定

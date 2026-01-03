@@ -11,7 +11,7 @@ namespace ComiCal.Batch.Jobs
 {
     /// <summary>
     /// Container Job for comic data registration from Rakuten Books API
-    /// Implements checkpoint-based processing with 120-second rate limiting
+    /// Implements checkpoint-based processing with 30-second rate limiting
     /// </summary>
     public class RegistrationJob : BackgroundService
     {
@@ -22,8 +22,8 @@ namespace ComiCal.Batch.Jobs
         private readonly ILogger<RegistrationJob> _logger;
         private readonly IHostApplicationLifetime _applicationLifetime;
         
-        // Rate limiting: 120 seconds between API calls as per Rakuten API requirements
-        private const int RateLimitDelaySeconds = 120;
+        // Rate limiting: 30 seconds between API calls as per Rakuten API requirements
+        private const int RateLimitDelaySeconds = 30;
         
         // Job type identifier from environment variable
         private const string JobTypeEnvironmentVariable = "BATCH_JOB_TYPE";
@@ -47,17 +47,18 @@ namespace ComiCal.Batch.Jobs
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
+            // Check if this job should run based on environment variable
+            var jobType = _configuration[JobTypeEnvironmentVariable];
+            if (string.IsNullOrWhiteSpace(jobType) || !jobType.Equals(ExpectedJobType, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation(
+                    "Job type mismatch. Expected: {ExpectedJobType}, Actual: {ActualJobType}. Skipping execution.",
+                    ExpectedJobType, jobType ?? "null");
+                return;
+            }
+
             try
             {
-                // Check if this job should run based on environment variable
-                var jobType = _configuration[JobTypeEnvironmentVariable];
-                if (string.IsNullOrWhiteSpace(jobType) || !jobType.Equals(ExpectedJobType, StringComparison.OrdinalIgnoreCase))
-                {
-                    _logger.LogInformation(
-                        "Job type mismatch. Expected: {ExpectedJobType}, Actual: {ActualJobType}. Skipping execution.",
-                        ExpectedJobType, jobType ?? "null");
-                    return;
-                }
 
                 _logger.LogInformation("Starting Data Registration Job for {ExpectedJobType}", ExpectedJobType);
 

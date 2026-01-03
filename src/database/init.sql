@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS configmigration (
 -- Create batch_states table (stores batch execution state and control information)
 CREATE TABLE IF NOT EXISTS batch_states (
     id SERIAL PRIMARY KEY,
-    batch_date DATE NOT NULL UNIQUE,
+    batch_date TIMESTAMP WITHOUT TIME ZONE NOT NULL UNIQUE,
     status VARCHAR(50) NOT NULL DEFAULT 'pending',  -- pending, running, completed, failed, delayed, manual_intervention
     total_pages INTEGER,
     processed_pages INTEGER DEFAULT 0,
