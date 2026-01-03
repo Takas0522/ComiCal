@@ -60,7 +60,7 @@ param githubToken string = ''
 param repositoryUrl string = 'https://github.com/Takas0522/ComiCal'
 
 @description('Current UTC timestamp for unique deployment naming')
-param utcNow string = utcNow('u')
+param utcNow string = utcNow()
 
 @description('GitHub repository branch for Static Web Apps')
 param repositoryBranch string = 'main'
@@ -91,8 +91,11 @@ var envShort = {
 var isSemanticVersion = !empty(gitTag) && startsWith(gitTag, 'v')
 var versionTag = isSemanticVersion ? gitTag : ''
 
+// Resource Group Naming: rg-{project}-{envShort}-{location}
+var resourceGroupName = 'rg-${projectName}-${envShort}-${locationShort}'
+
 // Unique deployment suffix to avoid deployment name conflicts
-var deploymentSuffix = uniqueString(subscription().subscriptionId, resourceGroupName, utcNow())
+var deploymentSuffix = uniqueString(subscription().subscriptionId, resourceGroupName, utcNow)
 
 // Common tags including semantic version if available
 var commonTags = union(tags, {
@@ -101,9 +104,6 @@ var commonTags = union(tags, {
   managedBy: 'bicep'
   version: !empty(versionTag) ? versionTag : 'untagged'
 })
-
-// Resource Group Naming: rg-{project}-{envShort}-{location}
-var resourceGroupName = 'rg-${projectName}-${envShort}-${locationShort}'
 
 // Resource group for main application resources
 resource resourceGroup 'Microsoft.Resources/resourceGroups@2021-04-01' = {
