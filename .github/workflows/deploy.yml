@@ -45,6 +45,11 @@ on:
         required: false
         type: boolean
         default: false
+      skip_frontend:
+        description: 'Skip Static Web Apps deployment'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -67,6 +72,7 @@ jobs:
       deploy_api_functions: ${{ steps.env.outputs.deploy_api_functions }}
       deploy_batch_functions: ${{ steps.env.outputs.deploy_batch_functions }}
       deploy_database: ${{ steps.env.outputs.deploy_database }}
+      deploy_frontend: ${{ steps.env.outputs.deploy_frontend }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -89,6 +95,8 @@ jobs:
               - 'src/database/**'
             shared:
               - 'src/ComiCal.Server/ComiCal.Shared/**'
+            frontend:
+              - 'src/front/**'
       - name: Determine environment from tag or input
         id: env
         run: |
@@ -121,6 +129,7 @@ jobs:
           DEPLOY_API_FUNCTIONS="true"
           DEPLOY_BATCH_FUNCTIONS="true"
           DEPLOY_DATABASE="true"
+          DEPLOY_FRONTEND="true"
           
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             # Manual dispatch: use input parameters
@@ -135,6 +144,9 @@ jobs:
             fi
             if [[ "${{ github.event.inputs.skip_database }}" == "true" ]]; then
               DEPLOY_DATABASE="false"
+            fi
+            if [[ "${{ github.event.inputs.skip_frontend }}" == "true" ]]; then
+              DEPLOY_FRONTEND="false"
             fi
           else
             # Automatic push: deploy based on changed files
@@ -155,12 +167,16 @@ jobs:
               DEPLOY_BATCH_FUNCTIONS="false"
             fi
             
+            # Deploy Frontend if frontend components changed
+            DEPLOY_FRONTEND="${{ steps.changes.outputs.frontend }}"
+            
             # For tagged releases, always deploy everything
             if [[ "$IS_SEMANTIC_VERSION" == "true" ]]; then
               DEPLOY_INFRA="true"
               DEPLOY_API_FUNCTIONS="true"
               DEPLOY_BATCH_FUNCTIONS="true"
               DEPLOY_DATABASE="true"
+              DEPLOY_FRONTEND="true"
             fi
           fi
           
@@ -171,6 +187,7 @@ jobs:
           echo "deploy_api_functions=$DEPLOY_API_FUNCTIONS" >> $GITHUB_OUTPUT
           echo "deploy_batch_functions=$DEPLOY_BATCH_FUNCTIONS" >> $GITHUB_OUTPUT
           echo "deploy_database=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
+          echo "deploy_frontend=$DEPLOY_FRONTEND" >> $GITHUB_OUTPUT
           
           echo "🎯 Target Environment: $ENVIRONMENT"
           echo "📦 Version: ${VERSION:-untagged}"
@@ -178,6 +195,7 @@ jobs:
           echo "⚡ Deploy API Functions: $DEPLOY_API_FUNCTIONS"
           echo "🔄 Deploy Batch Functions: $DEPLOY_BATCH_FUNCTIONS"
           echo "🗄️  Deploy Database: $DEPLOY_DATABASE"
+          echo "🌐 Deploy Frontend: $DEPLOY_FRONTEND"
           
           if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
             echo "📁 Changed Components:"
@@ -186,6 +204,7 @@ jobs:
             echo "  - Batch: ${{ steps.changes.outputs.batch }}"
             echo "  - Database: ${{ steps.changes.outputs.database }}"
             echo "  - Shared: ${{ steps.changes.outputs.shared }}"
+            echo "  - Frontend: ${{ steps.changes.outputs.frontend }}"
           fi
 
   # Validate Bicep templates
@@ -527,11 +546,66 @@ jobs:
           echo "ℹ️  Please use container image deployment or migrate to Function Apps"
           echo "✅ Deployment configuration prepared for: $APP_NAME"
 
+  # Build and deploy Static Web Apps (Frontend)
+  deploy-frontend:
+    name: Deploy Static Web App to ${{ needs.determine-environment.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy-infrastructure]
+    if: |
+      needs.determine-environment.outputs.deploy_frontend == 'true' &&
+      github.event.inputs.dry_run != 'true'
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/front/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing frontend dependencies..."
+          cd src/front
+          npm ci
+          echo "✅ Dependencies installed"
+
+      - name: Build Angular app
+        run: |
+          echo "🔨 Building Angular application..."
+          cd src/front
+          npm run build -- --configuration=${{ needs.determine-environment.outputs.environment }}
+          echo "✅ Build complete"
+          echo "📁 Build output location: dist/front/browser"
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_STONE_05F92CB00 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "src/front"
+          api_location: ""
+          output_location: "dist/front/browser"
+          skip_app_build: true  # We already built the app
+
+      - name: Display frontend deployment summary
+        run: |
+          echo "## 🌐 Frontend Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Configuration**: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Static Web App**: ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY
+
   # Notify deployment result
   notify-deployment:
     name: Notify Deployment Result
     runs-on: ubuntu-latest
-    needs: [determine-environment, deploy-infrastructure, initialize-database, deploy-api-functions, deploy-batch-functions]
+    needs: [determine-environment, deploy-infrastructure, initialize-database, deploy-api-functions, deploy-batch-functions, deploy-frontend]
     if: always() && needs.determine-environment.outputs.deploy_infra == 'true'
     steps:
       - name: Determine deployment status
@@ -541,12 +615,13 @@ jobs:
           DB_STATUS="${{ needs.initialize-database.result }}"
           API_STATUS="${{ needs.deploy-api-functions.result }}"
           BATCH_STATUS="${{ needs.deploy-batch-functions.result }}"
+          FRONTEND_STATUS="${{ needs.deploy-frontend.result }}"
           
-          if [[ "$INFRA_STATUS" == "success" ]] && ([[ "$DB_STATUS" == "success" ]] || [[ "$DB_STATUS" == "skipped" ]]) && ([[ "$API_STATUS" == "success" ]] || [[ "$API_STATUS" == "skipped" ]]) && ([[ "$BATCH_STATUS" == "success" ]] || [[ "$BATCH_STATUS" == "skipped" ]]); then
+          if [[ "$INFRA_STATUS" == "success" ]] && ([[ "$DB_STATUS" == "success" ]] || [[ "$DB_STATUS" == "skipped" ]]) && ([[ "$API_STATUS" == "success" ]] || [[ "$API_STATUS" == "skipped" ]]) && ([[ "$BATCH_STATUS" == "success" ]] || [[ "$BATCH_STATUS" == "skipped" ]]) && ([[ "$FRONTEND_STATUS" == "success" ]] || [[ "$FRONTEND_STATUS" == "skipped" ]]); then
             STATUS="success"
             ICON="✅"
             MESSAGE="Deployment completed successfully"
-          elif [[ "$INFRA_STATUS" == "failure" ]] || [[ "$DB_STATUS" == "failure" ]] || [[ "$API_STATUS" == "failure" ]] || [[ "$BATCH_STATUS" == "failure" ]]; then
+          elif [[ "$INFRA_STATUS" == "failure" ]] || [[ "$DB_STATUS" == "failure" ]] || [[ "$API_STATUS" == "failure" ]] || [[ "$BATCH_STATUS" == "failure" ]] || [[ "$FRONTEND_STATUS" == "failure" ]]; then
             STATUS="failure"
             ICON="❌"
             MESSAGE="Deployment failed"
@@ -576,6 +651,7 @@ jobs:
           echo "- Database: ${{ needs.initialize-database.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- API Functions: ${{ needs.deploy-api-functions.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Batch Functions: ${{ needs.deploy-batch-functions.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend (Static Web App): ${{ needs.deploy-frontend.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ steps.status.outputs.status }}" == "failure" ]]; then
             echo "### 🔄 Rollback Information" >> $GITHUB_STEP_SUMMARY
