@@ -411,6 +411,23 @@ jobs:
           echo "  Database: $DB_NAME"
           echo "  User: $DB_USER"
 
+      - name: Add GitHub Runner IP to PostgreSQL firewall
+        run: |
+          echo "🔧 Adding GitHub Runner IP to PostgreSQL firewall..."
+          # Get the public IP of the GitHub runner
+          RUNNER_IP=$(curl -s https://checkip.amazonaws.com || curl -s https://ipv4.icanhazip.com)
+          echo "Runner IP: $RUNNER_IP"
+          
+          # Add firewall rule for the runner IP
+          az postgres flexible-server firewall-rule create \
+            --resource-group ${{ needs.deploy-infrastructure.outputs.resource_group }} \
+            --name psql-comical-d-eu2 \
+            --rule-name "AllowGitHubRunner" \
+            --start-ip-address $RUNNER_IP \
+            --end-ip-address $RUNNER_IP
+          
+          echo "✅ Firewall rule added for IP: $RUNNER_IP"
+
       - name: Test database connectivity
         env:
           PGPASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
@@ -461,6 +478,19 @@ jobs:
           else
             echo "- **Sample Data Seeded**: ⚠️ Skipped (production)" >> $GITHUB_STEP_SUMMARY
           fi
+
+      - name: Remove GitHub Runner IP from PostgreSQL firewall
+        if: always()  # Run even if previous steps failed
+        run: |
+          echo "🧹 Removing GitHub Runner IP from PostgreSQL firewall..."
+          # Remove the temporary firewall rule
+          az postgres flexible-server firewall-rule delete \
+            --resource-group ${{ needs.deploy-infrastructure.outputs.resource_group }} \
+            --name psql-comical-d-eu2 \
+            --rule-name "AllowGitHubRunner" \
+            --yes || true  # Don't fail if rule doesn't exist
+          
+          echo "✅ Firewall rule cleanup completed"
 
   # Build and deploy API Functions
   deploy-api-functions:
