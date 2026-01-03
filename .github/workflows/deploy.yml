@@ -442,31 +442,13 @@ jobs:
       - name: Initialize database schema
         env:
           PGPASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+          PGSSLMODE: require
         run: |
           echo "🏗️  Initializing database schema..."
-          psql -h ${{ steps.db_connection.outputs.db_host }} \
-               -U ${{ steps.db_connection.outputs.db_user }} \
-               -d ${{ steps.db_connection.outputs.db_name }} \
+          psql "sslmode=require host=${{ steps.db_connection.outputs.db_host }} user=${{ steps.db_connection.outputs.db_user }} dbname=${{ steps.db_connection.outputs.db_name }}" \
                -f src/database/init.sql \
                -v ON_ERROR_STOP=1
           echo "✅ Database schema initialized successfully"
-
-      - name: Seed database with initial data
-        env:
-          PGPASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
-        run: |
-          echo "🌱 Seeding database with initial data..."
-          # Only seed data in dev environment to avoid overwriting production data
-          if [[ "${{ needs.determine-environment.outputs.environment }}" == "dev" ]]; then
-            psql -h ${{ steps.db_connection.outputs.db_host }} \
-                 -U ${{ steps.db_connection.outputs.db_user }} \
-                 -d ${{ steps.db_connection.outputs.db_name }} \
-                 -f src/database/seed.sql \
-                 -v ON_ERROR_STOP=1
-            echo "✅ Sample data seeded successfully (dev environment)"
-          else
-            echo "ℹ️  Skipping data seeding in production environment"
-          fi
 
       - name: Display database initialization summary
         run: |
@@ -476,11 +458,6 @@ jobs:
           echo "- **Database Host**: ${{ steps.db_connection.outputs.db_host }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Database Name**: ${{ steps.db_connection.outputs.db_name }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Schema Initialized**: ✅" >> $GITHUB_STEP_SUMMARY
-          if [[ "${{ needs.determine-environment.outputs.environment }}" == "dev" ]]; then
-            echo "- **Sample Data Seeded**: ✅" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "- **Sample Data Seeded**: ⚠️ Skipped (production)" >> $GITHUB_STEP_SUMMARY
-          fi
 
       - name: Remove GitHub Runner IP from PostgreSQL firewall
         if: always()  # Run even if previous steps failed
