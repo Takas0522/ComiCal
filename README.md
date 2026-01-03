@@ -18,14 +18,14 @@ flowchart LR
 ```
 
 **主要技術スタック**:
-- **フロントエンド**: Angular 17, Azure Static Web Apps
+- **フロントエンド**: Angular 21, Azure Static Web Apps
 - **API**: Azure Functions (.NET 10 + Isolated worker model), PostgreSQL
 - **Batch**: Azure Durable Functions (.NET 10 + Isolated worker model), Blob Storage
 - **外部API**: 楽天ブックスAPI
 - **開発環境**: Dev Container with Docker Compose
 
 **技術詳細**:
-- フロントエンド: Angular（package.json上は Angular 21 系）
+- フロントエンド: Angular 21
 - API/Batch: Azure Functions v4 / dotnet-isolated（プロジェクトは net10.0）
 - DB: PostgreSQL（Dev Container は `postgres:15-alpine`）
 - ストレージ: Azure Blob Storage（ローカルは Azurite）
@@ -37,10 +37,11 @@ flowchart LR
 ## ディレクトリ構成
 
 - `src/front`: フロントエンド（Angular）
-- `src/api/Comical.Api`: API層（Functions）
-- `src/batch/ComiCal.Batch`: Batch層（Durable Functions）
+- `src/ComiCal.Server/Comical.Api`: API層（Functions）
+- `src/ComiCal.Server/ComiCal.Batch`: Batch層（Durable Functions）
 - `src/ComiCal.Server/ComiCal.Shared`: API/Batch 共有の設定・モデル等
-- `database`: PostgreSQL 初期化SQL、スキーマ説明、シード
+- `src/api/Comical.Api`: API層の別バージョン（レガシー？）
+- `src/database`: PostgreSQL 初期化SQL、スキーマ説明、シード
 - `scripts`: 補助スクリプト
 
 ## ローカル開発（Dev Container 推奨）
@@ -71,7 +72,7 @@ Dev Container を開くと、以下が自動セットアップされます：
 テンプレートをコピーして利用します（Dev Container のサービス名を前提に設定済み）。
 
 ```bash
-cp src/api/local.settings.json.template src/api/local.settings.json
+cp src/ComiCal.Server/Comical.Api/local.settings.json.template src/ComiCal.Server/Comical.Api/local.settings.json
 ```
 
 ```json
@@ -86,21 +87,21 @@ cp src/api/local.settings.json.template src/api/local.settings.json
 }
 ```
 
-**Batch層の設定** (`src/batch/local.settings.json`):
+**Batch層の設定** (`src/ComiCal.Server/ComiCal.Batch/local.settings.json`):
 
 ```bash
 # テンプレートからコピー
-cp src/batch/local.settings.json.template src/batch/local.settings.json
+cp src/ComiCal.Server/ComiCal.Batch/local.settings.json.template src/ComiCal.Server/ComiCal.Batch/local.settings.json
 ```
 
-Batch は楽天APIの `applicationid` を必要とします（`src/batch/local.settings.json` に設定）。
+Batch は楽天APIの `applicationid` を必要とします（`src/ComiCal.Server/ComiCal.Batch/local.settings.json` に設定）。
 
 ### 3) 起動（API / Batch / Front）
 
 API（既定ポート 7071）:
 
 ```bash
-cd src/api/Comical.Api
+cd src/ComiCal.Server/Comical.Api
 func start
 ```
 
@@ -131,10 +132,10 @@ Batch（APIと併走する場合はポートを変える）:
 
 ```bash
 # API層
-cp src/api/local.settings.json.template src/api/local.settings.json
+cp src/ComiCal.Server/Comical.Api/local.settings.json.template src/ComiCal.Server/Comical.Api/local.settings.json
 
 # Batch層
-cp src/batch/local.settings.json.template src/batch/local.settings.json
+cp src/ComiCal.Server/ComiCal.Batch/local.settings.json.template src/ComiCal.Server/ComiCal.Batch/local.settings.json
 ```
 
 2. **FUNCTIONS_WORKER_RUNTIMEを`dotnet-isolated`に設定**
@@ -275,8 +276,8 @@ DBスキーマの詳細: [database/SCHEMA.md](./database/SCHEMA.md)
 ## コンポーネント・設定ドキュメント
 
 ### メインコンポーネント
-- **API**: [src/api/README.md](./src/api/README.md) - Azure Functions API層
-- **Batch**: [src/batch/README.md](./src/batch/README.md) - Durable Functions バッチ層
+- **API**: [src/ComiCal.Server/Comical.Api](./src/ComiCal.Server/Comical.Api) - Azure Functions API層
+- **Batch**: [src/ComiCal.Server/ComiCal.Batch](./src/ComiCal.Server/ComiCal.Batch) - Durable Functions バッチ層
 - **Front**: [src/front/README.md](./src/front/README.md) - Angular フロントエンド
 - **Database**: [database/README.md](./database/README.md) - PostgreSQL データベース設定
 

@@ -43,6 +43,9 @@ namespace ComiCal.Shared
             var storageAccountName = config["StorageAccountName"];
             var storageConnectionString = config["StorageConnectionString"];
             
+            Console.WriteLine($"DEBUG: StorageAccountName = '{storageAccountName}'");
+            Console.WriteLine($"DEBUG: StorageConnectionString = '{storageConnectionString}'");
+            
             service.AddAzureClients(clientBuilder => {
                 // Prioritize Managed Identity when StorageAccountName is configured
                 if (!string.IsNullOrWhiteSpace(storageAccountName))

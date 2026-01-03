@@ -1,7 +1,6 @@
-﻿using Castle.Core.Logging;
+﻿using Microsoft.Extensions.Logging;
 using ComiCal.Batch.Models;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,7 +26,7 @@ namespace ComiCal.Batch.Repositories
         )
         {
             _httpClient = httpClient;
-            _applicationId = configuration["applicationid"];
+            _applicationId = configuration["RakutenApiKey"];
             _logger = logger;
         }
 

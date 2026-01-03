@@ -457,6 +457,195 @@ WHERE tablename IN ('comic', 'comicimage', 'configmigration')
 ORDER BY pg_relation_size(indexrelid) DESC;
 ```
 
+## Batch Processing Tables
+
+### batch_states
+
+バッチ実行の状態管理、遅延制御、依存関係管理を行うテーブル。Container Jobsベースのバッチ処理における実行状態を管理します。
+
+#### Schema
+
+```sql
+CREATE TABLE batch_states (
+    id SERIAL PRIMARY KEY,
+    batch_date DATE NOT NULL UNIQUE,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    total_pages INTEGER,
+    processed_pages INTEGER DEFAULT 0,
+    failed_pages INTEGER DEFAULT 0,
+    registration_phase VARCHAR(50) DEFAULT 'pending',
+    image_download_phase VARCHAR(50) DEFAULT 'pending',
+    delayed_until TIMESTAMP WITHOUT TIME ZONE,
+    retry_attempts INTEGER NOT NULL DEFAULT 0,
+    manual_intervention_required BOOLEAN NOT NULL DEFAULT FALSE,
+    auto_resume_enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    error_message TEXT,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Columns
+
+| Column Name | Type | Constraints | Description |
+|-------------|------|-------------|-------------|
+| id | SERIAL | PRIMARY KEY | バッチ実行ID（自動採番） |
+| batch_date | DATE | NOT NULL, UNIQUE | バッチ実行日（一意） |
+| status | VARCHAR(50) | NOT NULL, DEFAULT 'pending' | 実行状態（pending, running, completed, failed, delayed, manual_intervention） |
+| total_pages | INTEGER | NULL | 処理対象の総ページ数 |
+| processed_pages | INTEGER | DEFAULT 0 | 処理完了ページ数 |
+| failed_pages | INTEGER | DEFAULT 0 | 失敗ページ数 |
+| registration_phase | VARCHAR(50) | DEFAULT 'pending' | 登録フェーズの状態（pending, running, completed, failed） |
+| image_download_phase | VARCHAR(50) | DEFAULT 'pending' | 画像ダウンロードフェーズの状態（pending, running, completed, failed） |
+| delayed_until | TIMESTAMP | NULL | 遅延実行の再開予定時刻（翌日遅延制御） |
+| retry_attempts | INTEGER | NOT NULL, DEFAULT 0 | リトライ試行回数（最大3回） |
+| manual_intervention_required | BOOLEAN | NOT NULL, DEFAULT FALSE | 手動介入要求フラグ |
+| auto_resume_enabled | BOOLEAN | NOT NULL, DEFAULT TRUE | 手動修正後の自動復帰制御フラグ |
+| error_message | TEXT | NULL | エラーメッセージ |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | レコード作成日時 |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | レコード更新日時 |
+
+#### Indexes
+
+```sql
+CREATE INDEX ix_batch_states_batch_date ON batch_states (batch_date);
+CREATE INDEX ix_batch_states_status ON batch_states (status);
+CREATE INDEX ix_batch_states_delayed_until ON batch_states (delayed_until) WHERE delayed_until IS NOT NULL;
+CREATE INDEX ix_batch_states_manual_intervention ON batch_states (manual_intervention_required) WHERE manual_intervention_required = TRUE;
+```
+
+**用途**:
+- バッチ実行日による高速検索
+- 状態による絞り込み
+- 遅延実行の効率的な検索（部分インデックス）
+- 手動介入が必要なバッチの効率的な検索（部分インデックス）
+
+#### Usage Example
+
+```sql
+-- 新しいバッチ実行を登録
+INSERT INTO batch_states (batch_date, total_pages)
+VALUES ('2026-01-15', 100);
+
+-- バッチ状態を更新
+UPDATE batch_states
+SET status = 'running',
+    registration_phase = 'running',
+    updated_at = CURRENT_TIMESTAMP
+WHERE batch_date = '2026-01-15';
+
+-- 遅延実行が必要なバッチを設定
+UPDATE batch_states
+SET status = 'delayed',
+    delayed_until = CURRENT_TIMESTAMP + INTERVAL '1 day',
+    retry_attempts = retry_attempts + 1,
+    updated_at = CURRENT_TIMESTAMP
+WHERE batch_date = '2026-01-15';
+
+-- 手動介入が必要なバッチを検索
+SELECT * FROM batch_states
+WHERE manual_intervention_required = TRUE
+AND status != 'completed'
+ORDER BY batch_date DESC;
+
+-- 30日より古いログを削除（ログ保持期間管理）
+DELETE FROM batch_states
+WHERE created_at < CURRENT_TIMESTAMP - INTERVAL '30 days';
+```
+
+### batch_page_errors
+
+ページ別のエラー記録とリトライ管理を行うテーブル。バッチ処理の部分再実行時のページ範囲指定に対応します。
+
+#### Schema
+
+```sql
+CREATE TABLE batch_page_errors (
+    id SERIAL PRIMARY KEY,
+    batch_id INTEGER NOT NULL REFERENCES batch_states(id) ON DELETE CASCADE,
+    page_number INTEGER NOT NULL,
+    phase VARCHAR(50) NOT NULL,
+    error_type VARCHAR(100) NOT NULL,
+    error_message TEXT NOT NULL,
+    retry_count INTEGER NOT NULL DEFAULT 0,
+    last_retry_at TIMESTAMP WITHOUT TIME ZONE,
+    resolved BOOLEAN NOT NULL DEFAULT FALSE,
+    resolved_at TIMESTAMP WITHOUT TIME ZONE,
+    created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_batch_page_phase UNIQUE (batch_id, page_number, phase)
+);
+```
+
+#### Columns
+
+| Column Name | Type | Constraints | Description |
+|-------------|------|-------------|-------------|
+| id | SERIAL | PRIMARY KEY | エラーレコードID（自動採番） |
+| batch_id | INTEGER | NOT NULL, FOREIGN KEY | バッチ実行ID（batch_states.idへの外部キー） |
+| page_number | INTEGER | NOT NULL | エラーが発生したページ番号 |
+| phase | VARCHAR(50) | NOT NULL | エラーが発生したフェーズ（registration, image_download） |
+| error_type | VARCHAR(100) | NOT NULL | エラーの種類 |
+| error_message | TEXT | NOT NULL | エラーメッセージの詳細 |
+| retry_count | INTEGER | NOT NULL, DEFAULT 0 | リトライ回数 |
+| last_retry_at | TIMESTAMP | NULL | 最後のリトライ実行日時 |
+| resolved | BOOLEAN | NOT NULL, DEFAULT FALSE | 解決済みフラグ |
+| resolved_at | TIMESTAMP | NULL | 解決日時 |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | レコード作成日時 |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT CURRENT_TIMESTAMP | レコード更新日時 |
+
+#### Indexes
+
+```sql
+CREATE INDEX ix_batch_page_errors_batch_id ON batch_page_errors (batch_id);
+CREATE INDEX ix_batch_page_errors_page_number ON batch_page_errors (page_number);
+CREATE INDEX ix_batch_page_errors_resolved ON batch_page_errors (resolved) WHERE resolved = FALSE;
+CREATE INDEX ix_batch_page_errors_phase ON batch_page_errors (phase);
+```
+
+**用途**:
+- バッチIDによるエラー一覧の高速取得
+- ページ番号によるエラー検索
+- 未解決エラーの効率的な検索（部分インデックス）
+- フェーズ別エラーの検索
+
+#### Usage Example
+
+```sql
+-- ページエラーを記録
+INSERT INTO batch_page_errors (batch_id, page_number, phase, error_type, error_message)
+VALUES (1, 5, 'registration', 'ApiError', 'API rate limit exceeded');
+
+-- エラーのリトライを記録
+UPDATE batch_page_errors
+SET retry_count = retry_count + 1,
+    last_retry_at = CURRENT_TIMESTAMP,
+    updated_at = CURRENT_TIMESTAMP
+WHERE batch_id = 1 AND page_number = 5 AND phase = 'registration';
+
+-- エラーを解決済みとしてマーク
+UPDATE batch_page_errors
+SET resolved = TRUE,
+    resolved_at = CURRENT_TIMESTAMP,
+    updated_at = CURRENT_TIMESTAMP
+WHERE batch_id = 1 AND page_number = 5 AND phase = 'registration';
+
+-- 特定バッチの未解決エラーを取得
+SELECT page_number, phase, error_type, error_message, retry_count
+FROM batch_page_errors
+WHERE batch_id = 1
+AND resolved = FALSE
+ORDER BY page_number;
+
+-- 部分再実行用：特定ページ範囲のエラーページを取得
+SELECT DISTINCT page_number
+FROM batch_page_errors
+WHERE batch_id = 1
+AND resolved = FALSE
+AND page_number BETWEEN 10 AND 20
+ORDER BY page_number;
+```
+
 ## References
 
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)

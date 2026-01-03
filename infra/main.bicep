@@ -184,6 +184,23 @@ module containerApps 'modules/container-apps.bicep' = {
   }
 }
 
+// Container Jobs Module - Scheduled batch processing and manual execution
+module containerJobs 'modules/container-jobs.bicep' = {
+  name: 'container-jobs-deployment'
+  scope: resourceGroup
+  params: {
+    environmentName: environmentName
+    location: location
+    projectName: projectName
+    storageAccountName: storage.outputs.storageAccountName
+    appInsightsConnectionString: monitoringBase.outputs.appInsightsConnectionString
+    postgresConnectionStringSecretUri: security.outputs.postgresConnectionStringSecretUri
+    rakutenApiKeySecretUri: security.outputs.rakutenApiKeySecretUri
+    existingContainerAppsEnvironmentId: containerApps.outputs.containerAppsEnvironmentId
+    tags: commonTags
+  }
+}
+
 // Update Security Module with Container App RBAC (RBAC権限がある場合のみ)
 module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
   name: 'security-rbac-deployment'
@@ -199,6 +216,9 @@ module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
     rakutenApiKey: rakutenApiKey
     apiFunctionAppPrincipalId: containerApps.outputs.apiContainerAppPrincipalId
     batchFunctionAppPrincipalId: containerApps.outputs.batchContainerAppPrincipalId
+    dataRegistrationJobPrincipalId: containerJobs.outputs.dataRegistrationJobPrincipalId
+    imageDownloadJobPrincipalId: containerJobs.outputs.imageDownloadJobPrincipalId
+    manualBatchContainerAppPrincipalId: containerJobs.outputs.manualBatchContainerAppPrincipalId
     storageAccountName: storage.outputs.storageAccountName
     tags: commonTags
   }
@@ -315,6 +335,17 @@ output logAnalyticsWorkspaceName string = monitoringBase.outputs.logAnalyticsWor
 output actionGroupId string = monitoringAlerts.outputs.actionGroupId
 output actionGroupName string = monitoringAlerts.outputs.actionGroupName
 output alertsEnabled bool = monitoringAlerts.outputs.alertsEnabled
+output batchDashboardId string = monitoringAlerts.outputs.batchDashboardId
+output batchDashboardName string = monitoringAlerts.outputs.batchDashboardName
+
+// Container Jobs outputs
+output dataRegistrationJobId string = containerJobs.outputs.dataRegistrationJobId
+output dataRegistrationJobName string = containerJobs.outputs.dataRegistrationJobName
+output imageDownloadJobId string = containerJobs.outputs.imageDownloadJobId
+output imageDownloadJobName string = containerJobs.outputs.imageDownloadJobName
+output manualBatchContainerAppId string = containerJobs.outputs.manualBatchContainerAppId
+output manualBatchContainerAppName string = containerJobs.outputs.manualBatchContainerAppName
+output manualBatchContainerAppUrl string = containerJobs.outputs.manualBatchContainerAppUrl
 
 // Cost Optimization outputs (RBAC権限がある場合のみ)
 output nightShutdownEnabled bool = skipRbacAssignments ? false : costOptimization!.outputs.nightShutdownEnabled

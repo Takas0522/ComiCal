@@ -35,11 +35,11 @@ flowchart TD
 - `GetPageCount` でページ数を取得
   - 楽天APIの `page=1` を呼び、レスポンスの `PageCount` を使用
 - 登録フェーズ（全ページ）
-  - ページ間は 120 秒待機
-  - 失敗時は最大 3 回までリトライ（待機: 120, 240, 480 秒…の指数バックオフ）
+  - ページ間は 30 秒待機
+  - 失敗時は最大 3 回までリトライ（待機: 30, 60, 90 秒…の指数バックオフ）
   - `Register` Activity が `RegitoryAsync(page)` を実行し、`comic` テーブルへ Upsert
 - 画像フェーズ（全ページ）
-  - 同様に 120 秒待機 + 最大 3 回のリトライ
+  - 同様に 30 秒待機 + 最大 3 回のリトライ
   - `DownloadImages` Activity が `ProcessImageDownloadsAsync(page)` を実行
   - Blob Storage の `$web` コンテナへ `{isbn}.{拡張子}` で保存（拡張子は Content-Type から決定）
 ## 楽天API呼び出し（実装上の注意）
