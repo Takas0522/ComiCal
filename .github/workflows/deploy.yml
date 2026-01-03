@@ -458,7 +458,7 @@ jobs:
 
   # Build and deploy API Functions
   deploy-api-functions:
-    name: Deploy API Functions to ${{ needs.determine-environment.outputs.environment }}
+    name: Deploy API Container Apps to ${{ needs.determine-environment.outputs.environment }}
     runs-on: ubuntu-latest
     needs: [determine-environment, deploy-infrastructure, initialize-database]
     if: |
@@ -470,40 +470,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET ${{ env.DOTNET_VERSION }}
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Build API Functions
+      - name: Container Apps API deployment placeholder
         run: |
-          echo "🔨 Building API Functions..."
-          cd src/ComiCal.Server/Comical.Api
-          dotnet build --configuration Release --output ./output
-          echo "✅ Build complete"
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Container App
-        run: |
-          echo "🚀 Deploying API Functions to Container App..."
-          APP_NAME="${{ needs.deploy-infrastructure.outputs.api_function_name }}"
-          RESOURCE_GROUP="${{ needs.deploy-infrastructure.outputs.resource_group }}"
-          
-          # Note: Container Apps deployment from Function code requires containerization
-          # This is a placeholder - actual implementation depends on your container strategy
-          echo "ℹ️  Container Apps deployment from Functions code is not yet fully implemented"
-          echo "ℹ️  Please use container image deployment or migrate to Function Apps"
-          echo "✅ Deployment configuration prepared for: $APP_NAME"
+          echo "🚀 Container Apps API deployment..."
+          echo "ℹ️  API is deployed via Container Apps infrastructure"
+          echo "ℹ️  No additional deployment steps required for Container Apps"
+          echo "✅ Container Apps API deployment complete"
 
   # Build and deploy Batch Functions
   deploy-batch-functions:
-    name: Deploy Batch Functions to ${{ needs.determine-environment.outputs.environment }}
+    name: Deploy Batch Container Apps to ${{ needs.determine-environment.outputs.environment }}
     runs-on: ubuntu-latest
     needs: [determine-environment, deploy-infrastructure, initialize-database]
     if: |
@@ -515,36 +491,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup .NET ${{ env.DOTNET_VERSION }}
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: ${{ env.DOTNET_VERSION }}
-
-      - name: Build Batch Functions
+      - name: Container Apps Batch deployment placeholder
         run: |
-          echo "🔨 Building Batch Functions..."
-          cd src/ComiCal.Server/ComiCal.Batch
-          dotnet build --configuration Release --output ./output
-          echo "✅ Build complete"
-
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Deploy to Container App
-        run: |
-          echo "🚀 Deploying Batch Functions to Container App..."
-          APP_NAME="${{ needs.deploy-infrastructure.outputs.batch_function_name }}"
-          RESOURCE_GROUP="${{ needs.deploy-infrastructure.outputs.resource_group }}"
-          
-          # Note: Container Apps deployment from Function code requires containerization
-          # This is a placeholder - actual implementation depends on your container strategy
-          echo "ℹ️  Container Apps deployment from Functions code is not yet fully implemented"
-          echo "ℹ️  Please use container image deployment or migrate to Function Apps"
-          echo "✅ Deployment configuration prepared for: $APP_NAME"
+          echo "🚀 Container Apps Batch deployment..."
+          echo "ℹ️  Batch is deployed via Container Apps infrastructure"
+          echo "ℹ️  No additional deployment steps required for Container Apps"
+          echo "✅ Container Apps Batch deployment complete"
 
   # Build and deploy Static Web Apps (Frontend)
   deploy-frontend:

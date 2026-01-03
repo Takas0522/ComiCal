@@ -5,7 +5,8 @@
 export const environment = {
   production: false,
   gapiClientId: '233960289934-6b9n1qacd622qnsearludssoturlqiq3.apps.googleusercontent.com',
-  blobBaseUrl: 'http://localhost:10000/devstoreaccount1/images'
+  blobBaseUrl: 'http://localhost:10000/devstoreaccount1/images',
+  apiUrl: 'http://localhost:8080/api'  // Container Apps local development
 };
 
 /*

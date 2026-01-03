@@ -25,7 +25,7 @@ namespace Comical.Api
 
         [Function("ComicData")]
         public async Task<HttpResponseData> GetComicData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ComicData")] HttpRequestData req)
         {
             return await FunctionExecutionHelper.ExecuteAsync(
                 req,

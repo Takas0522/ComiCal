@@ -320,7 +320,7 @@ output storageAccountBlobEndpoint string = storage.outputs.storageAccountBlobEnd
 output storageAccountWebEndpoint string = storage.outputs.storageAccountWebEndpoint
 output imagesContainerName string = storage.outputs.imagesContainerName
 
-// Functions outputs
+// Container Apps outputs
 output appServicePlanId string = ''
 output appServicePlanName string = ''
 output appServicePlanSku string = ''

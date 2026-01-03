@@ -141,6 +141,21 @@ resource apiFunctionApp 'Microsoft.Web/sites@2023-01-01' = {
           'https://cdn-comical-prod-jpe.azureedge.net'  // CDN endpoint
         ]
         supportCredentials: false
+        allowedMethods: [
+          'GET'
+          'POST'
+          'PUT'
+          'DELETE'
+          'OPTIONS'
+        ]
+        allowedHeaders: [
+          'Content-Type'
+          'Authorization'
+          'Accept'
+          'Origin'
+          'X-Requested-With'
+        ]
+        maxAgeInSeconds: 3600
       }
       appSettings: [
         {
