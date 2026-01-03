@@ -395,7 +395,7 @@ jobs:
           # Pattern: psql-{projectName}-{envShort}-{locationShort}
           PROJECT_NAME="comical"
           ENV_SHORT="d"  # dev -> d
-          LOCATION_SHORT="jpe"  # japaneast -> jpe
+          LOCATION_SHORT="eu2"  # eastus2 -> eu2
           POSTGRES_SERVER="psql-${PROJECT_NAME}-${ENV_SHORT}-${LOCATION_SHORT}"
           
           DB_NAME="comical"
