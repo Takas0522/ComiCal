@@ -30,8 +30,23 @@ on:
         required: false
         type: boolean
         default: false
-      skip_functions:
-        description: 'Skip Functions deployment'
+      skip_api_functions:
+        description: 'Skip API Functions deployment'
+        required: false
+        type: boolean
+        default: false
+      skip_batch_functions:
+        description: 'Skip Batch Functions deployment'
+        required: false
+        type: boolean
+        default: false
+      skip_database:
+        description: 'Skip database initialization'
+        required: false
+        type: boolean
+        default: false
+      skip_frontend:
+        description: 'Skip Static Web Apps deployment'
         required: false
         type: boolean
         default: false
@@ -54,8 +69,34 @@ jobs:
       version: ${{ steps.env.outputs.version }}
       is_semantic_version: ${{ steps.env.outputs.is_semantic_version }}
       deploy_infra: ${{ steps.env.outputs.deploy_infra }}
-      deploy_functions: ${{ steps.env.outputs.deploy_functions }}
+      deploy_api_functions: ${{ steps.env.outputs.deploy_api_functions }}
+      deploy_batch_functions: ${{ steps.env.outputs.deploy_batch_functions }}
+      deploy_database: ${{ steps.env.outputs.deploy_database }}
+      deploy_frontend: ${{ steps.env.outputs.deploy_frontend }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for change detection
+
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+            api:
+              - 'src/ComiCal.Server/Comical.Api/**'
+              - 'src/api/**'
+            batch:
+              - 'src/ComiCal.Server/ComiCal.Batch/**'
+            database:
+              - 'src/database/**'
+            shared:
+              - 'src/ComiCal.Server/ComiCal.Shared/**'
+            frontend:
+              - 'src/front/**'
       - name: Determine environment from tag or input
         id: env
         run: |
@@ -85,13 +126,57 @@ jobs:
           
           # Determine what to deploy
           DEPLOY_INFRA="true"
-          DEPLOY_FUNCTIONS="true"
+          DEPLOY_API_FUNCTIONS="true"
+          DEPLOY_BATCH_FUNCTIONS="true"
+          DEPLOY_DATABASE="true"
+          DEPLOY_FRONTEND="true"
+          
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual dispatch: use input parameters
             if [[ "${{ github.event.inputs.skip_infra }}" == "true" ]]; then
               DEPLOY_INFRA="false"
             fi
-            if [[ "${{ github.event.inputs.skip_functions }}" == "true" ]]; then
-              DEPLOY_FUNCTIONS="false"
+            if [[ "${{ github.event.inputs.skip_api_functions }}" == "true" ]]; then
+              DEPLOY_API_FUNCTIONS="false"
+            fi
+            if [[ "${{ github.event.inputs.skip_batch_functions }}" == "true" ]]; then
+              DEPLOY_BATCH_FUNCTIONS="false"
+            fi
+            if [[ "${{ github.event.inputs.skip_database }}" == "true" ]]; then
+              DEPLOY_DATABASE="false"
+            fi
+            if [[ "${{ github.event.inputs.skip_frontend }}" == "true" ]]; then
+              DEPLOY_FRONTEND="false"
+            fi
+          else
+            # Automatic push: deploy based on changed files
+            DEPLOY_INFRA="${{ steps.changes.outputs.infra }}"
+            DEPLOY_DATABASE="${{ steps.changes.outputs.database }}"
+            
+            # Deploy API if API or shared components changed
+            if [[ "${{ steps.changes.outputs.api }}" == "true" ]] || [[ "${{ steps.changes.outputs.shared }}" == "true" ]]; then
+              DEPLOY_API_FUNCTIONS="true"
+            else
+              DEPLOY_API_FUNCTIONS="false"
+            fi
+            
+            # Deploy Batch if Batch or shared components changed
+            if [[ "${{ steps.changes.outputs.batch }}" == "true" ]] || [[ "${{ steps.changes.outputs.shared }}" == "true" ]]; then
+              DEPLOY_BATCH_FUNCTIONS="true"
+            else
+              DEPLOY_BATCH_FUNCTIONS="false"
+            fi
+            
+            # Deploy Frontend if frontend components changed
+            DEPLOY_FRONTEND="${{ steps.changes.outputs.frontend }}"
+            
+            # For tagged releases, always deploy everything
+            if [[ "$IS_SEMANTIC_VERSION" == "true" ]]; then
+              DEPLOY_INFRA="true"
+              DEPLOY_API_FUNCTIONS="true"
+              DEPLOY_BATCH_FUNCTIONS="true"
+              DEPLOY_DATABASE="true"
+              DEPLOY_FRONTEND="true"
             fi
           fi
           
@@ -99,12 +184,28 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is_semantic_version=$IS_SEMANTIC_VERSION" >> $GITHUB_OUTPUT
           echo "deploy_infra=$DEPLOY_INFRA" >> $GITHUB_OUTPUT
-          echo "deploy_functions=$DEPLOY_FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "deploy_api_functions=$DEPLOY_API_FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "deploy_batch_functions=$DEPLOY_BATCH_FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "deploy_database=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
+          echo "deploy_frontend=$DEPLOY_FRONTEND" >> $GITHUB_OUTPUT
           
           echo "🎯 Target Environment: $ENVIRONMENT"
           echo "📦 Version: ${VERSION:-untagged}"
           echo "🏗️  Deploy Infrastructure: $DEPLOY_INFRA"
-          echo "⚡ Deploy Functions: $DEPLOY_FUNCTIONS"
+          echo "⚡ Deploy API Functions: $DEPLOY_API_FUNCTIONS"
+          echo "🔄 Deploy Batch Functions: $DEPLOY_BATCH_FUNCTIONS"
+          echo "🗄️  Deploy Database: $DEPLOY_DATABASE"
+          echo "🌐 Deploy Frontend: $DEPLOY_FRONTEND"
+          
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "📁 Changed Components:"
+            echo "  - Infrastructure: ${{ steps.changes.outputs.infra }}"
+            echo "  - API: ${{ steps.changes.outputs.api }}"
+            echo "  - Batch: ${{ steps.changes.outputs.batch }}"
+            echo "  - Database: ${{ steps.changes.outputs.database }}"
+            echo "  - Shared: ${{ steps.changes.outputs.shared }}"
+            echo "  - Frontend: ${{ steps.changes.outputs.frontend }}"
+          fi
 
   # Validate Bicep templates
   validate-bicep:
@@ -259,13 +360,109 @@ jobs:
             echo "- Action Group: ${{ steps.deploy.outputs.actionGroupName }}" >> $GITHUB_STEP_SUMMARY
           fi
 
+  # Initialize database schema and seed data
+  initialize-database:
+    name: Initialize Database to ${{ needs.determine-environment.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy-infrastructure]
+    if: |
+      needs.determine-environment.outputs.deploy_database == 'true' &&
+      github.event.inputs.dry_run != 'true'
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install PostgreSQL client
+        run: |
+          echo "📦 Installing PostgreSQL client..."
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+          echo "✅ PostgreSQL client installed"
+
+      - name: Build database connection string
+        id: db_connection
+        run: |
+          POSTGRES_SERVER="${{ needs.deploy-infrastructure.outputs.postgres_server }}"
+          DB_NAME="comical"
+          DB_USER="comical_admin"
+          DB_HOST="${POSTGRES_SERVER}.postgres.database.azure.com"
+          
+          echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
+          echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
+          echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
+          
+          echo "🔗 Database connection configured:"
+          echo "  Host: $DB_HOST"
+          echo "  Database: $DB_NAME"
+          echo "  User: $DB_USER"
+
+      - name: Test database connectivity
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+        run: |
+          echo "🔍 Testing database connectivity..."
+          pg_isready -h ${{ steps.db_connection.outputs.db_host }} -U ${{ steps.db_connection.outputs.db_user }}
+          echo "✅ Database server is ready"
+
+      - name: Initialize database schema
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+        run: |
+          echo "🏗️  Initializing database schema..."
+          psql -h ${{ steps.db_connection.outputs.db_host }} \
+               -U ${{ steps.db_connection.outputs.db_user }} \
+               -d ${{ steps.db_connection.outputs.db_name }} \
+               -f src/database/init.sql \
+               -v ON_ERROR_STOP=1
+          echo "✅ Database schema initialized successfully"
+
+      - name: Seed database with initial data
+        env:
+          PGPASSWORD: ${{ secrets.POSTGRES_ADMIN_PASSWORD }}
+        run: |
+          echo "🌱 Seeding database with initial data..."
+          # Only seed data in dev environment to avoid overwriting production data
+          if [[ "${{ needs.determine-environment.outputs.environment }}" == "dev" ]]; then
+            psql -h ${{ steps.db_connection.outputs.db_host }} \
+                 -U ${{ steps.db_connection.outputs.db_user }} \
+                 -d ${{ steps.db_connection.outputs.db_name }} \
+                 -f src/database/seed.sql \
+                 -v ON_ERROR_STOP=1
+            echo "✅ Sample data seeded successfully (dev environment)"
+          else
+            echo "ℹ️  Skipping data seeding in production environment"
+          fi
+
+      - name: Display database initialization summary
+        run: |
+          echo "## 🗄️  Database Initialization Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Host**: ${{ steps.db_connection.outputs.db_host }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Database Name**: ${{ steps.db_connection.outputs.db_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Schema Initialized**: ✅" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.determine-environment.outputs.environment }}" == "dev" ]]; then
+            echo "- **Sample Data Seeded**: ✅" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- **Sample Data Seeded**: ⚠️ Skipped (production)" >> $GITHUB_STEP_SUMMARY
+          fi
+
   # Build and deploy API Functions
   deploy-api-functions:
     name: Deploy API Functions to ${{ needs.determine-environment.outputs.environment }}
     runs-on: ubuntu-latest
-    needs: [determine-environment, deploy-infrastructure]
+    needs: [determine-environment, deploy-infrastructure, initialize-database]
     if: |
-      needs.determine-environment.outputs.deploy_functions == 'true' &&
+      needs.determine-environment.outputs.deploy_api_functions == 'true' &&
       github.event.inputs.dry_run != 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
@@ -308,9 +505,9 @@ jobs:
   deploy-batch-functions:
     name: Deploy Batch Functions to ${{ needs.determine-environment.outputs.environment }}
     runs-on: ubuntu-latest
-    needs: [determine-environment, deploy-infrastructure]
+    needs: [determine-environment, deploy-infrastructure, initialize-database]
     if: |
-      needs.determine-environment.outputs.deploy_functions == 'true' &&
+      needs.determine-environment.outputs.deploy_batch_functions == 'true' &&
       github.event.inputs.dry_run != 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
@@ -349,25 +546,82 @@ jobs:
           echo "ℹ️  Please use container image deployment or migrate to Function Apps"
           echo "✅ Deployment configuration prepared for: $APP_NAME"
 
+  # Build and deploy Static Web Apps (Frontend)
+  deploy-frontend:
+    name: Deploy Static Web App to ${{ needs.determine-environment.outputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [determine-environment, deploy-infrastructure]
+    if: |
+      needs.determine-environment.outputs.deploy_frontend == 'true' &&
+      github.event.inputs.dry_run != 'true'
+    environment:
+      name: ${{ needs.determine-environment.outputs.environment }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: src/front/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          echo "📦 Installing frontend dependencies..."
+          cd src/front
+          npm ci
+          echo "✅ Dependencies installed"
+
+      - name: Build Angular app
+        run: |
+          echo "🔨 Building Angular application..."
+          cd src/front
+          npm run build -- --configuration=${{ needs.determine-environment.outputs.environment }}
+          echo "✅ Build complete"
+          echo "📁 Build output location: dist/front/browser"
+
+      - name: Deploy to Azure Static Web Apps
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AGREEABLE_STONE_05F92CB00 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "src/front"
+          api_location: ""
+          output_location: "dist/front/browser"
+          skip_app_build: true  # We already built the app
+
+      - name: Display frontend deployment summary
+        run: |
+          echo "## 🌐 Frontend Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Environment**: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Build Configuration**: ${{ needs.determine-environment.outputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Static Web App**: ✅ Deployed successfully" >> $GITHUB_STEP_SUMMARY
+
   # Notify deployment result
   notify-deployment:
     name: Notify Deployment Result
     runs-on: ubuntu-latest
-    needs: [determine-environment, deploy-infrastructure, deploy-api-functions, deploy-batch-functions]
+    needs: [determine-environment, deploy-infrastructure, initialize-database, deploy-api-functions, deploy-batch-functions, deploy-frontend]
     if: always() && needs.determine-environment.outputs.deploy_infra == 'true'
     steps:
       - name: Determine deployment status
         id: status
         run: |
           INFRA_STATUS="${{ needs.deploy-infrastructure.result }}"
+          DB_STATUS="${{ needs.initialize-database.result }}"
           API_STATUS="${{ needs.deploy-api-functions.result }}"
           BATCH_STATUS="${{ needs.deploy-batch-functions.result }}"
+          FRONTEND_STATUS="${{ needs.deploy-frontend.result }}"
           
-          if [[ "$INFRA_STATUS" == "success" ]] && ([[ "$API_STATUS" == "success" ]] || [[ "$API_STATUS" == "skipped" ]]) && ([[ "$BATCH_STATUS" == "success" ]] || [[ "$BATCH_STATUS" == "skipped" ]]); then
+          if [[ "$INFRA_STATUS" == "success" ]] && ([[ "$DB_STATUS" == "success" ]] || [[ "$DB_STATUS" == "skipped" ]]) && ([[ "$API_STATUS" == "success" ]] || [[ "$API_STATUS" == "skipped" ]]) && ([[ "$BATCH_STATUS" == "success" ]] || [[ "$BATCH_STATUS" == "skipped" ]]) && ([[ "$FRONTEND_STATUS" == "success" ]] || [[ "$FRONTEND_STATUS" == "skipped" ]]); then
             STATUS="success"
             ICON="✅"
             MESSAGE="Deployment completed successfully"
-          elif [[ "$INFRA_STATUS" == "failure" ]] || [[ "$API_STATUS" == "failure" ]] || [[ "$BATCH_STATUS" == "failure" ]]; then
+          elif [[ "$INFRA_STATUS" == "failure" ]] || [[ "$DB_STATUS" == "failure" ]] || [[ "$API_STATUS" == "failure" ]] || [[ "$BATCH_STATUS" == "failure" ]] || [[ "$FRONTEND_STATUS" == "failure" ]]; then
             STATUS="failure"
             ICON="❌"
             MESSAGE="Deployment failed"
@@ -394,8 +648,10 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Component Status" >> $GITHUB_STEP_SUMMARY
           echo "- Infrastructure: ${{ needs.deploy-infrastructure.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Database: ${{ needs.initialize-database.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- API Functions: ${{ needs.deploy-api-functions.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Batch Functions: ${{ needs.deploy-batch-functions.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend (Static Web App): ${{ needs.deploy-frontend.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if [[ "${{ steps.status.outputs.status }}" == "failure" ]]; then
             echo "### 🔄 Rollback Information" >> $GITHUB_STEP_SUMMARY
