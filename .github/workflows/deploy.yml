@@ -30,8 +30,13 @@ on:
         required: false
         type: boolean
         default: false
-      skip_functions:
-        description: 'Skip Functions deployment'
+      skip_api_functions:
+        description: 'Skip API Functions deployment'
+        required: false
+        type: boolean
+        default: false
+      skip_batch_functions:
+        description: 'Skip Batch Functions deployment'
         required: false
         type: boolean
         default: false
@@ -59,9 +64,31 @@ jobs:
       version: ${{ steps.env.outputs.version }}
       is_semantic_version: ${{ steps.env.outputs.is_semantic_version }}
       deploy_infra: ${{ steps.env.outputs.deploy_infra }}
-      deploy_functions: ${{ steps.env.outputs.deploy_functions }}
+      deploy_api_functions: ${{ steps.env.outputs.deploy_api_functions }}
+      deploy_batch_functions: ${{ steps.env.outputs.deploy_batch_functions }}
       deploy_database: ${{ steps.env.outputs.deploy_database }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Get full history for change detection
+
+      - name: Detect changed files
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+            api:
+              - 'src/ComiCal.Server/Comical.Api/**'
+              - 'src/api/**'
+            batch:
+              - 'src/ComiCal.Server/ComiCal.Batch/**'
+            database:
+              - 'src/database/**'
+            shared:
+              - 'src/ComiCal.Server/ComiCal.Shared/**'
       - name: Determine environment from tag or input
         id: env
         run: |
@@ -91,17 +118,49 @@ jobs:
           
           # Determine what to deploy
           DEPLOY_INFRA="true"
-          DEPLOY_FUNCTIONS="true"
+          DEPLOY_API_FUNCTIONS="true"
+          DEPLOY_BATCH_FUNCTIONS="true"
           DEPLOY_DATABASE="true"
+          
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            # Manual dispatch: use input parameters
             if [[ "${{ github.event.inputs.skip_infra }}" == "true" ]]; then
               DEPLOY_INFRA="false"
             fi
-            if [[ "${{ github.event.inputs.skip_functions }}" == "true" ]]; then
-              DEPLOY_FUNCTIONS="false"
+            if [[ "${{ github.event.inputs.skip_api_functions }}" == "true" ]]; then
+              DEPLOY_API_FUNCTIONS="false"
+            fi
+            if [[ "${{ github.event.inputs.skip_batch_functions }}" == "true" ]]; then
+              DEPLOY_BATCH_FUNCTIONS="false"
             fi
             if [[ "${{ github.event.inputs.skip_database }}" == "true" ]]; then
               DEPLOY_DATABASE="false"
+            fi
+          else
+            # Automatic push: deploy based on changed files
+            DEPLOY_INFRA="${{ steps.changes.outputs.infra }}"
+            DEPLOY_DATABASE="${{ steps.changes.outputs.database }}"
+            
+            # Deploy API if API or shared components changed
+            if [[ "${{ steps.changes.outputs.api }}" == "true" ]] || [[ "${{ steps.changes.outputs.shared }}" == "true" ]]; then
+              DEPLOY_API_FUNCTIONS="true"
+            else
+              DEPLOY_API_FUNCTIONS="false"
+            fi
+            
+            # Deploy Batch if Batch or shared components changed
+            if [[ "${{ steps.changes.outputs.batch }}" == "true" ]] || [[ "${{ steps.changes.outputs.shared }}" == "true" ]]; then
+              DEPLOY_BATCH_FUNCTIONS="true"
+            else
+              DEPLOY_BATCH_FUNCTIONS="false"
+            fi
+            
+            # For tagged releases, always deploy everything
+            if [[ "$IS_SEMANTIC_VERSION" == "true" ]]; then
+              DEPLOY_INFRA="true"
+              DEPLOY_API_FUNCTIONS="true"
+              DEPLOY_BATCH_FUNCTIONS="true"
+              DEPLOY_DATABASE="true"
             fi
           fi
           
@@ -109,14 +168,25 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "is_semantic_version=$IS_SEMANTIC_VERSION" >> $GITHUB_OUTPUT
           echo "deploy_infra=$DEPLOY_INFRA" >> $GITHUB_OUTPUT
-          echo "deploy_functions=$DEPLOY_FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "deploy_api_functions=$DEPLOY_API_FUNCTIONS" >> $GITHUB_OUTPUT
+          echo "deploy_batch_functions=$DEPLOY_BATCH_FUNCTIONS" >> $GITHUB_OUTPUT
           echo "deploy_database=$DEPLOY_DATABASE" >> $GITHUB_OUTPUT
           
           echo "🎯 Target Environment: $ENVIRONMENT"
           echo "📦 Version: ${VERSION:-untagged}"
           echo "🏗️  Deploy Infrastructure: $DEPLOY_INFRA"
-          echo "⚡ Deploy Functions: $DEPLOY_FUNCTIONS"
+          echo "⚡ Deploy API Functions: $DEPLOY_API_FUNCTIONS"
+          echo "🔄 Deploy Batch Functions: $DEPLOY_BATCH_FUNCTIONS"
           echo "🗄️  Deploy Database: $DEPLOY_DATABASE"
+          
+          if [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
+            echo "📁 Changed Components:"
+            echo "  - Infrastructure: ${{ steps.changes.outputs.infra }}"
+            echo "  - API: ${{ steps.changes.outputs.api }}"
+            echo "  - Batch: ${{ steps.changes.outputs.batch }}"
+            echo "  - Database: ${{ steps.changes.outputs.database }}"
+            echo "  - Shared: ${{ steps.changes.outputs.shared }}"
+          fi
 
   # Validate Bicep templates
   validate-bicep:
@@ -373,7 +443,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-environment, deploy-infrastructure, initialize-database]
     if: |
-      needs.determine-environment.outputs.deploy_functions == 'true' &&
+      needs.determine-environment.outputs.deploy_api_functions == 'true' &&
       github.event.inputs.dry_run != 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
@@ -418,7 +488,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [determine-environment, deploy-infrastructure, initialize-database]
     if: |
-      needs.determine-environment.outputs.deploy_functions == 'true' &&
+      needs.determine-environment.outputs.deploy_batch_functions == 'true' &&
       github.event.inputs.dry_run != 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
