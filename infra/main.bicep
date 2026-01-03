@@ -330,6 +330,12 @@ output apiFunctionAppHostname string = containerApps.outputs.apiContainerAppUrl
 output batchFunctionAppId string = containerApps.outputs.batchContainerAppId
 output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
 output batchFunctionAppHostname string = ''
+// New Container Apps specific outputs for CI/CD
+output apiContainerAppId string = containerApps.outputs.apiContainerAppId
+output apiContainerAppName string = containerApps.outputs.apiContainerAppName
+output apiContainerAppUrl string = containerApps.outputs.apiContainerAppUrl
+output batchContainerAppId string = containerApps.outputs.batchContainerAppId
+output batchContainerAppName string = containerApps.outputs.batchContainerAppName
 output appInsightsConnectionString string = monitoringBase.outputs.appInsightsConnectionString
 
 // Monitoring outputs

@@ -247,8 +247,8 @@ jobs:
       url: https://portal.azure.com/#@/browse/resourcegroups
     outputs:
       resource_group: ${{ steps.deploy.outputs.resourceGroupName }}
-      api_function_name: ${{ steps.deploy.outputs.apiFunctionAppName }}
-      batch_function_name: ${{ steps.deploy.outputs.batchFunctionAppName }}
+      api_container_app_name: ${{ steps.deploy.outputs.apiContainerAppName }}
+      batch_container_app_name: ${{ steps.deploy.outputs.batchContainerAppName }}
       postgres_server: ${{ steps.deploy.outputs.postgresServerName }}
     steps:
       - name: Checkout code
@@ -310,8 +310,8 @@ jobs:
           
           # Extract outputs for other jobs
           RESOURCE_GROUP=$(jq -r '.resourceGroupName.value' deployment_outputs.json)
-          API_FUNCTION_NAME=$(jq -r '.apiFunctionAppName.value' deployment_outputs.json)
-          BATCH_FUNCTION_NAME=$(jq -r '.batchFunctionAppName.value' deployment_outputs.json)
+          API_CONTAINER_APP_NAME=$(jq -r '.apiContainerAppName.value' deployment_outputs.json)
+          BATCH_CONTAINER_APP_NAME=$(jq -r '.batchContainerAppName.value' deployment_outputs.json)
           POSTGRES_SERVER=$(jq -r '.postgresServerName.value' deployment_outputs.json)
           APP_INSIGHTS_NAME=$(jq -r '.appInsightsName.value // "N/A"' deployment_outputs.json)
           APP_INSIGHTS_ID=$(jq -r '.appInsightsId.value // "N/A"' deployment_outputs.json)
@@ -319,8 +319,8 @@ jobs:
           ACTION_GROUP_NAME=$(jq -r '.actionGroupName.value // "N/A"' deployment_outputs.json)
           
           echo "resourceGroupName=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
-          echo "apiFunctionAppName=$API_FUNCTION_NAME" >> $GITHUB_OUTPUT
-          echo "batchFunctionAppName=$BATCH_FUNCTION_NAME" >> $GITHUB_OUTPUT
+          echo "apiContainerAppName=$API_CONTAINER_APP_NAME" >> $GITHUB_OUTPUT
+          echo "batchContainerAppName=$BATCH_CONTAINER_APP_NAME" >> $GITHUB_OUTPUT
           echo "postgresServerName=$POSTGRES_SERVER" >> $GITHUB_OUTPUT
           echo "appInsightsName=$APP_INSIGHTS_NAME" >> $GITHUB_OUTPUT
           echo "appInsightsId=$APP_INSIGHTS_ID" >> $GITHUB_OUTPUT
@@ -515,7 +515,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
           cache-dependency-path: src/front/package-lock.json
 
@@ -523,7 +523,7 @@ jobs:
         run: |
           echo "📦 Installing frontend dependencies..."
           cd src/front
-          npm ci
+          npm install
           echo "✅ Dependencies installed"
 
       - name: Build Angular app
