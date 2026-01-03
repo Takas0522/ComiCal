@@ -391,22 +391,24 @@ jobs:
       - name: Build database connection string
         id: db_connection
         run: |
-          # Reconstruct PostgreSQL server name using project naming convention
-          # Pattern: psql-{projectName}-{envShort}-{locationShort}
-          PROJECT_NAME="comical"
-          ENV_SHORT="d"  # dev -> d
-          LOCATION_SHORT="eu2"  # eastus2 -> eu2
-          POSTGRES_SERVER="psql-${PROJECT_NAME}-${ENV_SHORT}-${LOCATION_SHORT}"
+          # Use PostgreSQL server name from infrastructure deployment
+          POSTGRES_SERVER="${{ needs.deploy-infrastructure.outputs.postgres_server }}"
+          RESOURCE_GROUP="${{ needs.deploy-infrastructure.outputs.resource_group }}"
           
+          # Get PostgreSQL server details
+          DB_HOST="${POSTGRES_SERVER}.postgres.database.azure.com"
           DB_NAME="comical"
           DB_USER="comical_admin"
-          DB_HOST="${POSTGRES_SERVER}.postgres.database.azure.com"
           
+          echo "postgres_server=$POSTGRES_SERVER" >> $GITHUB_OUTPUT
+          echo "resource_group=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
           echo "db_host=$DB_HOST" >> $GITHUB_OUTPUT
           echo "db_name=$DB_NAME" >> $GITHUB_OUTPUT
           echo "db_user=$DB_USER" >> $GITHUB_OUTPUT
           
           echo "🔗 Database connection configured:"
+          echo "  PostgreSQL Server: $POSTGRES_SERVER"
+          echo "  Resource Group: $RESOURCE_GROUP"
           echo "  Host: $DB_HOST"
           echo "  Database: $DB_NAME"
           echo "  User: $DB_USER"
@@ -418,13 +420,16 @@ jobs:
           RUNNER_IP=$(curl -s https://checkip.amazonaws.com || curl -s https://ipv4.icanhazip.com)
           echo "Runner IP: $RUNNER_IP"
           
-          # Resource group name following project naming convention: rg-{project}-{env}-{location}
-          RESOURCE_GROUP="rg-comical-d-eu2"
+          RESOURCE_GROUP="${{ steps.db_connection.outputs.resource_group }}"
+          POSTGRES_SERVER="${{ steps.db_connection.outputs.postgres_server }}"
+          
+          echo "Using Resource Group: $RESOURCE_GROUP"
+          echo "Using PostgreSQL Server: $POSTGRES_SERVER"
           
           # Add firewall rule for the runner IP
           az postgres flexible-server firewall-rule create \
             --resource-group $RESOURCE_GROUP \
-            --name psql-comical-d-eu2 \
+            --name $POSTGRES_SERVER \
             --rule-name "AllowGitHubRunner" \
             --start-ip-address $RUNNER_IP \
             --end-ip-address $RUNNER_IP
@@ -463,13 +468,14 @@ jobs:
         if: always()  # Run even if previous steps failed
         run: |
           echo "🧹 Removing GitHub Runner IP from PostgreSQL firewall..."
-          # Resource group name following project naming convention: rg-{project}-{env}-{location}
-          RESOURCE_GROUP="rg-comical-d-eu2"
+          
+          RESOURCE_GROUP="${{ steps.db_connection.outputs.resource_group }}"
+          POSTGRES_SERVER="${{ steps.db_connection.outputs.postgres_server }}"
           
           # Remove the temporary firewall rule
           az postgres flexible-server firewall-rule delete \
             --resource-group $RESOURCE_GROUP \
-            --name psql-comical-d-eu2 \
+            --name $POSTGRES_SERVER \
             --rule-name "AllowGitHubRunner" \
             --yes || true  # Don't fail if rule doesn't exist
           
