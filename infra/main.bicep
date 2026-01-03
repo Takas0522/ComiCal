@@ -59,8 +59,8 @@ param githubToken string = ''
 @description('GitHub repository URL for Static Web Apps')
 param repositoryUrl string = 'https://github.com/Takas0522/ComiCal'
 
-@description('Current UTC timestamp for unique deployment naming')
-param utcNow string = utcNow()
+@description('Current UTC timestamp for unique deployment naming') 
+param timestamp string = utcNow()
 
 @description('GitHub repository branch for Static Web Apps')
 param repositoryBranch string = 'main'
@@ -95,7 +95,7 @@ var versionTag = isSemanticVersion ? gitTag : ''
 var resourceGroupName = 'rg-${projectName}-${envShort}-${locationShort}'
 
 // Unique deployment suffix to avoid deployment name conflicts
-var deploymentSuffix = uniqueString(subscription().subscriptionId, resourceGroupName, utcNow)
+var deploymentSuffix = uniqueString(subscription().subscriptionId, resourceGroupName, timestamp)
 
 // Common tags including semantic version if available
 var commonTags = union(tags, {
