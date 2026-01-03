@@ -418,9 +418,12 @@ jobs:
           RUNNER_IP=$(curl -s https://checkip.amazonaws.com || curl -s https://ipv4.icanhazip.com)
           echo "Runner IP: $RUNNER_IP"
           
+          # Resource group name following project naming convention: rg-{project}-{env}-{location}
+          RESOURCE_GROUP="rg-comical-d-eu2"
+          
           # Add firewall rule for the runner IP
           az postgres flexible-server firewall-rule create \
-            --resource-group ${{ needs.deploy-infrastructure.outputs.resource_group }} \
+            --resource-group $RESOURCE_GROUP \
             --name psql-comical-d-eu2 \
             --rule-name "AllowGitHubRunner" \
             --start-ip-address $RUNNER_IP \
@@ -483,9 +486,12 @@ jobs:
         if: always()  # Run even if previous steps failed
         run: |
           echo "🧹 Removing GitHub Runner IP from PostgreSQL firewall..."
+          # Resource group name following project naming convention: rg-{project}-{env}-{location}
+          RESOURCE_GROUP="rg-comical-d-eu2"
+          
           # Remove the temporary firewall rule
           az postgres flexible-server firewall-rule delete \
-            --resource-group ${{ needs.deploy-infrastructure.outputs.resource_group }} \
+            --resource-group $RESOURCE_GROUP \
             --name psql-comical-d-eu2 \
             --rule-name "AllowGitHubRunner" \
             --yes || true  # Don't fail if rule doesn't exist
