@@ -2,12 +2,13 @@ name: DatabaseDeploy
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - database/**
-      - .github/workflows/database-deploy.yml
+  # Disabled to prevent conflicts with deploy.yml
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - database/**
+  #     - .github/workflows/database-deploy.yml
 
 permissions:
   id-token: write

@@ -19,15 +19,16 @@ on:
         required: false
         type: boolean
         default: false
-  push:
-    branches:
-      - main
-      - feature/gen-iac
-    paths:
-      - 'infra/**'
-      - '.github/workflows/infra-deploy.yml'
-    tags:
-      - 'v*.*.*'
+  # Disabled to prevent conflicts with deploy.yml
+  # push:
+  #   branches:
+  #     - main
+  #     - feature/gen-iac
+  #   paths:
+  #     - 'infra/**'
+  #     - '.github/workflows/infra-deploy.yml'
+  #   tags:
+  #     - 'v*.*.*'
 
 permissions:
   id-token: write
