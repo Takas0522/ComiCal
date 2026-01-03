@@ -391,7 +391,13 @@ jobs:
       - name: Build database connection string
         id: db_connection
         run: |
-          POSTGRES_SERVER="${{ needs.deploy-infrastructure.outputs.postgres_server }}"
+          # Reconstruct PostgreSQL server name using project naming convention
+          # Pattern: psql-{projectName}-{envShort}-{locationShort}
+          PROJECT_NAME="comical"
+          ENV_SHORT="d"  # dev -> d
+          LOCATION_SHORT="jpe"  # japaneast -> jpe
+          POSTGRES_SERVER="psql-${PROJECT_NAME}-${ENV_SHORT}-${LOCATION_SHORT}"
+          
           DB_NAME="comical"
           DB_USER="comical_admin"
           DB_HOST="${POSTGRES_SERVER}.postgres.database.azure.com"
