@@ -594,9 +594,8 @@ jobs:
           action: "upload"
           app_location: "src/front/dist/front/browser"
           api_location: "src/ComiCal.Server/Comical.Api"
-          output_location: ""
-          skip_app_build: true  # We already built the app
-          skip_api_build: false  # Let Oryx build the .NET Isolated Worker API
+          output_location: ''
+          skip_app_build: true
 
       - name: Display frontend deployment summary
         run: |
