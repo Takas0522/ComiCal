@@ -586,6 +586,18 @@ jobs:
           echo "✅ Build complete"
           echo "📁 Build output location: dist/front/browser"
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Build .NET API
+        run: |
+          echo "🔨 Building .NET API..."
+          cd src/ComiCal.Server/Comical.Api
+          dotnet publish -c Release -o published
+          echo "✅ API build complete"
+
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -593,9 +605,10 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "src/front/dist/front/browser"
-          api_location: "src/ComiCal.Server/Comical.Api"
+          api_location: "src/ComiCal.Server/Comical.Api/published"
           output_location: ''
           skip_app_build: true
+          skip_api_build: true  # Use pre-built API to avoid deployment timeout
 
       - name: Display frontend deployment summary
         run: |
