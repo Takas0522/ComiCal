@@ -174,7 +174,8 @@ module monitoringBase 'modules/monitoring.bicep' = {
   }
 }
 
-// Container Apps deployment (VMクォータ制限のためFunction Appsから変更)
+// Container Apps deployment for Batch processing
+// Note: Web API is deployed as Static Web Apps Managed Functions
 module containerApps 'modules/container-apps.bicep' = {
   name: 'container-apps-deployment-${deploymentSuffix}'
   scope: resourceGroup
@@ -220,7 +221,7 @@ module securityRbac 'modules/security.bicep' = if (!skipRbacAssignments) {
     postgresAdminUsername: postgresAdminUsername
     postgresAdminPassword: postgresAdminPassword
     rakutenApiKey: rakutenApiKey
-    apiFunctionAppPrincipalId: containerApps.outputs.apiContainerAppPrincipalId
+    apiFunctionAppPrincipalId: '' // API is deployed as Static Web Apps Managed Functions
     batchFunctionAppPrincipalId: containerApps.outputs.batchContainerAppPrincipalId
     dataRegistrationJobPrincipalId: containerJobs.outputs.dataRegistrationJobPrincipalId
     imageDownloadJobPrincipalId: containerJobs.outputs.imageDownloadJobPrincipalId
@@ -239,7 +240,7 @@ module monitoringAlerts 'modules/monitoring.bicep' = {
     location: location
     projectName: projectName
     alertEmailAddresses: alertEmailAddresses
-    apiContainerAppId: containerApps.outputs.apiContainerAppId
+    apiContainerAppId: '' // API is deployed as Static Web Apps Managed Functions
     batchContainerAppId: containerApps.outputs.batchContainerAppId
     postgresServerId: database.outputs.postgresServerId
     tags: commonTags
@@ -254,7 +255,7 @@ module costOptimization 'modules/cost-optimization.bicep' = if (!skipRbacAssignm
     environmentName: environmentName
     location: location
     projectName: projectName
-    apiFunctionAppId: containerApps.outputs.apiContainerAppId
+    apiFunctionAppId: '' // API is deployed as Static Web Apps Managed Functions
     batchFunctionAppId: containerApps.outputs.batchContainerAppId
     tags: commonTags
   }
@@ -284,7 +285,7 @@ module staticWebApp 'modules/staticwebapp.bicep' = {
     repositoryUrl: repositoryUrl
     repositoryBranch: repositoryBranch
     repositoryToken: githubToken
-    apiBackendUrl: containerApps.outputs.apiContainerAppUrl
+    apiBackendUrl: '' // Using Static Web Apps integrated Managed Functions
     sku: environmentName == 'prod' ? 'Standard' : 'Free'
     tags: commonTags
   }
@@ -313,17 +314,15 @@ output storageAccountId string = storage.outputs.storageAccountId
 output storageAccountName string = storage.outputs.storageAccountName
 output storageAccountBlobEndpoint string = storage.outputs.storageAccountBlobEndpoint
 
-// Container Apps outputs (essential for CI)
-output apiContainerAppId string = containerApps.outputs.apiContainerAppId
-output apiContainerAppName string = containerApps.outputs.apiContainerAppName
-output apiContainerAppUrl string = containerApps.outputs.apiContainerAppUrl
+// Batch Container App outputs (essential for CI)
 output batchContainerAppId string = containerApps.outputs.batchContainerAppId
 output batchContainerAppName string = containerApps.outputs.batchContainerAppName
 
-// Legacy compatibility (needed for CI)
-output apiFunctionAppId string = containerApps.outputs.apiContainerAppId
-output apiFunctionAppName string = containerApps.outputs.apiContainerAppName
-output apiFunctionAppHostname string = containerApps.outputs.apiContainerAppUrl
+// Legacy compatibility outputs for CI (API is now Static Web Apps Managed Functions)
+// These outputs provide placeholder values for backward compatibility
+output apiFunctionAppId string = staticWebApp.outputs.staticWebAppId
+output apiFunctionAppName string = staticWebApp.outputs.staticWebAppName
+output apiFunctionAppHostname string = staticWebApp.outputs.staticWebAppDefaultHostname
 output batchFunctionAppId string = containerApps.outputs.batchContainerAppId
 output batchFunctionAppName string = containerApps.outputs.batchContainerAppName
 

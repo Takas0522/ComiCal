@@ -1,5 +1,6 @@
-// Container Apps Module (Alternative to Function Apps for quota-limited subscriptions)
-// This module creates Container Apps as an alternative when VM quotas are exhausted
+// Container Apps Module for Batch Processing
+// This module creates Container Apps for batch processing workloads
+// Note: Web API is deployed as Static Web Apps Managed Functions
 
 @description('Environment name (dev, prod)')
 @allowed([
@@ -46,7 +47,6 @@ var locationAbbreviation = {
 var locationShort = locationAbbreviation[location]
 
 // Container App Naming: ca-{project}-{resource}-{env}-{location}
-var apiContainerAppName = 'ca-${projectName}-api-${environmentName}-${locationShort}'
 var batchContainerAppName = 'ca-${projectName}-batch-${environmentName}-${locationShort}'
 
 // Container Apps Environment Naming: cae-{project}-{env}-{location}
@@ -93,77 +93,7 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2023-01-01' existing 
 
 var storageAccountConnectionString = 'DefaultEndpointsProtocol=https;AccountName=${storageAccountName};AccountKey=${storageAccount.listKeys().keys[0].value};EndpointSuffix=${environment().suffixes.storage}'
 
-// API Container App
-resource apiContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
-  name: apiContainerAppName
-  location: location
-  tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    managedEnvironmentId: containerAppsEnvironment.id
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 8080
-        traffic: [
-          {
-            weight: 100
-            latestRevision: true
-          }
-        ]
-      }
-      secrets: [
-        {
-          name: 'storage-connection-string'
-          value: storageAccountConnectionString
-        }
-        {
-          name: 'appinsights-connection-string'
-          value: !empty(appInsightsConnectionString) ? appInsightsConnectionString : 'placeholder'
-        }
-      ]
-    }
-    template: {
-      containers: [
-        {
-          image: 'mcr.microsoft.com/dotnet/aspnet:8.0'
-          name: 'api'
-          resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
-          }
-          env: [
-            {
-              name: 'AzureWebJobsStorage'
-              secretRef: 'storage-connection-string'
-            }
-            {
-              name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-              secretRef: 'appinsights-connection-string'
-            }
-            {
-              name: 'DefaultConnection'
-              value: postgresConnectionStringSecretUri
-            }
-            {
-              name: 'RAKUTEN_API_KEY'
-              value: rakutenApiKeySecretUri
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: environmentName == 'dev' ? 0 : 1
-        maxReplicas: environmentName == 'dev' ? 2 : 10
-      }
-    }
-  }
-}
-
-// Batch Container App (シンプル化 - HTTPトリガーで手動実行可能)
+// Batch Container App (HTTPトリガーで手動実行可能)
 resource batchContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: batchContainerAppName
   location: location
@@ -236,10 +166,6 @@ resource batchContainerApp 'Microsoft.App/containerApps@2024-03-01' = {
 // Outputs
 output containerAppsEnvironmentId string = containerAppsEnvironment.id
 output containerAppsEnvironmentName string = containerAppsEnvironment.name
-output apiContainerAppId string = apiContainerApp.id
-output apiContainerAppName string = apiContainerApp.name
-output apiContainerAppUrl string = 'https://${apiContainerApp.properties.configuration.ingress.fqdn}'
-output apiContainerAppPrincipalId string = apiContainerApp.identity.principalId
 output batchContainerAppId string = batchContainerApp.id
 output batchContainerAppName string = batchContainerApp.name
 output batchContainerAppPrincipalId string = batchContainerApp.identity.principalId

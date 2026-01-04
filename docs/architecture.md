@@ -1,20 +1,33 @@
 # アーキテクチャ概要
 
-本リポジトリは、Angular フロントエンド + Azure Functions（API/Batch）+ PostgreSQL + Blob Storage で構成されています。
+本リポジトリは、Angular フロントエンド + Static Web Apps Managed Functions（API）+ Container Apps（Batch）+ PostgreSQL + Blob Storage で構成されています。
 
 ## 構成要素（概観）
 
 ```mermaid
 flowchart LR
-  FE((Frontend\nAngular)) -->|HTTPS| API((API Layer\nAzure Functions))
+  FE((Frontend\nAngular\nStatic Web App)) -->|HTTPS| API((API Layer\nManaged Functions))
   FE -->|画像取得| BLOB((Blob Storage\ncontainer: images))
 
   API -->|Read| PG((PostgreSQL))
 
-  BATCH((Batch Layer\nDurable Functions)) -->|Fetch| RAKUTEN((Rakuten Books API))
+  BATCH((Batch Layer\nContainer Apps)) -->|Fetch| RAKUTEN((Rakuten Books API))
   BATCH -->|Upsert| PG
   BATCH -->|Upload| BLOB
 ```
+
+## デプロイメント構成
+
+### API Layer
+- **Azure Static Web Apps Managed Functions** として実装
+- フロントエンドと同じStatic Web Appsリソースに統合
+- Azure Functions (Isolated Worker) として開発
+- `/api/*` エンドポイントで公開
+
+### Batch Layer  
+- **Azure Container Apps** として実装
+- 定期的なバッチ処理と手動実行に対応
+- Container Jobsによるスケジュール実行
 
 ## 主要データフロー
 
