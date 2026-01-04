@@ -429,7 +429,7 @@ jobs:
           # Get PostgreSQL server details
           DB_HOST="${POSTGRES_SERVER}.postgres.database.azure.com"
           DB_NAME="comical"
-          DB_USER="comical_admin"
+          DB_USER="psqladmin"
           
           echo "postgres_server=$POSTGRES_SERVER" >> $GITHUB_OUTPUT
           echo "resource_group=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
