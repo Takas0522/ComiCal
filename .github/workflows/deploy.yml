@@ -247,7 +247,6 @@ jobs:
       url: https://portal.azure.com/#@/browse/resourcegroups
     outputs:
       resource_group: ${{ steps.deploy.outputs.resourceGroupName }}
-      api_container_app_name: ${{ steps.deploy.outputs.apiContainerAppName }}
       batch_container_app_name: ${{ steps.deploy.outputs.batchContainerAppName }}
       postgres_server: ${{ steps.deploy.outputs.postgresServerName }}
     steps:
@@ -310,7 +309,6 @@ jobs:
           
           # Extract outputs for other jobs
           RESOURCE_GROUP=$(jq -r '.resourceGroupName.value' deployment_outputs.json)
-          API_CONTAINER_APP_NAME=$(jq -r '.apiContainerAppName.value' deployment_outputs.json)
           BATCH_CONTAINER_APP_NAME=$(jq -r '.batchContainerAppName.value' deployment_outputs.json)
           POSTGRES_SERVER=$(jq -r '.postgresServerName.value' deployment_outputs.json)
           APP_INSIGHTS_NAME=$(jq -r '.appInsightsName.value // "N/A"' deployment_outputs.json)
@@ -319,7 +317,6 @@ jobs:
           ACTION_GROUP_NAME=$(jq -r '.actionGroupName.value // "N/A"' deployment_outputs.json)
           
           echo "resourceGroupName=$RESOURCE_GROUP" >> $GITHUB_OUTPUT
-          echo "apiContainerAppName=$API_CONTAINER_APP_NAME" >> $GITHUB_OUTPUT
           echo "batchContainerAppName=$BATCH_CONTAINER_APP_NAME" >> $GITHUB_OUTPUT
           echo "postgresServerName=$POSTGRES_SERVER" >> $GITHUB_OUTPUT
           echo "appInsightsName=$APP_INSIGHTS_NAME" >> $GITHUB_OUTPUT
@@ -512,42 +509,6 @@ jobs:
           
           echo "✅ Firewall rule cleanup completed"
 
-  # Build and deploy API Functions
-  deploy-api-functions:
-    name: Deploy API Container Apps to ${{ needs.determine-environment.outputs.environment }}
-    runs-on: ubuntu-latest
-    needs: [determine-environment, deploy-infrastructure, initialize-database]
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.determine-environment.result == 'success' &&
-      (needs.deploy-infrastructure.result == 'success' || needs.deploy-infrastructure.result == 'skipped') &&
-      (needs.initialize-database.result == 'success' || needs.initialize-database.result == 'skipped') &&
-      needs.determine-environment.outputs.deploy_api_functions == 'true' &&
-      github.event.inputs.dry_run != 'true'
-    environment:
-      name: ${{ needs.determine-environment.outputs.environment }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Container Apps API deployment placeholder
-        run: |
-          echo "🚀 Container Apps API deployment..."
-          echo "ℹ️  API is deployed via Container Apps infrastructure"
-          echo "ℹ️  No additional deployment steps required for Container Apps"
-          echo "✅ Container Apps API deployment complete"
-          
-          # NOTE: If you need to add actual deployment steps in the future:
-          # 1. Get resource names from outputs (if available) or construct from naming convention
-          # 2. Example pattern used in initialize-database job:
-          #    RESOURCE_NAME="${{ needs.deploy-infrastructure.outputs.resource_name }}"
-          #    if [[ -z "$RESOURCE_NAME" ]]; then
-          #      # Construct from naming convention
-          #      ENV="${{ needs.determine-environment.outputs.environment }}"
-          #      RESOURCE_NAME="ca-comical-${ENV:0:1}-eu2"  # Container App naming
-          #    fi
-
   # Build and deploy Batch Functions
   deploy-batch-functions:
     name: Deploy Batch Container Apps to ${{ needs.determine-environment.outputs.environment }}
@@ -594,7 +555,7 @@ jobs:
       !cancelled() &&
       needs.determine-environment.result == 'success' &&
       (needs.deploy-infrastructure.result == 'success' || needs.deploy-infrastructure.result == 'skipped') &&
-      needs.determine-environment.outputs.deploy_frontend == 'true' &&
+      (needs.determine-environment.outputs.deploy_frontend == 'true' || needs.determine-environment.outputs.deploy_api_functions == 'true) &&
       github.event.inputs.dry_run != 'true'
     environment:
       name: ${{ needs.determine-environment.outputs.environment }}
