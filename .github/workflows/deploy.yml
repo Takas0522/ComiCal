@@ -57,7 +57,7 @@ permissions:
 
 env:
   AZURE_LOCATION: eastus2
-  DOTNET_VERSION: '10'
+  DOTNET_VERSION: '8.0'
 
 jobs:
   # Determine environment based on semantic versioning tag
