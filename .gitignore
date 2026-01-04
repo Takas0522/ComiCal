@@ -27,3 +27,4 @@ yarn-error.log*
 # Bicep build artifacts
 infra/**/*.json
 !infra/**/*.bicepparam
+src/ComiCal.Server/Comical.Api/published/
