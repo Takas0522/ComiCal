@@ -537,6 +537,16 @@ jobs:
           echo "ℹ️  API is deployed via Container Apps infrastructure"
           echo "ℹ️  No additional deployment steps required for Container Apps"
           echo "✅ Container Apps API deployment complete"
+          
+          # NOTE: If you need to add actual deployment steps in the future:
+          # 1. Get resource names from outputs (if available) or construct from naming convention
+          # 2. Example pattern used in initialize-database job:
+          #    RESOURCE_NAME="${{ needs.deploy-infrastructure.outputs.resource_name }}"
+          #    if [[ -z "$RESOURCE_NAME" ]]; then
+          #      # Construct from naming convention
+          #      ENV="${{ needs.determine-environment.outputs.environment }}"
+          #      RESOURCE_NAME="ca-comical-${ENV:0:1}-eu2"  # Container App naming
+          #    fi
 
   # Build and deploy Batch Functions
   deploy-batch-functions:
@@ -563,6 +573,16 @@ jobs:
           echo "ℹ️  Batch is deployed via Container Apps infrastructure"
           echo "ℹ️  No additional deployment steps required for Container Apps"
           echo "✅ Container Apps Batch deployment complete"
+          
+          # NOTE: If you need to add actual deployment steps in the future:
+          # 1. Get resource names from outputs (if available) or construct from naming convention
+          # 2. Example pattern used in initialize-database job:
+          #    RESOURCE_NAME="${{ needs.deploy-infrastructure.outputs.resource_name }}"
+          #    if [[ -z "$RESOURCE_NAME" ]]; then
+          #      # Construct from naming convention
+          #      ENV="${{ needs.determine-environment.outputs.environment }}"
+          #      RESOURCE_NAME="ca-comical-batch-${ENV:0:1}-eu2"  # Container App naming
+          #    fi
 
   # Build and deploy Static Web Apps (Frontend)
   deploy-frontend:
@@ -628,7 +648,7 @@ jobs:
     name: Notify Deployment Result
     runs-on: ubuntu-latest
     needs: [determine-environment, deploy-infrastructure, initialize-database, deploy-api-functions, deploy-batch-functions, deploy-frontend]
-    if: always() && needs.determine-environment.outputs.deploy_infra == 'true'
+    if: always() && !cancelled() && needs.determine-environment.result == 'success'
     steps:
       - name: Determine deployment status
         id: status
