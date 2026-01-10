@@ -25,8 +25,14 @@ namespace Comical.Api
 
         [Function("ComicData")]
         public async Task<HttpResponseData> GetComicData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ComicData")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options", Route = "ComicData")] HttpRequestData req)
         {
+            // Handle OPTIONS requests for preflight
+            if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                return req.CreateResponse(System.Net.HttpStatusCode.OK);
+            }
+
             return await FunctionExecutionHelper.ExecuteAsync(
                 req,
                 _logger,

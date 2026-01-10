@@ -28,8 +28,14 @@ namespace Comical.Api.Functions
 
         [Function("ConfigMigrationGet")]
         public async Task<HttpResponseData> GetConfigData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "ConfigMigration")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "options", Route = "ConfigMigration")] HttpRequestData req)
         {
+            // Handle OPTIONS requests for preflight
+            if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                return req.CreateResponse(System.Net.HttpStatusCode.OK);
+            }
+
             return await FunctionExecutionHelper.ExecuteAsync(req, _logger, async () =>
             {
                 // Parse query string to get 'id' parameter
@@ -58,8 +64,14 @@ namespace Comical.Api.Functions
 
         [Function("ConfigMigrationPost")]
         public async Task<HttpResponseData> RegisterConfigData(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "ConfigMigration")] HttpRequestData req)
+            [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "ConfigMigration")] HttpRequestData req)
         {
+            // Handle OPTIONS requests for preflight
+            if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+            {
+                return req.CreateResponse(System.Net.HttpStatusCode.OK);
+            }
+
             return await FunctionExecutionHelper.ExecuteAsync(req, _logger, async () =>
             {
                 string requestBody = await new StreamReader(req.Body).ReadToEndAsync();
