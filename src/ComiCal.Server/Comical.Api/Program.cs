@@ -11,6 +11,11 @@ var builder = FunctionsApplication.CreateBuilder(args);
 
 builder.ConfigureFunctionsWebApplication();
 
+// Configure Application Insights
+builder.Services
+    .AddApplicationInsightsTelemetryWorkerService()
+    .ConfigureFunctionsApplicationInsights();
+
 var configuration = builder.Configuration;
 builder.Services.AddComicalStartupSharedConfiguration(configuration);
 builder.Services.AddSingleton<IComicRepository, ComicRepository>();
