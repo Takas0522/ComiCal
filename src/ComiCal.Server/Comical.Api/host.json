@@ -5,20 +5,8 @@
             "samplingSettings": {
                 "isEnabled": true,
                 "excludedTypes": "Request"
-            }
-        },
-        "logLevel": {
-            "Default": "Debug",
-            "Microsoft.Azure.Functions.Worker": "Debug"
-        }
-    },
-    "functionTimeout": "00:10:00",
-    "http": {
-        "routePrefix": "api"
-    },
-    "extensions": {
-        "http": {
-            "routePrefix": "api"
+            },
+            "enableLiveMetricsFilters": true
         }
     }
 }
