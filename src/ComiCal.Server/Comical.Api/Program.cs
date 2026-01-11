@@ -2,30 +2,27 @@ using Comical.Api.Repositories;
 using Comical.Api.Services;
 using ComiCal.Shared;
 using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Text.Json;
 
-var host = new HostBuilder()
-    .ConfigureFunctionsWebApplication()
-    .ConfigureServices((context, services) =>
-    {
-        // Shared configuration from ComiCal.Shared
-        services.AddComicalStartupSharedConfiguration(context.Configuration);
+var builder = FunctionsApplication.CreateBuilder(args);
 
-        // Register API-specific services
-        services.AddSingleton<IComicRepository, ComicRepository>();
-        services.AddSingleton<IComicService, ComicService>();
-        services.AddSingleton<IConfigMigrationRepository, ConfigMigrationRepository>();
-        services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
+builder.ConfigureFunctionsWebApplication();
 
-        // Configure JSON serialization options globally
-        services.Configure<JsonSerializerOptions>(options =>
-        {
-            options.PropertyNameCaseInsensitive = true;
-            options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
-        });
-    })
-    .Build();
+var configuration = builder.Configuration;
+builder.Services.AddComicalStartupSharedConfiguration(configuration);
+builder.Services.AddSingleton<IComicRepository, ComicRepository>();
+builder.Services.AddSingleton<IComicService, ComicService>();
+builder.Services.AddSingleton<IConfigMigrationRepository, ConfigMigrationRepository>();
+builder.Services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
 
-host.Run();
+// Configure JSON serialization options globally
+builder.Services.Configure<JsonSerializerOptions>(options =>
+{
+    options.PropertyNameCaseInsensitive = true;
+    options.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+});
+
+builder.Build().Run();
