@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/Azure/static-web-apps-cli/main/schema/swa-cli.config.schema.json",
+    "configuration": {
+        "swa-config": {
+            "appLocation": "front",
+            "apiLocation": "Comical.Server/Comical.Api",
+            "swaConfigLocation": ".",
+            "appBuildCommand": "npm run build",
+            "apiBuildCommand": "dotnet build"
+        }
+    }
+}

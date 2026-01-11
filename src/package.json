@@ -1,0 +1,20 @@
+{
+  "name": "src",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "build": "swa build -a front -i Comical.Server/Comical.Api -O dist -A 'npm run build' -I 'dotnet build' --verbose",
+    "start:swa": "swa start http://localhost:4200 --api-devserver-url http://localhost:7071",
+    "printconfig": "swa --print-config",
+    "init": "swa init",
+    "deploy": "swa deploy ./front --api-location ./Comical.Server/Comical.Api --verbose",
+    "print-token": "swa deploy --print-token"
+  },
+  "devDependencies": {
+    "@azure/static-web-apps-cli": "^2.0.7"
+  }
+}

@@ -7,8 +7,7 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "lint": "ng lint",
-    "start:swa": "swa start http://localhost:4200 --api-devserver-url http://localhost:7071"
+    "lint": "ng lint"
   },
   "private": true,
   "dependencies": {
