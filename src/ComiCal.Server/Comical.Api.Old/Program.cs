@@ -1,4 +1,5 @@
 using Comical.Api.Repositories;
+using Comical.Api.Services;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,5 +15,7 @@ builder.Services
 
 builder.Services.AddSingleton<IComicRepository, ComicRepository>();
 builder.Services.AddSingleton<IConfigMigrationRepository, ConfigMigrationRepository>();
+builder.Services.AddSingleton<IComicService, ComicService>();
+builder.Services.AddSingleton<IConfigMigrationService, ConfigMigrationService>();
 
 builder.Build().Run();
