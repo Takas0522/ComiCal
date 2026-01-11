@@ -605,7 +605,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           action: "upload"
           app_location: "src/front/dist/front/browser"
-          api_location: "src/Comical.Server/Comical.Api"
+          api_location: "src/ComiCal.Server/Comical.Api"
           output_location: ''
           skip_app_build: true
           skip_api_build: false

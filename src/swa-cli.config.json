@@ -3,7 +3,7 @@
     "configuration": {
         "swa-config": {
             "appLocation": "front",
-            "apiLocation": "Comical.Server/Comical.Api",
+            "apiLocation": "ComiCal.Server/Comical.Api",
             "swaConfigLocation": ".",
             "appBuildCommand": "npm run build",
             "apiBuildCommand": "dotnet build"
