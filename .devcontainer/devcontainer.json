@@ -1,0 +1,133 @@
+// ComiCal DevContainer
+// docs/init.md §12.4 と §15 のディレクトリ構成に対応
+{
+  "name": "ComiCal Dev",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    // .NET 10 SDK (Functions Isolated Worker / EF Core 10 / SSDT)
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "10.0",
+      "additionalVersions": "8.0"
+    },
+    // Node 22 LTS + pnpm (Angular v21 / SSR / Playwright)
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "22",
+      "nodeGypDependencies": true
+    },
+    // Azure CLI + Bicep
+    "ghcr.io/devcontainers/features/azure-cli:1": {
+      "installBicep": true
+    },
+    // GitHub CLI + Copilot CLI 拡張
+    "ghcr.io/devcontainers/features/github-cli:1": {
+      "version": "latest"
+    },
+    // Docker-outside-of-Docker (Testcontainers / Azurite / MSSQL コンテナ用)
+    "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
+      "moby": true,
+      "version": "latest"
+    },
+    // 共通 utilities
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": true,
+      "username": "vscode"
+    }
+  },
+  "forwardPorts": [
+    4200, // Angular dev server
+    4280, // Static Web Apps CLI (swa start)
+    7071, // Azure Functions API
+    7072, // Azure Functions Batch
+    10000, // Azurite Blob
+    10001, // Azurite Queue
+    10002, // Azurite Table
+    1433 // SQL Server
+  ],
+  "portsAttributes": {
+    "4200": { "label": "Angular dev" },
+    "4280": { "label": "SWA CLI" },
+    "7071": { "label": "Functions API" },
+    "7072": { "label": "Functions Batch" },
+    "1433": { "label": "MSSQL" }
+  },
+  "remoteUser": "vscode",
+  // NOTE: containerEnv では自己参照 (${containerEnv:PATH}) が展開されず、
+  // リテラル文字列として PATH に注入されてしまい bash/sleep が見つからずコンテナが
+  // 即時終了する。PATH の前置は remoteEnv で行う (VS Code 接続時に展開される)。
+  "containerEnv": {
+    "DOTNET_CLI_TELEMETRY_OPTOUT": "1",
+    "DOTNET_NOLOGO": "1",
+    "ASPNETCORE_ENVIRONMENT": "Development",
+    "PNPM_HOME": "/home/vscode/.local/share/pnpm"
+  },
+  "remoteEnv": {
+    "PATH": "/home/vscode/.local/share/pnpm:${containerEnv:PATH}"
+  },
+  "mounts": [
+    // Persist pnpm store / NuGet cache for faster rebuilds
+    "source=comical-pnpm-store,target=/home/vscode/.local/share/pnpm,type=volume",
+    "source=comical-nuget,target=/home/vscode/.nuget,type=volume"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        // .NET / C#
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        // Azure Functions / Bicep / Azure
+        "ms-azuretools.vscode-azurefunctions",
+        "ms-azuretools.vscode-bicep",
+        "ms-azuretools.vscode-azurestaticwebapps",
+        "ms-azuretools.vscode-azureresourcegroups",
+        "ms-azuretools.vscode-azurestorage",
+        // SQL / SSDT
+        "ms-mssql.mssql",
+        "ms-mssql.sql-database-projects-vscode",
+        // Angular / TypeScript / Tailwind
+        "Angular.ng-template",
+        "bradlc.vscode-tailwindcss",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        // Test
+        "Orta.vscode-jest",
+        "ms-playwright.playwright",
+        // GitHub
+        "GitHub.copilot",
+        "GitHub.copilot-chat",
+        "GitHub.vscode-pull-request-github",
+        "github.vscode-github-actions",
+        // Misc
+        "EditorConfig.EditorConfig",
+        "streetsidesoftware.code-spell-checker",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.fixAll.eslint": "explicit"
+        },
+        "[csharp]": {
+          "editor.defaultFormatter": "ms-dotnettools.csharp"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[html]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "files.exclude": {
+          "**/bin": true,
+          "**/obj": true,
+          "**/node_modules": true
+        }
+      }
+    }
+  }
+}
