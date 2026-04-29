@@ -1,0 +1,42 @@
+* text=auto eol=lf
+
+# Source code
+*.cs       text diff=csharp
+*.ts       text
+*.tsx      text
+*.js       text
+*.json     text
+*.jsonc    text
+*.yaml     text
+*.yml      text
+*.md       text
+*.html     text
+*.css      text
+*.scss     text
+*.sql      text
+*.bicep    text
+*.bicepparam text
+
+# Shell scripts must be LF
+*.sh       text eol=lf
+
+# Windows batch files must be CRLF
+*.bat      text eol=crlf
+*.cmd      text eol=crlf
+
+# Binary
+*.png      binary
+*.jpg      binary
+*.jpeg     binary
+*.gif      binary
+*.webp     binary
+*.avif     binary
+*.ico      binary
+*.dacpac   binary
+*.dll      binary
+*.exe      binary
+*.zip      binary
+
+# Linguist hints
+*.bicep    linguist-language=Bicep
+docs/**    linguist-documentation

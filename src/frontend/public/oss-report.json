@@ -1,0 +1,50 @@
+[
+  {
+    "name": "@angular/core",
+    "version": "21.2.0",
+    "license": "MIT",
+    "url": "https://github.com/angular/angular"
+  },
+  {
+    "name": "@angular/common",
+    "version": "21.2.0",
+    "license": "MIT",
+    "url": "https://github.com/angular/angular"
+  },
+  {
+    "name": "@angular/router",
+    "version": "21.2.0",
+    "license": "MIT",
+    "url": "https://github.com/angular/angular"
+  },
+  {
+    "name": "rxjs",
+    "version": "7.8.1",
+    "license": "Apache-2.0",
+    "url": "https://github.com/ReactiveX/rxjs"
+  },
+  {
+    "name": "tailwindcss",
+    "version": "4.0.0",
+    "license": "MIT",
+    "url": "https://github.com/tailwindlabs/tailwindcss"
+  },
+  {
+    "name": "tslib",
+    "version": "2.6.3",
+    "license": "0BSD",
+    "url": "https://github.com/microsoft/tslib"
+  },
+  {
+    "name": "express",
+    "version": "5.1.0",
+    "license": "MIT",
+    "url": "https://github.com/expressjs/express"
+  },
+  {
+    "name": "zod",
+    "version": "3.23.8",
+    "license": "MIT",
+    "url": "https://github.com/colinhacks/zod"
+  }
+]

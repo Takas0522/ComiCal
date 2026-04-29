@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <IncludeCompositeObjects>True</IncludeCompositeObjects>
+    <BlockOnPossibleDataLoss>True</BlockOnPossibleDataLoss>
+    <DropObjectsNotInSource>False</DropObjectsNotInSource>
+    <GenerateSmartDefaults>True</GenerateSmartDefaults>
+    <TreatVerificationErrorsAsWarnings>False</TreatVerificationErrorsAsWarnings>
+    <CreateNewDatabase>False</CreateNewDatabase>
+    <BackupDatabaseBeforeChanges>False</BackupDatabaseBeforeChanges>
+    <ScriptDatabaseOptions>True</ScriptDatabaseOptions>
+    <CommandTimeout>180</CommandTimeout>
+  </PropertyGroup>
+  <ItemGroup>
+    <SqlCmdVariable Include="SeedDev">
+      <Value>0</Value>
+    </SqlCmdVariable>
+    <SqlCmdVariable Include="AdminDisplayName">
+      <Value>ComiCal Admin</Value>
+    </SqlCmdVariable>
+  </ItemGroup>
+</Project>

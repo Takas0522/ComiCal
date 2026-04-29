@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json.schemastore.org/staticwebapp.config.json",
+  "_comment": "ComiCal SWA configuration. SWA ignores unknown top-level / nested `_comment` keys; we use them as inline JSON documentation. See docs/specs/oo-init/11-auth-session.md and 15-security.md.",
+  "platform": {
+    "apiRuntime": "dotnet-isolated:10.0"
+  },
+  "trailingSlash": "auto",
+  "navigationFallback": {
+    "_comment": "SSR / SPA fallback: serve index.html for client-routed paths but never intercept API, auth, or static asset requests.",
+    "rewrite": "/index.html",
+    "exclude": [
+      "/_app/*",
+      "/assets/*",
+      "/api/*",
+      "/.auth/*",
+      "/*.{js,css,map,ico,png,jpg,jpeg,webp,avif,svg,woff,woff2,ttf}"
+    ]
+  },
+  "routes": [
+    {
+      "_comment": "API is callable by both anonymous (Phase 1 browse/search) and authenticated users; per-endpoint authz is enforced server-side via SwaAuthMiddleware + RequiresAuthenticatedUserAttribute.",
+      "route": "/api/*",
+      "allowedRoles": ["anonymous", "authenticated"]
+    },
+    { "_comment": "Public, anonymous-accessible routes.", "route": "/",            "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/search",        "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/series/*",      "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/volumes/*",     "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/calendar",      "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/legal/*",       "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/login",         "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/.auth/*",       "allowedRoles": ["anonymous", "authenticated"] },
+    {
+      "_comment": "Long-lived cache for hashed JS/CSS/font/image bundles emitted by Angular `outputHashing: all`. Filenames embed a content hash so `immutable` is safe.",
+      "route": "/*.{js,css,woff,woff2,ttf,otf,eot,ico,png,jpg,jpeg,gif,webp,avif,svg,map}",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "_comment": "Authenticated-only zones (Phase 2+): account dashboard, /me/* APIs, settings.",
+      "route": "/account/*",
+      "allowedRoles": ["authenticated"]
+    },
+    { "route": "/me/*",       "allowedRoles": ["authenticated"] },
+    { "route": "/settings/*", "allowedRoles": ["authenticated"] }
+  ],
+  "responseOverrides": {
+    "_comment": "Unauthenticated / forbidden requests on guarded routes redirect to /login so the SWA Auth flow can kick in. SWA emits 302 + Location header.",
+    "401": {
+      "statusCode": 302,
+      "redirect": "/login"
+    },
+    "403": {
+      "statusCode": 302,
+      "redirect": "/login"
+    }
+  },
+  "globalHeaders": {
+    "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+    "Content-Security-Policy": "default-src 'self'; img-src 'self' https://*.blob.core.windows.net data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self' https://*.applicationinsights.azure.com https://*.in.applicationinsights.azure.com; font-src 'self' data:; frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://*.b2clogin.com https://*.ciamlogin.com",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Permissions-Policy": "camera=(), geolocation=(), microphone=(), payment=()",
+    "X-Frame-Options": "DENY"
+  },
+  "mimeTypes": {
+    ".json": "application/json",
+    ".webmanifest": "application/manifest+json"
+  },
+  "auth": {
+    "_comment": "Custom OIDC integration with Entra External ID (formerly Azure AD B2C). All registration values are *setting names* — actual values come from App Settings injected via Key Vault references (see infra/modules/app.bicep).",
+    "rolesSource": "/api/v1/auth/roles",
+    "identityProviders": {
+      "customOpenIdConnectProviders": {
+        "aadb2c": {
+          "registration": {
+            "clientIdSettingName": "AADB2C_PROVIDER_CLIENT_ID",
+            "clientCredential": {
+              "clientSecretSettingName": "AADB2C_PROVIDER_CLIENT_SECRET"
+            },
+            "openIdConnectConfiguration": {
+              "wellKnownOpenIdConfiguration": "https://${AADB2C_PROVIDER_DOMAIN}/${AADB2C_PROVIDER_TENANT_ID}/${AADB2C_PROVIDER_USER_FLOW}/v2.0/.well-known/openid-configuration"
+            }
+          },
+          "login": {
+            "nameClaimType": "name",
+            "scopes": ["openid", "offline_access"],
+            "loginParameterNames": []
+          }
+        }
+      }
+    }
+  }
+}

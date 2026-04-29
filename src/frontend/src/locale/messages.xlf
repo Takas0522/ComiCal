@@ -1,0 +1,1383 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<xliff version="1.2" xmlns="urn:oasis:names:tc:xliff:document:1.2">
+  <file source-language="ja-JP" datatype="plaintext" original="ng2.template">
+    <body>
+      <trans-unit id="common.button.loading" datatype="html">
+        <source>読み込み中</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/atoms/button/button.component.ts</context>
+          <context context-type="linenumber">20,24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="a11y.skipLink" datatype="html">
+        <source>メインコンテンツへスキップ</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/atoms/skip-link/skip-link.component.ts</context>
+          <context context-type="linenumber">13,16</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="a11y.routeAnnounce" datatype="html">
+        <source><x id="title" equiv-text="title"/>に移動しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/core/focus/focus-manager.service.ts</context>
+          <context context-type="linenumber">52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="footer.rakuten.credit" datatype="html">
+        <source> Powered by Rakuten Books </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/footer/footer.component.ts</context>
+          <context context-type="linenumber">22,24</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="footer.legal.label" datatype="html">
+        <source>法務リンク</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/footer/footer.component.ts</context>
+          <context context-type="linenumber">25</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="footer.link.privacy" datatype="html">
+        <source>プライバシーポリシー</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/footer/footer.component.ts</context>
+          <context context-type="linenumber">32,34</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="footer.link.terms" datatype="html">
+        <source>利用規約</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/footer/footer.component.ts</context>
+          <context context-type="linenumber">41,42</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="footer.link.oss" datatype="html">
+        <source>OSS ライセンス</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/footer/footer.component.ts</context>
+          <context context-type="linenumber">48,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="footer.link.ossDialog" datatype="html">
+        <source>OSS 情報を表示</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/footer/footer.component.ts</context>
+          <context context-type="linenumber">57,59</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="monthNavigator.label" datatype="html">
+        <source>月切替</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/month-navigator/month-navigator.component.ts</context>
+          <context context-type="linenumber">38</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="monthNavigator.prev" datatype="html">
+        <source>前月へ移動</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/month-navigator/month-navigator.component.ts</context>
+          <context context-type="linenumber">45</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="monthNavigator.prev.label" datatype="html">
+        <source>← 前月</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/month-navigator/month-navigator.component.ts</context>
+          <context context-type="linenumber">48,51</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="monthNavigator.current" datatype="html">
+        <source>今月に戻す</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/month-navigator/month-navigator.component.ts</context>
+          <context context-type="linenumber">55</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="monthNavigator.next" datatype="html">
+        <source>来月へ移動</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/month-navigator/month-navigator.component.ts</context>
+          <context context-type="linenumber">65</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="monthNavigator.next.label" datatype="html">
+        <source>来月 →</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/month-navigator/month-navigator.component.ts</context>
+          <context context-type="linenumber">68,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="pagination.loading" datatype="html">
+        <source>読み込み中…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/pagination-cursor/pagination-cursor.component.ts</context>
+          <context context-type="linenumber">18,20</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="pagination.loadMore" datatype="html">
+        <source>もっと見る</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/pagination-cursor/pagination-cursor.component.ts</context>
+          <context context-type="linenumber">20,22</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="searchBar.inputLabel" datatype="html">
+        <source>検索キーワード</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/search-bar/search-bar.component.ts</context>
+          <context context-type="linenumber">21,23</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="searchBar.ariaLabel" datatype="html">
+        <source>検索</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/search-bar/search-bar.component.ts</context>
+          <context context-type="linenumber">33,35</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="searchBar.submit" datatype="html">
+        <source>検索</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/search-bar/search-bar.component.ts</context>
+          <context context-type="linenumber">39,43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.theme.aria" datatype="html">
+        <source>表示テーマの切り替え</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/theme-toggle/theme-toggle.component.ts</context>
+          <context context-type="linenumber">28,30</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.theme.light" datatype="html">
+        <source>ライト</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/theme-toggle/theme-toggle.component.ts</context>
+          <context context-type="linenumber">56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.theme.dark" datatype="html">
+        <source>ダーク</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/theme-toggle/theme-toggle.component.ts</context>
+          <context context-type="linenumber">57</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.theme.system" datatype="html">
+        <source>システム</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/theme-toggle/theme-toggle.component.ts</context>
+          <context context-type="linenumber">58</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="volumeCard.noCover" datatype="html">
+        <source>表紙なし</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/molecules/volume-card/volume-card.component.ts</context>
+          <context context-type="linenumber">44,46</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="nav.primary.label" datatype="html">
+        <source>メインナビゲーション</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/header/header.component.ts</context>
+          <context context-type="linenumber">29,30</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="header.logout" datatype="html">
+        <source>ログアウト</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/header/header.component.ts</context>
+          <context context-type="linenumber">69,71</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="header.login" datatype="html">
+        <source>ログイン</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/header/header.component.ts</context>
+          <context context-type="linenumber">77,78</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="nav.calendar" datatype="html">
+        <source>カレンダー</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/header/header.component.ts</context>
+          <context context-type="linenumber">97</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.dialog.title" datatype="html">
+        <source> ローカルデータをアカウントに引き継ぎますか？ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">42,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.dialog.body" datatype="html">
+        <source> ローカルに保存された <x id="START_TAG_STRONG" ctype="x-strong" equiv-text="&lt;strong data-testid=&quot;merge-prompt-sub-count&quot;&gt;"/><x id="INTERPOLATION" equiv-text="{{ counts().subscriptions }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong" equiv-text="&lt;/strong&gt;"/> 件の登録漫画と <x id="START_TAG_STRONG_1" ctype="x-strong_1" equiv-text="&lt;strong data-testid=&quot;merge-prompt-purchase-count&quot;&gt;"/><x id="INTERPOLATION_1" equiv-text="{{ counts().purchases }}"/><x id="CLOSE_TAG_STRONG" ctype="x-strong" equiv-text="&lt;/strong&gt;"/> 件の購入履歴をアカウントに引き継ぎますか？ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">47,52</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.dialog.note" datatype="html">
+        <source> 「破棄」を選ぶとローカルデータは削除されます。「後で」は 24 時間後に再表示します。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">54,56</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.dialog.snooze" datatype="html">
+        <source>後で</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">62,63</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">66,68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.dialog.discard" datatype="html">
+        <source>破棄</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">72,73</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">76,78</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.dialog.merge" datatype="html">
+        <source>引き継ぐ</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">82,83</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">87,89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.toast.success" datatype="html">
+        <source><x id="PH" equiv-text="total"/>件を引き継ぎました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">141</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.toast.error" datatype="html">
+        <source>引き継ぎに失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">148</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="merge.toast.discarded" datatype="html">
+        <source>ローカルデータを破棄しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/merge-prompt/merge-prompt-dialog.component.ts</context>
+          <context context-type="linenumber">159</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="oss.dialog.heading" datatype="html">
+        <source> OSS ライセンス情報 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/oss-dialog/oss-dialog.component.ts</context>
+          <context context-type="linenumber">35,37</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="oss.dialog.close" datatype="html">
+        <source>閉じる</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/oss-dialog/oss-dialog.component.ts</context>
+          <context context-type="linenumber">43,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="oss.dialog.notice" datatype="html">
+        <source> ComiCal は以下の OSS を利用しています。各パッケージのライセンス全文は本リポジトリの tools/oss-report/ を参照してください。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/oss-dialog/oss-dialog.component.ts</context>
+          <context context-type="linenumber">51,53</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="oss.dialog.loading" datatype="html">
+        <source>読み込み中…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/oss-dialog/oss-dialog.component.ts</context>
+          <context context-type="linenumber">56,57</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="a11y.toast.dismiss" datatype="html">
+        <source>通知を閉じる</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/organisms/toast-container/toast-container.component.ts</context>
+          <context context-type="linenumber">43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="calendar.heading" datatype="html">
+        <source>発売カレンダー</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/calendar/calendar.page.ts</context>
+          <context context-type="linenumber">39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="calendar.empty" datatype="html">
+        <source>この期間に発売予定はありません。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/calendar/calendar.page.ts</context>
+          <context context-type="linenumber">56,57</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="home.hero.title" datatype="html">
+        <source>まんがリマインダー</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/home/home.page.ts</context>
+          <context context-type="linenumber">18,19</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="home.hero.tagline" datatype="html">
+        <source> あなたの追っているマンガの新刊を、忘れない。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/home/home.page.ts</context>
+          <context context-type="linenumber">20,22</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="home.upcoming.title" datatype="html">
+        <source> 今後の発売スケジュール (今後30日) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/home/home.page.ts</context>
+          <context context-type="linenumber">26,28</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="home.upcoming.empty" datatype="html">
+        <source>今後30日以内の発売予定はありません</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/home/home.page.ts</context>
+          <context context-type="linenumber">31,32</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="home.popular.title" datatype="html">
+        <source>人気の作品</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/home/home.page.ts</context>
+          <context context-type="linenumber">37,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="home.popular.empty" datatype="html">
+        <source>人気作品はまだ集計されていません</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/home/home.page.ts</context>
+          <context context-type="linenumber">43,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.oss.heading" datatype="html">
+        <source>OSS ライセンス</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/oss/oss.page.ts</context>
+          <context context-type="linenumber">22,25</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.oss.notice" datatype="html">
+        <source> ComiCal は以下の OSS を利用しています。各パッケージのライセンス全文は本リポジトリの tools/oss-report/ を参照してください。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/oss/oss.page.ts</context>
+          <context context-type="linenumber">31,33</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.oss.filter.label" datatype="html">
+        <source>パッケージ名で絞り込み</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/oss/oss.page.ts</context>
+          <context context-type="linenumber">36,38</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.oss.filter.placeholder" datatype="html">
+        <source>パッケージ名で絞り込み</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/oss/oss.page.ts</context>
+          <context context-type="linenumber">42,44</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.oss.loading" datatype="html">
+        <source>読み込み中…</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/oss/oss.page.ts</context>
+          <context context-type="linenumber">49,50</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.oss.empty" datatype="html">
+        <source> 該当するパッケージがありません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/oss/oss.page.ts</context>
+          <context context-type="linenumber">82,83</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.heading" datatype="html">
+        <source>プライバシーポリシー</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">12,15</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.lastUpdated.label" datatype="html">
+        <source>最終更新日</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">20,22</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.dataCollected" datatype="html">
+        <source> 1. 取得する情報 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">26,28</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.dataCollected.body" datatype="html">
+        <source> ComiCal（以下「本サービス」）は、Entra External ID から提供される一意識別子（subject）、表示名、 ユーザーが本サービス内で登録する購読・購入履歴、ならびにブラウザの Cookie / IndexedDB に保存される 設定情報を取得します。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">29,33</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.purpose" datatype="html">
+        <source> 2. 利用目的 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">37,39</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.purpose.body" datatype="html">
+        <source> 取得した情報は、発売情報の通知、購読・購入履歴の管理、サービス品質向上のための統計分析の目的でのみ 利用します。広告配信は行いません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">40,43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.thirdParty" datatype="html">
+        <source> 3. 第三者提供 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">47,49</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.thirdParty.body" datatype="html">
+        <source> 法令に基づく場合を除き、ユーザーの個人情報を第三者に提供することはありません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">50,54</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.cookie" datatype="html">
+        <source> 4. Cookie / IndexedDB </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">56,58</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.cookie.body" datatype="html">
+        <source> 認証セッションおよびユーザー設定の永続化のためにのみ Cookie / IndexedDB を使用します。 トラッキング目的の Cookie は使用しません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">59,62</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.analytics" datatype="html">
+        <source> 5. アクセス解析 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">66,68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.analytics.body" datatype="html">
+        <source> 本サービスは Azure Application Insights を用いて匿名のアクセスログ（IP アドレスはマスク化）と エラーテレメトリを収集します。個人を特定可能な情報は記録しません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">69,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.rakuten" datatype="html">
+        <source> 6. 楽天への送信 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">76,78</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.rakuten.body" datatype="html">
+        <source> 漫画の発売情報および書影は楽天 Books API から取得しています。検索クエリ等の必要最小限のパラメータが 楽天グループ株式会社のサーバへ送信されますが、ユーザー個人を特定する情報は送信しません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">79,82</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.userRights" datatype="html">
+        <source> 7. ユーザーの権利 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">86,88</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.userRights.body" datatype="html">
+        <source> ユーザーは設定画面からアカウントを削除することで、すべてのデータの削除を請求できます。 削除請求から 30 日経過後に物理削除されます。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">89,92</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.changes" datatype="html">
+        <source> 8. 改定 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">96,98</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.changes.body" datatype="html">
+        <source> 本ポリシーは予告なく改定されることがあります。重要な変更があった場合は、本サービス内で通知します。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">99,103</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.contact" datatype="html">
+        <source> 9. お問い合わせ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">105,107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.privacy.section.contact.body" datatype="html">
+        <source> 本ポリシーに関するお問い合わせは、GitHub Issues（Takas0522/ComiCal）よりお願いいたします。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/privacy/privacy.page.ts</context>
+          <context context-type="linenumber">108,111</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.heading" datatype="html">
+        <source>利用規約</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">13,15</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.lastUpdated.label" datatype="html">
+        <source>最終更新日</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">20,23</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.scope" datatype="html">
+        <source> 1. 適用範囲 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">25,27</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.scope.body" datatype="html">
+        <source> 本規約は、ComiCal（以下「本サービス」）の利用に関するすべての条件を定めるものであり、 本サービスを利用するすべてのユーザーに適用されます。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">28,31</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.account" datatype="html">
+        <source> 2. アカウント </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">35,37</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.account.body" datatype="html">
+        <source> ユーザーは Entra External ID を通じて本サービスのアカウントを作成します。アカウント情報の管理は ユーザーの責任とし、登録情報に虚偽がないものとします。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">38,41</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.prohibited" datatype="html">
+        <source> 3. 禁止事項 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">45,47</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.prohibited.body" datatype="html">
+        <source> ユーザーは、法令違反、不正アクセス、本サービスの運営妨害、リバースエンジニアリング、 自動化ツールによる過剰なリクエスト、その他社会通念上不適切な行為を行ってはなりません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">48,51</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.disclaimer" datatype="html">
+        <source> 4. 免責 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">55,57</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.disclaimer.body" datatype="html">
+        <source> 本サービスは現状有姿で提供され、発売情報の正確性・完全性については保証しません。 楽天 Books API の仕様変更や障害により情報が取得できない場合があります。 本サービスの利用に起因する損害について、運営者は一切の責任を負いません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">58,61</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.ip" datatype="html">
+        <source> 5. 知的財産 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">66,68</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.ip.body" datatype="html">
+        <source> 本サービスのソースコードは MIT License の下で公開されています。 書影および書誌情報の著作権は各出版社・著作権者に帰属します。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">69,72</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.rakuten" datatype="html">
+        <source> 6. 楽天 API 表示義務 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">76,78</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.rakuten.body" datatype="html">
+        <source> 本サービスは楽天 Books API を利用しており、楽天アフィリエイト規約に従い 「Powered by Rakuten Books」のクレジットを常時表示します。 「楽天」「Rakuten Books」は楽天グループ株式会社の商標です。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">79,82</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.changes" datatype="html">
+        <source> 7. 規約の変更 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">87,89</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.changes.body" datatype="html">
+        <source> 運営者は必要と判断した場合、本規約を変更できます。重要な変更については本サービス内で通知します。 変更後も本サービスの利用を継続した場合、変更に同意したものとみなします。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">90,93</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.law" datatype="html">
+        <source> 8. 準拠法・管轄 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">97,99</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="legal.terms.section.law.body" datatype="html">
+        <source> 本規約は日本法に準拠し、本サービスに関する一切の紛争は東京地方裁判所を第一審の専属的合意管轄裁判所とします。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/legal/terms/terms.page.ts</context>
+          <context context-type="linenumber">100,102</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="login.lede" datatype="html">
+        <source> ログインしてマンガリストを同期 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/login/login.page.ts</context>
+          <context context-type="linenumber">19,22</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="login.error" datatype="html">
+        <source> <x id="INTERPOLATION" equiv-text="{{ msg }}"/> </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/login/login.page.ts</context>
+          <context context-type="linenumber">29,31</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="login.cta.aadb2c" datatype="html">
+        <source> ログイン (Entra External ID) </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/login/login.page.ts</context>
+          <context context-type="linenumber">41,43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="login.help" datatype="html">
+        <source> ログインすると Microsoft / Google / X (Twitter) アカウントが利用できます。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/login/login.page.ts</context>
+          <context context-type="linenumber">44,46</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.heading" datatype="html">
+        <source>設定</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">92</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.section.display" datatype="html">
+        <source> 表示設定 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">105,107</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.theme.label" datatype="html">
+        <source>テーマ</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">109</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.theme.description" datatype="html">
+        <source>ライト / ダーク / システム連動を選択できます。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">110,111</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.language.label" datatype="html">
+        <source>表示言語</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">121</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.language.description" datatype="html">
+        <source>現在は日本語のみ提供しています。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">122,123</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.language.value" datatype="html">
+        <source>日本語</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">130,132</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.section.flags" datatype="html">
+        <source> 機能フラグ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">145,147</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.flags.notice" datatype="html">
+        <source> これらの設定はサーバー側で制御されており、ここから変更することはできません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">151,153</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.flag.on" datatype="html">
+        <source>有効</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">160,161</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.flag.off" datatype="html">
+        <source>無効</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">164,165</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.section.local" datatype="html">
+        <source> ローカルデータ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">182,184</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.count.label" datatype="html">
+        <source>保存件数</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">186</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.count.description" datatype="html">
+        <source>読みたい / 購入の合計件数（端末内に保存）。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">187,188</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.export.label" datatype="html">
+        <source>エクスポート</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">199</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.export.description" datatype="html">
+        <source>ローカルデータを JSON ファイルとしてダウンロードします。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">200,201</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.export.button" datatype="html">
+        <source>エクスポート</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">208,209</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">212,214</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.import.label" datatype="html">
+        <source>インポート</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">218</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.import.description" datatype="html">
+        <source>エクスポートした JSON ファイルを読み込んで結合します。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">219,220</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.import.button" datatype="html">
+        <source>インポート</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">227,229</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.label" datatype="html">
+        <source>ローカルデータをクリア</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">240,241</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.description" datatype="html">
+        <source>読みたい / 購入の記録をすべて削除します（取り消しできません）。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">242,243</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.button" datatype="html">
+        <source>ローカルデータをクリア</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">249,251</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">253,255</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.merge.label" datatype="html">
+        <source>ローカルデータを引き継ぐ</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">259,260</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.merge.description" datatype="html">
+        <source>ローカルに保存された「読みたい」「購入」をログイン中のアカウントに統合します。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">261,262</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.merge.button" datatype="html">
+        <source>アカウントに引き継ぐ</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">268,270</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">272,274</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.section.oss" datatype="html">
+        <source> OSS / ライセンス </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">289,291</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.oss.label" datatype="html">
+        <source>利用している OSS</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">292,293</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.oss.description" datatype="html">
+        <source>本アプリが利用するオープンソースソフトウェアの一覧を表示します。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">294,295</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.oss.button" datatype="html">
+        <source>OSS 情報を表示</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">301,302</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">305,307</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.section.sync" datatype="html">
+        <source> 他端末との同期 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">322,324</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.label" datatype="html">
+        <source>QR コードを表示</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">325,326</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.description" datatype="html">
+        <source>別の端末でこの QR を読み取ると、同じアカウントへの同期が完了します（5 分間有効）。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">327,328</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.button" datatype="html">
+        <source>QR コードを表示</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">334,335</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">339,340</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.section.account" datatype="html">
+        <source> アカウント </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">356,358</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.title" datatype="html">
+        <source> アカウントを削除 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">374,376</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.warning" datatype="html">
+        <source> アカウントとすべての登録漫画・購入履歴が完全に削除されます。この操作は取り消せません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">388,390</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.confirmInputLabel" datatype="html">
+        <source> 確認のため「削除」と入力してください </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">395,397</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.button" datatype="html">
+        <source>アカウントを削除する</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">410,412</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">416,418</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.login" datatype="html">
+        <source>ログインしてアカウント設定を有効化</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">431,434</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.confirm.title" datatype="html">
+        <source> ローカルデータをクリアしますか？ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">448,451</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.confirm.body" datatype="html">
+        <source> 「読みたい」「購入」の記録がすべて削除されます。この操作は取り消せません。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">453,456</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.confirm.cancel" datatype="html">
+        <source>キャンセル</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">461,462</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">464,466</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.local.clear.confirm.ok" datatype="html">
+        <source>クリアする</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">470,471</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">473,475</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.confirm.title" datatype="html">
+        <source> 本当にアカウントを削除しますか？ </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">493,496</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.confirm.body" datatype="html">
+        <source> この操作は取り消せません。すべてのデータが完全に削除され、削除後はログアウトされます。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">498,501</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.confirm.cancel" datatype="html">
+        <source>キャンセル</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">506,507</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">509,512</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.confirm.ok" datatype="html">
+        <source>削除する</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">515,516</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">520,523</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.title" datatype="html">
+        <source> QR コードで同期 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">536,538</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.body" datatype="html">
+        <source> 別の端末で以下の QR を読み取ると、同じアカウントへの同期画面が開きます。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">542,544</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.qrAlt" datatype="html">
+        <source>同期用 QR コード</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">547,548</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.tokenLabel" datatype="html">
+        <source> トークン（コピーして手入力でも可） </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">559,561</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.copy" datatype="html">
+        <source>コピー</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">574,575</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">577,579</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.expiresIn" datatype="html">
+        <source>残り</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">587,588</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.seconds" datatype="html">
+        <source>秒</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">589,591</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.loading" datatype="html">
+        <source> QR コードを生成しています… </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">598,601</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.sync.dialog.close" datatype="html">
+        <source>閉じる</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">607,608</context>
+        </context-group>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">610,612</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.confirmInputAriaLabel" datatype="html">
+        <source>確認のため「削除」と入力してください</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">650</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.export.title" datatype="html">
+        <source>エクスポートが完了しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">693</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.export.error" datatype="html">
+        <source>エクスポートに失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">698</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.import.title" datatype="html">
+        <source>インポートが完了しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">720</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.import.error" datatype="html">
+        <source>インポートに失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">725</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.import.error.detail" datatype="html">
+        <source>ファイルの形式を確認してください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">726</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.clear.title" datatype="html">
+        <source>ローカルデータを削除しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">759</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.clear.error" datatype="html">
+        <source>削除に失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">764</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.sync.error" datatype="html">
+        <source>QR コードの生成に失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">796</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.sync.copied" datatype="html">
+        <source>コピーしました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">812</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.toast.sync.copyError" datatype="html">
+        <source>コピーに失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">817</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.toast.success" datatype="html">
+        <source>アカウントを削除しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">902</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.toast.error" datatype="html">
+        <source>アカウントの削除に失敗しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">914</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="settings.account.deleteSection.toast.error.detail" datatype="html">
+        <source>時間をおいて再度お試しください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/settings/settings.page.ts</context>
+          <context context-type="linenumber">915</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.heading" datatype="html">
+        <source>他端末との同期</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">27</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.auth.loading" datatype="html">
+        <source> 認証状態を確認しています… </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">34,36</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.missingToken" datatype="html">
+        <source> 同期トークンが見つかりません。発行端末で QR コードを表示し、もう一度読み取ってください。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">43,45</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.auth.required" datatype="html">
+        <source> この端末でログインすると同期が完了します。 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">52,54</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.auth.cta" datatype="html">
+        <source> ログインして同期を完了 </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">61,63</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.redeeming" datatype="html">
+        <source> 同期しています… </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">74,75</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.success" datatype="html">
+        <source> 同期が完了しました。ホームに戻ります… </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">85,86</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.idle" datatype="html">
+        <source> 同期を開始します… </source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">103,104</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.toast.success" datatype="html">
+        <source>同期が完了しました</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">166</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.notFound" datatype="html">
+        <source>同期トークンが見つかりません。発行端末で再度 QR コードを表示してください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">182</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.expired" datatype="html">
+        <source>同期トークンの有効期限が切れています。発行端末で新しい QR を生成してください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">185</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.alreadyConsumed" datatype="html">
+        <source>この同期トークンは既に使用されています。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">188</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.userMismatch" datatype="html">
+        <source>この QR コードは別のアカウントで発行されました。発行端末と同じアカウントでログインしてください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">191</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.unauthorized" datatype="html">
+        <source>認証が必要です。ログインしてもう一度お試しください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">194</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="sync.error.unknown" datatype="html">
+        <source>同期に失敗しました。時間をおいて再度お試しください。</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/sync/sync.page.ts</context>
+          <context context-type="linenumber">197</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="volumeByIsbn.volume" datatype="html">
+        <source>巻数:</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/volume-by-isbn/volume-by-isbn.page.ts</context>
+          <context context-type="linenumber">37,38</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="volumeByIsbn.release" datatype="html">
+        <source>発売日:</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/volume-by-isbn/volume-by-isbn.page.ts</context>
+          <context context-type="linenumber">42,43</context>
+        </context-group>
+      </trans-unit>
+      <trans-unit id="volumeByIsbn.gotoSeries" datatype="html">
+        <source>シリーズの一覧を見る</source>
+        <context-group purpose="location">
+          <context context-type="sourcefile">src/app/pages/volume-by-isbn/volume-by-isbn.page.ts</context>
+          <context context-type="linenumber">51,53</context>
+        </context-group>
+      </trans-unit>
+    </body>
+  </file>
+</xliff>
