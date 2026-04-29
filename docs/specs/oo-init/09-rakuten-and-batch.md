@@ -40,21 +40,40 @@
 
 ### 9.2.2 Orchestrator 構成
 
-```
-DailyFetchOrchestrator (Timer)
-  ├─ Activity: CreateBatchRun(BatchRunId)
-  ├─ SubOrchestrator: FetchOrchestrator (Function Chaining)
-  │     ├─ Activity: FetchPage(pageNumber)        ← 1req/sec, 直列
-  │     ├─ Activity: UpsertVolumes(items)         ← ISBN UPSERT, CoverHash 差分検出
-  │     └─ ContinueAsNew(nextPage) — ヒストリ肥大化防止
-  ├─ SubOrchestrator: ThumbnailOrchestrator (Fan-out / Fan-in)
-  │     ├─ ListPendingThumbnails ──► [VolumeId, ImageUrl, OldHash][]
-  │     └─ Parallel × 8: DownloadAndStoreThumbnail
-  │              ├─ HEAD で Etag チェック
-  │              ├─ GET → SHA-256 計算
-  │              ├─ 一致なら skip
-  │              └─ Blob put (key = sha256, immutable)
-  └─ Activity: FinalizeBatchRun(metrics)
+```mermaid
+flowchart TB
+    Timer([Timer Trigger<br/>03:00 JST]) --> Daily["DailyFetchOrchestrator"]
+    Daily --> CreateRun["Activity:<br/>CreateBatchRun"]
+    CreateRun --> FetchOrch["SubOrchestrator:<br/>FetchOrchestrator (chaining)"]
+
+    subgraph FetchLoop["Fetch loop (1 req/sec, 直列)"]
+        FetchPage["Activity:<br/>FetchPage(pageNumber)"] --> Upsert["Activity:<br/>UpsertVolumes (ISBN UPSERT<br/>+ CoverHash diff)"]
+        Upsert --> Continue{"次ページ<br/>あり?"}
+        Continue -- yes --> ContinueAsNew["ContinueAsNew(nextPage)"]
+        ContinueAsNew --> FetchPage
+    end
+
+    FetchOrch --> FetchPage
+    Continue -- no --> ThumbOrch["SubOrchestrator:<br/>ThumbnailOrchestrator (fan-out/in)"]
+
+    ThumbOrch --> ListPending["Activity:<br/>ListPendingThumbnails"]
+    ListPending --> FanOut{"並列度 8"}
+    FanOut --> A1["Download<br/>(HEAD → SHA-256)"]
+    FanOut --> A2["Download"]
+    FanOut --> A3["..."]
+    FanOut --> A8["Download"]
+    A1 --> Blob[("Blob: covers/{sha256}.jpg")]
+    A2 --> Blob
+    A3 --> Blob
+    A8 --> Blob
+
+    Blob --> Finalize["Activity:<br/>FinalizeBatchRun(metrics)"]
+    Finalize --> Done([完了])
+
+    Failed[/FailedItems + DLQ Storage Queue/]
+    A1 -. retry 尽きた失敗 .-> Failed
+    Upsert -. retry 尽きた失敗 .-> Failed
+    Failed -. アラート .-> Slack[/Slack / Teams Webhook/]
 ```
 
 ### 9.2.3 確定的 (deterministic) ルール

@@ -54,14 +54,16 @@
 
 ## 12.5 ミドルウェア構成（`Program.cs`）
 
-```
-HostBuilder
-  .ConfigureFunctionsWebApplication()
-  .UseMiddleware<CorrelationMiddleware>()      // traceId 付与
-  .UseMiddleware<SwaAuthMiddleware>()          // x-ms-client-principal 検証
-  .UseMiddleware<UserResolutionMiddleware>()   // IdentityLinks → UserId
-  .UseMiddleware<RateLimitMiddleware>()        // 簡易 IP/UserId rate limit
-  .UseMiddleware<ProblemDetailsMiddleware>()   // 例外 → RFC 7807
+```mermaid
+flowchart LR
+    Req([HTTP Request<br/>via SWA Linked]) --> M1["CorrelationMiddleware<br/>traceId 付与"]
+    M1 --> M2["SwaAuthMiddleware<br/>x-ms-client-principal 検証"]
+    M2 --> M3["UserResolutionMiddleware<br/>IdentityLinks → UserId"]
+    M3 --> M4["RateLimitMiddleware<br/>UserId/IP 単位"]
+    M4 --> M5["ProblemDetailsMiddleware<br/>例外 → RFC 7807"]
+    M5 --> Handler["Function Handler<br/>Application UseCase"]
+    Handler --> Resp([HTTP Response])
+    Handler -. 例外 .-> M5
 ```
 
 ## 12.6 認可

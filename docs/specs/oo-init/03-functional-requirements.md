@@ -44,6 +44,22 @@
 - 電子書籍 / 紙書籍の区別はしない。
 - カードの購入チェックボタンで主要な遷移（未購入 → 購入済 → 読了）をワンタップで進められる。
 
+```mermaid
+stateDiagram-v2
+    [*] --> NotPurchased
+    NotPurchased --> Reserved: 予約
+    NotPurchased --> Purchased: 購入
+    Reserved --> Purchased: 受け取り
+    Reserved --> NotPurchased: 予約取消
+    Purchased --> Read: 読了
+    Read --> Purchased: 読了取消
+    Purchased --> NotPurchased: 購入取消
+    note right of NotPurchased
+        DB レコードなし相当
+        （論理削除済みも含む）
+    end note
+```
+
 ### F-PUR-02 購入の論理削除
 
 - 購入レコードは論理削除のみ（履歴保持目的）。物理削除はアカウント完全削除時のみ。

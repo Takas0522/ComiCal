@@ -24,26 +24,55 @@
 
 ## 6.2 論理構成図
 
-```
-[Browser]
-   │ HTTPS (SSR)
-   ▼
-[Static Web Apps] ── [Managed Functions: Angular SSR]
-   │ /.auth (Entra External ID)
-   ▼
-[SWA-linked Azure Functions API (.NET 10)]
-   │       │
-   │       ├── EF Core 10 ──► [Azure SQL Database (Serverless)]
-   │       └── Blob SDK   ──► [Azure Blob Storage]
-   │
-[Durable Functions Batch (Consumption)]
-   │ Timer (毎日 03:00 JST)
-   ├── Fetch Orchestrator (chaining: page-by-page) ─► 楽天 Books API
-   └── Thumbnail Orchestrator (fan-out/in, 並列度 8) ─► Blob Storage
+```mermaid
+flowchart TB
+    Browser([Browser])
 
-[Key Vault]            ◄── Managed Identity ◄── Functions / SWA
-[App Configuration]    ── Feature Flag
-[Application Insights / Log Analytics] ── 全コンポーネント
+    subgraph SWA["Azure Static Web Apps (Standard)"]
+        SSR["Managed Functions<br/>Angular SSR"]
+        Auth["/.auth<br/>Entra External ID"]
+    end
+
+    subgraph FuncApi["Function App: API (.NET 10 Isolated)"]
+        Api["HTTP Triggers<br/>Clean Architecture"]
+    end
+
+    subgraph FuncBatch["Function App: Batch (Consumption)"]
+        Timer["Timer Trigger<br/>03:00 JST"]
+        Fetch["Fetch Orchestrator<br/>(chaining)"]
+        Thumb["Thumbnail Orchestrator<br/>(fan-out/in × 8)"]
+    end
+
+    SQL[("Azure SQL DB<br/>Serverless / auto-pause")]
+    Blob[("Azure Blob Storage<br/>covers / sync-tmp / DLQ")]
+    Rakuten[/"楽天 Books API<br/>1 req/sec"/]
+
+    KV[/"Key Vault"/]
+    AppCfg[/"App Configuration<br/>Feature Flag"/]
+    AppInsights[/"Application Insights<br/>+ Log Analytics"/]
+
+    Browser -- HTTPS --> SSR
+    SSR --> Auth
+    SSR -- "SWA Linked<br/>x-ms-client-principal" --> Api
+
+    Api -- "EF Core 10" --> SQL
+    Api -- "Blob SDK" --> Blob
+
+    Timer --> Fetch
+    Fetch -- "page-by-page" --> Rakuten
+    Fetch -- UPSERT --> SQL
+    Fetch --> Thumb
+    Thumb --> Blob
+
+    KV -. "Managed Identity" .-> FuncApi
+    KV -. "Managed Identity" .-> FuncBatch
+    KV -. "Managed Identity" .-> SWA
+    AppCfg -. .-> FuncApi
+    AppCfg -. .-> SWA
+
+    FuncApi -. telemetry .-> AppInsights
+    FuncBatch -. telemetry .-> AppInsights
+    SWA -. telemetry .-> AppInsights
 ```
 
 ## 6.3 データフロー

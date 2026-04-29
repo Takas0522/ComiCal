@@ -2,21 +2,21 @@
 
 ## 17.1 パイプライン全体像
 
-```
-PR open / push (feature)
-  └─► ci.yml             # lint → test → build
-                          (frontend + backend + db sqlproj build)
+```mermaid
+flowchart TB
+    PR([PR open / push<br/>feature branch]) --> CI["ci.yml<br/>lint → test → build → coverage ≥ 80%"]
+    PR --> Preview["pr-preview.yml<br/>SWA Preview Environment 作成"]
+    PR --> CodeQL1["codeql.yml<br/>CodeQL JS/TS + C#"]
 
-PR merged to main
-  ├─► cd-dev.yml          # bicep what-if → deploy(dev) → DB publish → backend deploy → frontend deploy
-  └─► (manual approval)
-        └─► cd-prod.yml   # bicep what-if → deploy(prod) → 順序同上
+    CI --> Merge{"main へ<br/>マージ"}
+    Merge --> Dev["cd-dev.yml<br/>bicep what-if → deploy(dev)<br/>→ DB publish → backend ×2 → frontend"]
 
-PR (any)
-  └─► pr-preview.yml      # SWA Preview Environment 自動生成
+    Dev --> TagApprove{"tag 付与 +<br/>手動承認"}
+    TagApprove --> Prod["cd-prod.yml<br/>bicep what-if → deploy(prod)<br/>→ DB publish → backend ×2 → frontend (slot swap)"]
 
-scheduled
-  └─► codeql.yml          # 週次 CodeQL スキャン
+    Schedule([weekly schedule]) --> CodeQL2["codeql.yml"]
+
+    PRClose([PR close]) --> PreviewDel["pr-preview.yml<br/>Preview Environment 破棄"]
 ```
 
 ## 17.2 ワークフロー仕様

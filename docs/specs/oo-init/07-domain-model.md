@@ -2,6 +2,112 @@
 
 ## 7.1 集約 (Aggregate)
 
+### 7.1.1 ER 図
+
+```mermaid
+erDiagram
+    USERS ||--o{ IDENTITY_LINKS : "1:N"
+    USERS ||--o{ SUBSCRIPTIONS : "1:N"
+    USERS ||--o{ PURCHASES : "1:N"
+
+    SERIES ||--o{ SUBSCRIPTIONS : "1:N"
+    SERIES ||--o{ VOLUMES : "1:N"
+    SERIES }o--|| PUBLISHERS : "N:1"
+    SERIES ||--o{ SERIES_AUTHORS : "1:N"
+    AUTHORS ||--o{ SERIES_AUTHORS : "1:N"
+
+    VOLUMES ||--o{ PURCHASES : "1:N"
+    VOLUMES ||--o| THUMBNAIL_ASSETS : "1:1"
+
+    BATCH_RUNS ||--o{ FAILED_ITEMS : "1:N"
+
+    USERS {
+        uniqueidentifier UserId PK
+        nvarchar DisplayName
+        nvarchar Role "User|Admin"
+        bit IsDeleted
+        datetime2 DeletedAt
+    }
+    IDENTITY_LINKS {
+        uniqueidentifier IdentityLinkId PK
+        uniqueidentifier UserId FK
+        nvarchar Provider "microsoft|google|twitter"
+        nvarchar Subject "UQ(Provider,Subject)"
+    }
+    SERIES {
+        uniqueidentifier SeriesId PK
+        nvarchar Title
+        nvarchar NormalizedTitle "UQ(NormalizedTitle,PrimaryAuthorId)"
+        nvarchar NormalizedTitleHiragana "computed PERSISTED"
+        uniqueidentifier PublisherId FK
+        bit IsCompleted
+    }
+    AUTHORS {
+        uniqueidentifier AuthorId PK
+        nvarchar Name
+        nvarchar NormalizedName
+        nvarchar NormalizedNameHiragana "computed"
+    }
+    SERIES_AUTHORS {
+        uniqueidentifier SeriesId FK
+        uniqueidentifier AuthorId FK
+        nvarchar Role "Primary|Co|Original"
+    }
+    PUBLISHERS {
+        uniqueidentifier PublisherId PK
+        nvarchar Name
+        nvarchar NormalizedName
+    }
+    VOLUMES {
+        uniqueidentifier VolumeId PK
+        uniqueidentifier SeriesId FK
+        char Isbn13 "UQ"
+        int VolumeNumber "nullable"
+        date ReleaseDate "nullable"
+        bit ReleaseDateIsMonthOnly
+        binary CoverHash "SHA-256"
+        nvarchar RakutenItemUrl
+    }
+    SUBSCRIPTIONS {
+        uniqueidentifier SubscriptionId PK
+        uniqueidentifier UserId FK
+        uniqueidentifier SeriesId FK "UQ(UserId,SeriesId) WHERE IsDeleted=0"
+        bit IsDeleted
+    }
+    PURCHASES {
+        uniqueidentifier PurchaseId PK
+        uniqueidentifier UserId FK
+        uniqueidentifier VolumeId FK "UQ(UserId,VolumeId)"
+        nvarchar State "NotPurchased|Reserved|Purchased|Read"
+    }
+    THUMBNAIL_ASSETS {
+        uniqueidentifier VolumeId PK,FK
+        nvarchar BlobKey
+        bigint SizeBytes
+        binary ContentHash
+        int Width
+        int Height
+    }
+    BATCH_RUNS {
+        uniqueidentifier BatchRunId PK
+        datetime2 StartedAt
+        datetime2 CompletedAt
+        nvarchar Status
+        int FetchedItemCount
+        int UpsertedVolumeCount
+        int FailedItemCount
+    }
+    FAILED_ITEMS {
+        uniqueidentifier FailedItemId PK
+        uniqueidentifier BatchRunId FK
+        nvarchar ItemKey
+        nvarchar Reason
+        nvarchar PayloadJson
+    }
+```
+
+### 7.1.2 集約一覧
+
 | 集約ルート | 含まれる主なエンティティ | 説明 |
 |---|---|---|
 | **User** | `IdentityLinks` | 内部ユーザーと IdP マッピング |

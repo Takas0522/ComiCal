@@ -38,6 +38,35 @@
 
 ### 11.5.2 端末間同期（QR コード）
 
+```mermaid
+sequenceDiagram
+    participant A as 元端末
+    participant API as SWA Linked Function
+    participant Blob as Blob (sync-tmp, TTL 5min)
+    participant B as 受け側端末
+
+    A->>A: IndexedDB から購読/購入を読出
+    A->>A: AES-GCM 暗号化 (鍵をローカル生成)
+    A->>API: POST /api/v1/me/sync/qr (暗号文)
+    API->>Blob: PUT covers/sync-tmp/{token}
+    Blob-->>API: 201
+    API-->>A: { token, expiresAt }
+    A->>A: QR 生成 (URL + 鍵)<br/>画面表示
+
+    Note over A,B: ユーザーが QR を読み取る
+
+    B->>B: QR からトークン + 鍵を取得
+    B->>API: GET /api/v1/me/sync/qr/{token}
+    API->>Blob: GET covers/sync-tmp/{token}
+    Blob-->>API: 暗号文
+    API-->>B: 暗号文
+    B->>B: 復号
+    B->>B: マージ / 上書き選択ダイアログ
+    B->>B: IndexedDB に書き込み
+
+    Note over Blob: TTL 5min で Lifecycle ルールが自動削除
+```
+
 1. 元端末: 「QR で同期」ボタン → IndexedDB の中身を AES-GCM 暗号化（鍵はユーザー操作で生成、ローカルに残らない）→ 暗号文を SWA-linked Function 経由で Blob に PUT（TTL 5 分、ランダムキー）。
 2. 元端末: Blob URL + 鍵を **QR コード**として画面表示。
 3. 受け側端末: QR をカメラで読み取り → Blob から暗号文を GET → 復号 → IndexedDB に書き込み（**マージ / 上書き** をユーザー選択）。
