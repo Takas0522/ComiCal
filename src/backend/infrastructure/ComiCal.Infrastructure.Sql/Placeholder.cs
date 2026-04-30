@@ -1,1 +1,0 @@
-namespace ComiCal.Infrastructure.Sql;

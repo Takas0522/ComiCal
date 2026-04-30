@@ -5,7 +5,8 @@ public sealed class Series
     public Guid SeriesId { get; private set; }
     public string Title { get; private set; }
     public string NormalizedTitle { get; private set; }
-    public Guid PublisherId { get; private set; }
+    public Guid? PublisherId { get; private set; }
+    public Guid? PrimaryAuthorId { get; private set; }
     public bool IsCompleted { get; private set; }
     public bool IsDeleted { get; private set; }
     public DateTime? DeletedAt { get; private set; }
@@ -20,7 +21,7 @@ public sealed class Series
     private readonly List<Volume> _volumes = [];
     public IReadOnlyCollection<Volume> Volumes => _volumes.AsReadOnly();
 
-    private Series(Guid seriesId, string title, string normalizedTitle, Guid publisherId, DateTime createdAt)
+    private Series(Guid seriesId, string title, string normalizedTitle, Guid? publisherId, DateTime createdAt)
     {
         SeriesId = seriesId;
         Title = title;
@@ -30,17 +31,23 @@ public sealed class Series
         UpdatedAt = createdAt;
     }
 
-    public static Series Create(string title, string normalizedTitle, Guid publisherId)
+    public static Series Create(string title, string normalizedTitle, Guid? publisherId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(title);
         ArgumentException.ThrowIfNullOrWhiteSpace(normalizedTitle);
         var now = DateTime.UtcNow;
         return new Series(
             Guid.NewGuid(),
-            title[..Math.Min(title.Length, 256)],
-            normalizedTitle[..Math.Min(normalizedTitle.Length, 256)],
+            title[..Math.Min(title.Length, 512)],
+            normalizedTitle[..Math.Min(normalizedTitle.Length, 512)],
             publisherId,
             now);
+    }
+
+    public void SetPrimaryAuthor(Guid? authorId)
+    {
+        PrimaryAuthorId = authorId;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void MarkCompleted()

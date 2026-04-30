@@ -1,12 +1,11 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from '../../organisms/header/header.component';
 import { BottomNavComponent } from '../../organisms/bottom-nav/bottom-nav.component';
 
 @Component({
   selector: 'app-page-layout',
   standalone: true,
-  imports: [RouterOutlet, HeaderComponent, BottomNavComponent],
+  imports: [HeaderComponent, BottomNavComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col min-h-screen bg-[--color-bg]">

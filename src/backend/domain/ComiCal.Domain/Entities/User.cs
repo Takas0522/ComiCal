@@ -16,6 +16,11 @@ public sealed class User
     private readonly List<IdentityLink> _identityLinks = [];
     public IReadOnlyCollection<IdentityLink> IdentityLinks => _identityLinks.AsReadOnly();
 
+#pragma warning disable CS8618
+    // For EF Core materialization
+    private User() { }
+#pragma warning restore CS8618
+
     private User(Guid userId, string displayName, UserRole role, DateTime? agreedAt, DateTime createdAt)
     {
         UserId = userId;
