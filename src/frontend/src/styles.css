@@ -1,0 +1,28 @@
+@import 'tailwindcss';
+
+@theme {
+  /* ComiCal Design Tokens */
+  --color-primary: #e60026;
+  --color-primary-hover: #cc0022;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #f8f8f8;
+  --color-text-primary: #1a1a1a;
+  --color-text-secondary: #666666;
+  --color-border: #e5e7eb;
+  --color-success: #16a34a;
+  --color-warning: #d97706;
+
+  /* Dark mode tokens */
+  --color-surface-dark: #121212;
+  --color-surface-elevated-dark: #1e1e1e;
+  --color-text-primary-dark: #f5f5f5;
+  --color-text-secondary-dark: #a0a0a0;
+  --color-border-dark: #333333;
+
+  /* Typography */
+  --font-sans: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+
+  /* Spacing */
+  --spacing-card: 1rem;
+  --radius-card: 0.5rem;
+}
