@@ -1,0 +1,21 @@
+<Project DefaultTargets="Build">
+  <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
+  <PropertyGroup>
+    <Name>ComiCal.Database</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+    <ModelCollation>1033, CI</ModelCollation>
+    <RunSqlCodeAnalysis>false</RunSqlCodeAnalysis>
+    <SuppressTSqlWarnings>71502</SuppressTSqlWarnings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PreDeploy Include="Scripts\PreDeploy\Script.PreDeployment.sql" />
+    <PostDeploy Include="Scripts\PostDeploy\Script.PostDeployment.sql" />
+    <!-- Exclude sub-scripts from model build (referenced via :r in entry points) -->
+    <Build Remove="Scripts\**\*.sql" />
+    <None Include="Scripts\PreDeploy\01-create-fts-catalog.sql" />
+    <None Include="Scripts\PreDeploy\02-fn-to-hiragana.sql" />
+    <None Include="Scripts\PostDeploy\01-seed-reference-data.sql" />
+    <None Include="Scripts\PostDeploy\02-seed-admin-user.sql" />
+    <None Include="Scripts\Seed\dev-sample-series.sql" />
+  </ItemGroup>
+</Project>

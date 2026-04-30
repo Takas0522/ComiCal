@@ -1,0 +1,24 @@
+# ComiCal CODEOWNERS
+# ドキュメント: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# デフォルト: すべての変更にオーナーのレビューが必要
+* @Takas0522
+
+# インフラ (Bicep)
+/infra/ @Takas0522
+
+# バックエンド
+/src/backend/ @Takas0522
+
+# フロントエンド
+/src/frontend/ @Takas0522
+
+# データベース
+/src/db/ @Takas0522
+
+# CI/CD
+/.github/workflows/ @Takas0522
+
+# セキュリティ関連
+/docs/specs/oo-init/15-security.md @Takas0522
+SECURITY.md @Takas0522

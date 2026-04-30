@@ -1,0 +1,139 @@
+name: CD - Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Deploy reason'
+        required: true
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+  id-token: write # Required for OIDC
+
+jobs:
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment: prod
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25 # v4.1.0
+        with:
+          global-json-file: global.json
+
+      - name: Setup Node.js
+        uses: actions/setup-node@cdca7365b2dadb8aad0a33bc7601856ffabcc48e # v4.3.0
+        with:
+          node-version-file: .nvmrc
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda # v4.1.0
+        with:
+          run_install: false
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@a65d910e8af852a8061972ce2a7ce2b3b4b92e7 # v2.3.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bicep What-If
+        run: |
+          az deployment sub what-if \
+            --location japaneast \
+            --template-file infra/main.bicep \
+            --parameters infra/params/prod.bicepparam \
+            --parameters sqlAdminPassword="${{ secrets.SQL_ADMIN_PASSWORD }}"
+
+      - name: Bicep Deploy
+        run: |
+          az deployment sub create \
+            --location japaneast \
+            --template-file infra/main.bicep \
+            --parameters infra/params/prod.bicepparam \
+            --parameters sqlAdminPassword="${{ secrets.SQL_ADMIN_PASSWORD }}" \
+            --name "deploy-prod-${{ github.run_number }}"
+
+      - name: Get SQL connection string
+        id: sql-conn
+        run: |
+          CONN=$(az deployment sub show \
+            --name "deploy-prod-${{ github.run_number }}" \
+            --query "properties.outputs.sqlConnectionString.value" -o tsv)
+          echo "::add-mask::$CONN"
+          echo "connection=$CONN" >> $GITHUB_OUTPUT
+
+      - name: DB Publish
+        run: |
+          dotnet tool install --global microsoft.sqlpackage || true
+          dotnet build src/db/ComiCal.Database.sqlproj --configuration Release
+          sqlpackage /Action:Publish \
+            /SourceFile:"src/db/bin/Release/ComiCal.Database.dacpac" \
+            /TargetConnectionString:"${{ steps.sql-conn.outputs.connection }}" \
+            /p:BlockOnPossibleDataLoss=true \
+            /p:BackupDatabaseBeforeChanges=false
+
+      - name: Build All
+        run: |
+          dotnet build src/backend/ComiCal.slnx --configuration Release
+          pnpm install
+          pnpm --filter frontend build
+
+      - name: Publish Functions
+        run: |
+          dotnet publish src/backend/api/ComiCal.Api/ComiCal.Api.csproj -c Release -o ./publish/api
+          dotnet publish src/backend/batch/ComiCal.Batch/ComiCal.Batch.csproj -c Release -o ./publish/batch
+          cd publish/api && zip -r ../../api.zip . && cd ../..
+          cd publish/batch && zip -r ../../batch.zip . && cd ../..
+
+      - name: Deploy API to Azure Functions (staging slot)
+        run: |
+          API_APP=$(az deployment sub show \
+            --name "deploy-prod-${{ github.run_number }}" \
+            --query "properties.outputs.apiFunctionAppName.value" -o tsv)
+          az functionapp deployment source config-zip \
+            --resource-group "rg-comical-prod-japaneast" \
+            --name "$API_APP" \
+            --slot staging \
+            --src api.zip
+
+      - name: Deploy Batch to Azure Functions
+        run: |
+          BATCH_APP=$(az deployment sub show \
+            --name "deploy-prod-${{ github.run_number }}" \
+            --query "properties.outputs.batchFunctionAppName.value" -o tsv)
+          az functionapp deployment source config-zip \
+            --resource-group "rg-comical-prod-japaneast" \
+            --name "$BATCH_APP" \
+            --src batch.zip
+
+      - name: Swap staging → production slot
+        run: |
+          API_APP=$(az deployment sub show \
+            --name "deploy-prod-${{ github.run_number }}" \
+            --query "properties.outputs.apiFunctionAppName.value" -o tsv)
+          az functionapp deployment slot swap \
+            --resource-group "rg-comical-prod-japaneast" \
+            --name "$API_APP" \
+            --slot staging \
+            --target-slot production
+
+      - name: Deploy Frontend to SWA
+        uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c8 # v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOY_TOKEN }}
+          action: upload
+          app_location: src/frontend
+          output_location: dist/frontend/browser

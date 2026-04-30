@@ -1,0 +1,802 @@
+openapi: "3.1.0"
+info:
+  title: ComiCal API
+  description: |
+    まんがリマインダー (ComiCal) のバックエンド REST API。
+
+    Azure Functions Isolated Worker (.NET 10) で実装され、
+    Azure Static Web Apps の Linked Backend として動作します。
+
+    **認証**: SWA の `x-ms-client-principal` ヘッダによる認証が必要なエンドポイントには
+    `BearerAuth` セキュリティスキームが適用されます。
+
+    **エラーレスポンス**: すべてのエラーは RFC 7807 Problem Details 形式で返されます。
+
+    **Powered by Rakuten Books API**
+  version: "1.0.0"
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  contact:
+    name: ComiCal
+    url: https://github.com/Takas0522/ComiCal
+
+servers:
+  - url: /api/v1
+    description: ComiCal API v1
+
+security: []
+
+tags:
+  - name: series
+    description: シリーズ検索・詳細
+  - name: volumes
+    description: 発売予定・カレンダー
+  - name: subscriptions
+    description: 購読管理
+  - name: purchases
+    description: 購入状態管理
+  - name: sync
+    description: 匿名データ同期 (QR)
+  - name: account
+    description: アカウント管理
+  - name: admin
+    description: 管理者機能
+
+paths:
+  /series:
+    get:
+      operationId: searchSeries
+      summary: シリーズ検索
+      description: タイトル / 著者 / 発売日 From / 出版社でシリーズを検索します。SQL フルテキスト検索 + ひらがな正規化を使用します。
+      tags: [series]
+      parameters:
+        - name: q
+          in: query
+          description: タイトルまたは著者の検索キーワード
+          schema:
+            type: string
+            maxLength: 100
+        - name: releaseFrom
+          in: query
+          description: 発売日 From (ISO 8601 date)
+          schema:
+            type: string
+            format: date
+        - name: publisher
+          in: query
+          description: 出版社名
+          schema:
+            type: string
+            maxLength: 100
+        - name: cursor
+          in: query
+          description: keyset ページネーション カーソル
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: 取得件数 (最大 50)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+        - name: sort
+          in: query
+          description: 並び順
+          schema:
+            type: string
+            enum: [releaseDate, relevance]
+            default: releaseDate
+      responses:
+        "200":
+          description: 検索結果
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesPagedResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /series/{id}:
+    get:
+      operationId: getSeriesDetail
+      summary: シリーズ詳細
+      description: シリーズ詳細情報と巻一覧を返します。
+      tags: [series]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: シリーズ ID (GUID)
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: シリーズ詳細
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SeriesDetailDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /volumes/upcoming:
+    get:
+      operationId: getUpcomingVolumes
+      summary: 直近発売予定一覧
+      description: keyset ページネーションで直近の発売予定巻を返します。
+      tags: [volumes]
+      parameters:
+        - name: cursor
+          in: query
+          description: "(ReleaseDate, VolumeId) keyset カーソル"
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+        - name: subscribedOnly
+          in: query
+          description: 購読中シリーズのみに絞り込む
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: 発売予定一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VolumePagedResult"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /volumes/calendar:
+    get:
+      operationId: getCalendarVolumes
+      summary: カレンダービュー
+      description: 指定した年月または週の発売予定を日付別にグループ化して返します。
+      tags: [volumes]
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: month
+          in: query
+          description: 月ビュー用 (1-12)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - name: week
+          in: query
+          description: 週ビュー用 (ISO 週番号 1-53)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 53
+        - name: subscribedOnly
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: カレンダーデータ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CalendarDto"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /me/subscriptions:
+    get:
+      operationId: getMySubscriptions
+      summary: 購読一覧取得
+      tags: [subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: 購読一覧
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionPagedResult"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+    post:
+      operationId: subscribeSeries
+      summary: 購読登録
+      tags: [subscriptions]
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscribeRequest"
+      responses:
+        "201":
+          description: 購読登録完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /me/subscriptions/{seriesId}:
+    delete:
+      operationId: unsubscribeSeries
+      summary: 購読解除
+      tags: [subscriptions]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: seriesId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: 購読解除完了
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /me/purchases/{volumeId}:
+    put:
+      operationId: updatePurchaseState
+      summary: 購入状態更新
+      tags: [purchases]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: volumeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePurchaseRequest"
+      responses:
+        "200":
+          description: 購入状態更新完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PurchaseDto"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /me/sync/qr:
+    post:
+      operationId: generateQrSyncToken
+      summary: QR 同期トークン発行
+      description: 匿名ユーザーのデータを他端末に転送するための暗号化 Blob を発行します。TTL は 5 分です。
+      tags: [sync]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QrSyncUploadRequest"
+      responses:
+        "201":
+          description: トークン発行完了
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrSyncTokenDto"
+        "400":
+          $ref: "#/components/responses/ValidationError"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /me/sync/qr/{token}:
+    get:
+      operationId: getQrSyncData
+      summary: QR 同期データ取得
+      description: QR コードで発行されたトークンから暗号化データを取得します。
+      tags: [sync]
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: 暗号化同期データ
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QrSyncDataDto"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /me/account/delete:
+    post:
+      operationId: deleteAccount
+      summary: アカウント削除リクエスト
+      description: ソフト削除を実行します。30 日後にハード削除バッチが物理削除します。
+      tags: [account]
+      security:
+        - BearerAuth: []
+      responses:
+        "204":
+          description: アカウント削除リクエスト受付
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /admin/batch-runs:
+    get:
+      operationId: getBatchRuns
+      summary: バッチ実行履歴一覧
+      tags: [admin]
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        "200":
+          description: バッチ実行履歴
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/BatchRunDto"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/batch/trigger:
+    post:
+      operationId: triggerBatch
+      summary: バッチ手動起動
+      tags: [admin]
+      security:
+        - BearerAuth: []
+      responses:
+        "202":
+          description: バッチ起動受付
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchTriggerResponseDto"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: "SWA x-ms-client-principal セッショントークン (SWA Linked Functions 経由)"
+
+  responses:
+    ValidationError:
+      description: バリデーションエラー
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    NotFound:
+      description: リソースが見つかりません
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    Unauthorized:
+      description: 認証が必要です
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    Forbidden:
+      description: 権限がありません
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    Conflict:
+      description: リソースの競合
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+    TooManyRequests:
+      description: レートリミット超過
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: 次のリクエストまでの待機秒数
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetails"
+
+  schemas:
+    ProblemDetails:
+      type: object
+      required: [type, title, status]
+      properties:
+        type:
+          type: string
+          format: uri
+          example: "https://comical.example.jp/errors/validation"
+        title:
+          type: string
+          example: "Validation failed"
+        status:
+          type: integer
+          example: 400
+        detail:
+          type: string
+        traceId:
+          type: string
+          example: "00-abcdef123456-01"
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+
+    PageInfo:
+      type: object
+      properties:
+        nextCursor:
+          type: string
+          nullable: true
+        hasMore:
+          type: boolean
+
+    AuthorDto:
+      type: object
+      required: [authorId, name, role]
+      properties:
+        authorId:
+          type: string
+          format: uuid
+        name:
+          type: string
+        role:
+          type: string
+          enum: [Primary, Co, Original]
+
+    PublisherDto:
+      type: object
+      required: [publisherId, name]
+      properties:
+        publisherId:
+          type: string
+          format: uuid
+        name:
+          type: string
+
+    VolumeDto:
+      type: object
+      required: [volumeId, isbn13, releaseDate, releaseDateIsMonthOnly]
+      properties:
+        volumeId:
+          type: string
+          format: uuid
+        isbn13:
+          type: string
+          pattern: "^[0-9]{13}$"
+        volumeNumber:
+          type: integer
+          nullable: true
+        releaseDate:
+          type: string
+          format: date
+          nullable: true
+          description: "未定の場合 null。月のみの場合は末日を設定"
+        releaseDateIsMonthOnly:
+          type: boolean
+          description: "true の場合、releaseDate は月末日。UI では 'YYYY年M月' と表示"
+        thumbnailUrl:
+          type: string
+          format: uri
+          nullable: true
+        rakutenItemUrl:
+          type: string
+          format: uri
+          nullable: true
+        purchaseState:
+          type: string
+          enum: [NotPurchased, Reserved, Purchased, Read]
+          default: NotPurchased
+
+    SeriesDto:
+      type: object
+      required: [seriesId, title, authors, publisher]
+      properties:
+        seriesId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        authors:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuthorDto"
+        publisher:
+          $ref: "#/components/schemas/PublisherDto"
+        isCompleted:
+          type: boolean
+        isSubscribed:
+          type: boolean
+          description: "ログイン済みユーザーのみ有効"
+        nextVolume:
+          $ref: "#/components/schemas/VolumeDto"
+          nullable: true
+
+    SeriesDetailDto:
+      allOf:
+        - $ref: "#/components/schemas/SeriesDto"
+        - type: object
+          properties:
+            volumes:
+              type: array
+              items:
+                $ref: "#/components/schemas/VolumeDto"
+
+    SeriesPagedResult:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SeriesDto"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    VolumePagedResult:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/VolumeDto"
+              - type: object
+                properties:
+                  series:
+                    $ref: "#/components/schemas/SeriesDto"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    CalendarDayDto:
+      type: object
+      required: [date, volumes]
+      properties:
+        date:
+          type: string
+          format: date
+        volumes:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/VolumeDto"
+              - type: object
+                properties:
+                  series:
+                    $ref: "#/components/schemas/SeriesDto"
+
+    CalendarDto:
+      type: object
+      required: [days, undatedVolumes]
+      properties:
+        days:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalendarDayDto"
+        undatedVolumes:
+          type: array
+          items:
+            allOf:
+              - $ref: "#/components/schemas/VolumeDto"
+              - type: object
+                properties:
+                  series:
+                    $ref: "#/components/schemas/SeriesDto"
+
+    SubscriptionDto:
+      type: object
+      required: [subscriptionId, seriesId, createdAt]
+      properties:
+        subscriptionId:
+          type: string
+          format: uuid
+        seriesId:
+          type: string
+          format: uuid
+        series:
+          $ref: "#/components/schemas/SeriesDto"
+        createdAt:
+          type: string
+          format: date-time
+
+    SubscriptionPagedResult:
+      type: object
+      required: [items, pageInfo]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/SubscriptionDto"
+        pageInfo:
+          $ref: "#/components/schemas/PageInfo"
+
+    SubscribeRequest:
+      type: object
+      required: [seriesId]
+      properties:
+        seriesId:
+          type: string
+          format: uuid
+
+    PurchaseDto:
+      type: object
+      required: [purchaseId, volumeId, state]
+      properties:
+        purchaseId:
+          type: string
+          format: uuid
+        volumeId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [NotPurchased, Reserved, Purchased, Read]
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdatePurchaseRequest:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          enum: [NotPurchased, Reserved, Purchased, Read]
+
+    QrSyncUploadRequest:
+      type: object
+      required: [encryptedPayload]
+      properties:
+        encryptedPayload:
+          type: string
+          description: "AES-GCM で暗号化した IndexedDB データ (Base64)"
+          maxLength: 1048576
+
+    QrSyncTokenDto:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+
+    QrSyncDataDto:
+      type: object
+      required: [encryptedPayload]
+      properties:
+        encryptedPayload:
+          type: string
+          description: "AES-GCM 暗号化済みデータ (Base64)"
+
+    BatchRunDto:
+      type: object
+      required: [batchRunId, startedAt, status]
+      properties:
+        batchRunId:
+          type: string
+          format: uuid
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+          nullable: true
+        status:
+          type: string
+          enum: [Running, Succeeded, Failed, Cancelled]
+        fetchedItemCount:
+          type: integer
+        upsertedVolumeCount:
+          type: integer
+        downloadedThumbnailCount:
+          type: integer
+        skippedThumbnailCount:
+          type: integer
+        failedItemCount:
+          type: integer
+
+    BatchTriggerResponseDto:
+      type: object
+      required: [batchRunId, message]
+      properties:
+        batchRunId:
+          type: string
+          format: uuid
+        message:
+          type: string
