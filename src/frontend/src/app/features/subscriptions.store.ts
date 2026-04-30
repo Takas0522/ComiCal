@@ -1,5 +1,26 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+// To migrate this store to the typed API client, inject API_CLIENT:
+//
+//   import { API_CLIENT } from '../core/api';
+//
+//   private readonly api = inject(API_CLIENT);
+//
+//   // Typed fetch example (replaces HttpClient calls):
+//   async load() {
+//     this.isLoading.set(true);
+//     const { data, error } = await this.api.GET('/me/subscriptions');
+//     if (data) this.items.set(data.items);
+//     this.isLoading.set(false);
+//   }
+//
+//   async subscribe(seriesId: string) {
+//     return this.api.POST('/me/subscriptions', { body: { seriesId } });
+//   }
+//
+//   async unsubscribe(seriesId: string) {
+//     return this.api.DELETE('/me/subscriptions/{seriesId}', { params: { path: { seriesId } } });
+//   }
 
 export interface Subscription {
   subscriptionId: string;
