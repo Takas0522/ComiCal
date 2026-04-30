@@ -42,17 +42,22 @@
     4280, // Static Web Apps CLI (swa start)
     7071, // Azure Functions API
     7072, // Azure Functions Batch
+    8080, // WireMock (Rakuten Books stub)
     10000, // Azurite Blob
     10001, // Azurite Queue
     10002, // Azurite Table
     1433 // SQL Server
   ],
   "portsAttributes": {
-    "4200": { "label": "Angular dev" },
-    "4280": { "label": "SWA CLI" },
-    "7071": { "label": "Functions API" },
-    "7072": { "label": "Functions Batch" },
-    "1433": { "label": "MSSQL" }
+    "4200": { "label": "Angular dev", "onAutoForward": "silent" },
+    "4280": { "label": "SWA CLI", "onAutoForward": "silent" },
+    "7071": { "label": "Functions API", "onAutoForward": "silent" },
+    "7072": { "label": "Functions Batch", "onAutoForward": "silent" },
+    "8080": { "label": "WireMock (Rakuten stub)", "onAutoForward": "silent" },
+    "10000": { "label": "Azurite Blob", "onAutoForward": "silent" },
+    "10001": { "label": "Azurite Queue", "onAutoForward": "silent" },
+    "10002": { "label": "Azurite Table", "onAutoForward": "silent" },
+    "1433": { "label": "MSSQL", "onAutoForward": "silent" }
   },
   "remoteUser": "vscode",
   // NOTE: containerEnv では自己参照 (${containerEnv:PATH}) が展開されず、
