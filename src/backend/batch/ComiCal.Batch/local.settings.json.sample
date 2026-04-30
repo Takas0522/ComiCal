@@ -1,0 +1,11 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "dotnet-isolated",
+    "APPLICATIONINSIGHTS_CONNECTION_STRING": "",
+    "SqlConnectionString": "Server=localhost,1433;Database=ComiCal;Trusted_Connection=True;TrustServerCertificate=True;",
+    "RakutenApplicationId": "__YOUR_RAKUTEN_APP_ID__",
+    "BlobStorageConnectionString": "UseDevelopmentStorage=true"
+  }
+}

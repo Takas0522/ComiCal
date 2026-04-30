@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ComiCal.Domain</AssemblyName>
+    <RootNamespace>ComiCal.Domain</RootNamespace>
+  </PropertyGroup>
+</Project>

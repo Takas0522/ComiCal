@@ -1,0 +1,27 @@
+<Solution>
+  <Folder Name="/api/">
+    <Project Path="api/ComiCal.Api/ComiCal.Api.csproj" />
+  </Folder>
+  <Folder Name="/application/">
+    <Project Path="application/ComiCal.Application/ComiCal.Application.csproj" />
+  </Folder>
+  <Folder Name="/batch/">
+    <Project Path="batch/ComiCal.Batch/ComiCal.Batch.csproj" />
+  </Folder>
+  <Folder Name="/domain/">
+    <Project Path="domain/ComiCal.Domain/ComiCal.Domain.csproj" />
+  </Folder>
+  <Folder Name="/infrastructure/">
+    <Project Path="infrastructure/ComiCal.Infrastructure.Blob/ComiCal.Infrastructure.Blob.csproj" />
+    <Project Path="infrastructure/ComiCal.Infrastructure.Rakuten/ComiCal.Infrastructure.Rakuten.csproj" />
+    <Project Path="infrastructure/ComiCal.Infrastructure.Sql/ComiCal.Infrastructure.Sql.csproj" />
+  </Folder>
+  <Folder Name="/shared/">
+    <Project Path="shared/ComiCal.Shared/ComiCal.Shared.csproj" />
+  </Folder>
+  <Project Path="../tests/backend/ComiCal.Api.Tests/ComiCal.Api.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Application.Tests/ComiCal.Application.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Batch.Tests/ComiCal.Batch.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Domain.Tests/ComiCal.Domain.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Infrastructure.Tests/ComiCal.Infrastructure.Tests.csproj" />
+</Solution>

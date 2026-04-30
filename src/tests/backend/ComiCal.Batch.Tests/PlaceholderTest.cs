@@ -1,0 +1,7 @@
+namespace ComiCal.Batch.Tests;
+
+public class PlaceholderTest
+{
+    [Xunit.Fact]
+    public void Placeholder_ShouldPass() => Xunit.Assert.True(true);
+}

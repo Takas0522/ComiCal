@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ComiCal.Application</AssemblyName>
+    <RootNamespace>ComiCal.Application</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../domain/ComiCal.Domain/ComiCal.Domain.csproj" />
+    <ProjectReference Include="../../shared/ComiCal.Shared/ComiCal.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation" />
+  </ItemGroup>
+</Project>
