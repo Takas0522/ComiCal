@@ -42,7 +42,6 @@
     4280, // Static Web Apps CLI (swa start)
     7071, // Azure Functions API
     7072, // Azure Functions Batch
-    8080, // WireMock (Rakuten Books stub)
     10000, // Azurite Blob
     10001, // Azurite Queue
     10002, // Azurite Table
@@ -53,7 +52,6 @@
     "4280": { "label": "SWA CLI", "onAutoForward": "silent" },
     "7071": { "label": "Functions API", "onAutoForward": "silent" },
     "7072": { "label": "Functions Batch", "onAutoForward": "silent" },
-    "8080": { "label": "WireMock (Rakuten stub)", "onAutoForward": "silent" },
     "10000": { "label": "Azurite Blob", "onAutoForward": "silent" },
     "10001": { "label": "Azurite Queue", "onAutoForward": "silent" },
     "10002": { "label": "Azurite Table", "onAutoForward": "silent" },

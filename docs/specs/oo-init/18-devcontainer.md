@@ -14,26 +14,26 @@
 
 ## 18.2 同梱拡張機能 (VS Code)
 
-| 拡張 | 用途 |
-|---|---|
-| `ms-dotnettools.csdevkit` | .NET 10 開発 |
+| 拡張                                  | 用途                   |
+| ------------------------------------- | ---------------------- |
+| `ms-dotnettools.csdevkit`             | .NET 10 開発           |
 | `ms-azuretools.vscode-azurefunctions` | Functions ローカル実行 |
-| `ms-azuretools.vscode-bicep` | Bicep IntelliSense |
-| `Angular.ng-template` | Angular 言語サービス |
-| `bradlc.vscode-tailwindcss` | Tailwind v4 補完 |
-| `ms-playwright.playwright` | Playwright デバッガ |
-| `mtxr.sqltools` + driver | SQL クライアント |
+| `ms-azuretools.vscode-bicep`          | Bicep IntelliSense     |
+| `Angular.ng-template`                 | Angular 言語サービス   |
+| `bradlc.vscode-tailwindcss`           | Tailwind v4 補完       |
+| `ms-playwright.playwright`            | Playwright デバッガ    |
+| `mtxr.sqltools` + driver              | SQL クライアント       |
 
 ## 18.3 ポートフォワード
 
-| Port | サービス |
-|---|---|
-| 4200 | Angular Dev Server |
-| 4280 | SWA CLI（フロント + 認証エミュレート + Functions プロキシ）|
-| 7071 | Azure Functions API |
-| 7072 | Azure Functions Batch |
-| 10000 / 10001 / 10002 | Azurite (Blob / Queue / Table) |
-| 1433 | MSSQL (Testcontainers / ローカル) |
+| Port                  | サービス                                                    |
+| --------------------- | ----------------------------------------------------------- |
+| 4200                  | Angular Dev Server                                          |
+| 4280                  | SWA CLI（フロント + 認証エミュレート + Functions プロキシ） |
+| 7071                  | Azure Functions API                                         |
+| 7072                  | Azure Functions Batch                                       |
+| 10000 / 10001 / 10002 | Azurite (Blob / Queue / Table)                              |
+| 1433                  | MSSQL (Testcontainers / ローカル)                           |
 
 ## 18.4 ローカル起動コマンド
 
@@ -54,7 +54,7 @@ azurite --silent                    # 10000-10002
 
 - `local.settings.json` は **gitignore**。`.sample` のみコミット。
 - Azurite / MSSQL の接続文字列は DevContainer の `.env` で管理（リポジトリに含めない）。
-- 楽天 API の applicationId はローカルでは **モック (WireMock.Net)** を使い、実キーを使わない。
+- 楽天 API はローカル開発時から **楽天 WebAPI を直接呼び出す**（モックは利用しない）。`applicationId` は各開発者が個別に取得し、`local.settings.json` / DevContainer の `.env` に保存する（リポジトリにコミットしない）。レート制限（1 req/sec）はクライアント側で必ず遵守する。
 
 ## 18.6 シードデータ
 

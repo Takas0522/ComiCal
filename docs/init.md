@@ -22,10 +22,10 @@
 
 ### 1.2 MVP スコープ
 
-| 区分 | 機能 |
-|---|---|
-| In | 購読シリーズ登録・一覧 / 発売予定カレンダー & 直近一覧 / 購入済み巻数の管理 / 検索（タイトル・著者・発売日 From） / External Identity ログイン / 匿名利用（端末ローカル保存）|
-| Out | 電子書籍ストア連携購入 / ソーシャル機能（フォロー・コメント） / AI レコメンデーション / スタンプラリー企画 |
+| 区分 | 機能                                                                                                                                                                          |
+| ---- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| In   | 購読シリーズ登録・一覧 / 発売予定カレンダー & 直近一覧 / 購入済み巻数の管理 / 検索（タイトル・著者・発売日 From） / External Identity ログイン / 匿名利用（端末ローカル保存） |
+| Out  | 電子書籍ストア連携購入 / ソーシャル機能（フォロー・コメント） / AI レコメンデーション / スタンプラリー企画                                                                    |
 
 > ※ 「latest」表記は **2026 年 4 月時点** の最新版を意味する。
 
@@ -35,21 +35,21 @@
 
 ### 2.1 技術スタック
 
-| 区分 | 採用技術 |
-|---|---|
-| Frontend | Angular **v21** + Tailwind CSS **v4** + tailwindcss-typography + Angular CDK / SSR (Hybrid Rendering) |
-| Frontend Hosting | Azure Static Web Apps Standard（Managed Functions で SSR 実行）|
-| Backend (API) | Azure Functions (.NET **10** Isolated Worker) — SWA 付属の Functions を使用 |
-| Backend (Batch) | Azure Functions (.NET **10** Isolated Worker, **Consumption Plan**) + **Durable Functions** |
-| Database | Azure SQL Database (Serverless / General Purpose, auto-pause 有効) — **Database First** |
-| Storage / 表紙 | Azure Blob Storage（直接配信、CDN なし）|
-| Identity | **Entra External ID (旧 AD B2C)**（Microsoft / Google / X(Twitter)）|
-| Secrets | Key Vault + Managed Identity（App Settings に Key Vault 参照リンクで注入）|
-| IaC | **Bicep**（modules: network / data / app / observability + main + env 別 param）|
-| 監視 | Application Insights + Log Analytics + アラートルール |
-| Feature Flag | Azure App Configuration |
-| 開発環境 | DevContainer |
-| テスト | Jest（フロント） / xUnit（バック） / Playwright + Testcontainers（E2E）|
+| 区分             | 採用技術                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------- |
+| Frontend         | Angular **v21** + Tailwind CSS **v4** + tailwindcss-typography + Angular CDK / SSR (Hybrid Rendering) |
+| Frontend Hosting | Azure Static Web Apps Standard（Managed Functions で SSR 実行）                                       |
+| Backend (API)    | Azure Functions (.NET **10** Isolated Worker) — SWA 付属の Functions を使用                           |
+| Backend (Batch)  | Azure Functions (.NET **10** Isolated Worker, **Consumption Plan**) + **Durable Functions**           |
+| Database         | Azure SQL Database (Serverless / General Purpose, auto-pause 有効) — **Database First**               |
+| Storage / 表紙   | Azure Blob Storage（直接配信、CDN なし）                                                              |
+| Identity         | **Entra External ID (旧 AD B2C)**（Microsoft / Google / X(Twitter)）                                  |
+| Secrets          | Key Vault + Managed Identity（App Settings に Key Vault 参照リンクで注入）                            |
+| IaC              | **Bicep**（modules: network / data / app / observability + main + env 別 param）                      |
+| 監視             | Application Insights + Log Analytics + アラートルール                                                 |
+| Feature Flag     | Azure App Configuration                                                                               |
+| 開発環境         | DevContainer                                                                                          |
+| テスト           | Jest（フロント） / xUnit（バック） / Playwright + Testcontainers（E2E）                               |
 
 ### 2.2 コンポーネント構成図 (論理)
 
@@ -88,18 +88,18 @@
 
 ### 3.1 主要エンティティ
 
-| テーブル | 概要 |
-|---|---|
-| `Users` | 内部 UserId(GUID)、表示名、IsDeleted、論理削除タイムスタンプ |
-| `IdentityLinks` | (Provider, Subject(OID)) → 内部 UserId のマッピング |
-| `Series` | 「シリーズ名 + 著者」で一意に集約したシリーズエンティティ |
-| `Authors` / `SeriesAuthors` | 著者マスタ + 多対多関連 |
-| `Publishers` | 出版社マスタ |
-| `Volumes` | 巻：内部 GUID 主キー + ISBN-13 ユニーク列、巻数（手動補正可）、ReleaseDate (nullable)、ReleaseDateIsMonthOnly フラグ、CoverHash |
-| `Subscriptions` | (UserId, SeriesId) ユニーク制約。論理削除 |
-| `Purchases` | (UserId, VolumeId) と State（未購入 / 購入済 / 読了 / 予約中）。電子/紙の区別はしない |
-| `ThumbnailAssets` | Blob 上のオブジェクトキー、サイズ、Hash |
-| `BatchRuns` / `FailedItems` | バッチ実行履歴と失敗アイテム（DLQ 連携用）|
+| テーブル                    | 概要                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `Users`                     | 内部 UserId(GUID)、表示名、IsDeleted、論理削除タイムスタンプ                                                                    |
+| `IdentityLinks`             | (Provider, Subject(OID)) → 内部 UserId のマッピング                                                                             |
+| `Series`                    | 「シリーズ名 + 著者」で一意に集約したシリーズエンティティ                                                                       |
+| `Authors` / `SeriesAuthors` | 著者マスタ + 多対多関連                                                                                                         |
+| `Publishers`                | 出版社マスタ                                                                                                                    |
+| `Volumes`                   | 巻：内部 GUID 主キー + ISBN-13 ユニーク列、巻数（手動補正可）、ReleaseDate (nullable)、ReleaseDateIsMonthOnly フラグ、CoverHash |
+| `Subscriptions`             | (UserId, SeriesId) ユニーク制約。論理削除                                                                                       |
+| `Purchases`                 | (UserId, VolumeId) と State（未購入 / 購入済 / 読了 / 予約中）。電子/紙の区別はしない                                           |
+| `ThumbnailAssets`           | Blob 上のオブジェクトキー、サイズ、Hash                                                                                         |
+| `BatchRuns` / `FailedItems` | バッチ実行履歴と失敗アイテム（DLQ 連携用）                                                                                      |
 
 ### 3.2 設計ポリシー
 
@@ -256,13 +256,13 @@ src/app/
 
 ## 11. テスト戦略
 
-| 種類 | ツール | 範囲 |
-|---|---|---|
-| 単体（FE） | **Jest** | Angular コンポーネント / Service / Pipe / Directive |
-| 単体（BE） | **xUnit** | Domain / Application 層 |
-| 統合（BE） | **xUnit** | Functions エンドポイント / Durable orchestration（Testcontainers）|
-| E2E | **Playwright** | 主要シナリオ：購読追加 / 検索 / 購入チェック / ログイン |
-| 安定化 | **Testcontainers** | MSSQL コンテナ + Azurite (Blob/Queue) でシードデータ投入 |
+| 種類       | ツール             | 範囲                                                               |
+| ---------- | ------------------ | ------------------------------------------------------------------ |
+| 単体（FE） | **Jest**           | Angular コンポーネント / Service / Pipe / Directive                |
+| 単体（BE） | **xUnit**          | Domain / Application 層                                            |
+| 統合（BE） | **xUnit**          | Functions エンドポイント / Durable orchestration（Testcontainers） |
+| E2E        | **Playwright**     | 主要シナリオ：購読追加 / 検索 / 購入チェック / ログイン            |
+| 安定化     | **Testcontainers** | MSSQL コンテナ + Azurite (Blob/Queue) でシードデータ投入           |
 
 - **ラインカバレッジ ≥ 80%** を PR ゲート。
 
@@ -377,7 +377,7 @@ ComiCal/
 │   ├── frontend/                  # Angular v21 + SSR
 │   │   ├── angular.json
 │   │   ├── package.json
-│   │   ├── tailwind.config.ts
+│   │   ├── .postcssrc.json
 │   │   ├── tsconfig.json
 │   │   ├── public/
 │   │   └── src/

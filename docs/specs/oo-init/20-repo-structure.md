@@ -48,7 +48,7 @@ ComiCal/
 │   ├── frontend/                  # Angular v21 + SSR
 │   │   ├── angular.json
 │   │   ├── package.json
-│   │   ├── tailwind.config.ts
+│   │   ├── .postcssrc.json
 │   │   ├── tsconfig.json
 │   │   ├── public/
 │   │   └── src/

@@ -7,7 +7,7 @@
 - **NgModule は使わない**。`app.config.ts` / `app.routes.ts` で構成。
 - 状態管理: **Signals のみ**（NgRx は採用しない）。
 - データ取得: `HttpClient` + interceptor（認証ヘッダ / エラー / トランスフォーム）+ **SSR Transfer State**。
-- スタイリング: **Tailwind CSS v4** の `@theme` トークンで Design Token を一元管理、ダークモード対応。
+- スタイリング: **Tailwind CSS v4** を [Angular 公式ガイド](https://angular.jp/guide/tailwind) に従って導入（`ng add tailwindcss`、または手動セットアップで `tailwindcss` + `@tailwindcss/postcss` + `postcss` をインストールし、`.postcssrc.json` に `@tailwindcss/postcss` プラグインを設定、`src/styles.css` に `@import 'tailwindcss';` を記述）。Design Token は `@theme` ディレクティブで一元管理し、ダークモード対応。`tailwind.config.ts` は作成しない。
 - フォント / アイコン: ローカル同梱（外部 CDN を使わない、CSP 簡素化）。
 
 ## 10.2 SSR (Hybrid Rendering)
@@ -33,18 +33,18 @@ src/frontend/src/app/
 
 ## 10.4 ルーティング
 
-| Path | Component | Render | Auth |
-|---|---|---|---|
-| `/` | HomePage | SSR | optional |
-| `/calendar` | CalendarPage | SSR | optional |
-| `/search` | SearchPage | SSR | optional |
-| `/subscriptions` | SubscriptionsPage | SSR | required（匿名はローカル）|
-| `/series/:id` | SeriesDetailPage | SSR | optional |
-| `/settings` | SettingsPage | CSR | optional |
-| `/login` | LoginPage | SSR | unauthenticated only |
-| `/legal/privacy` | PrivacyPage | Static | - |
-| `/legal/terms` | TermsPage | Static | - |
-| `/legal/oss` | OssPage | Static | - |
+| Path             | Component         | Render | Auth                       |
+| ---------------- | ----------------- | ------ | -------------------------- |
+| `/`              | HomePage          | SSR    | optional                   |
+| `/calendar`      | CalendarPage      | SSR    | optional                   |
+| `/search`        | SearchPage        | SSR    | optional                   |
+| `/subscriptions` | SubscriptionsPage | SSR    | required（匿名はローカル） |
+| `/series/:id`    | SeriesDetailPage  | SSR    | optional                   |
+| `/settings`      | SettingsPage      | CSR    | optional                   |
+| `/login`         | LoginPage         | SSR    | unauthenticated only       |
+| `/legal/privacy` | PrivacyPage       | Static | -                          |
+| `/legal/terms`   | TermsPage         | Static | -                          |
+| `/legal/oss`     | OssPage           | Static | -                          |
 
 ## 10.5 Signals 設計指針
 
@@ -85,12 +85,12 @@ src/frontend/src/app/
 
 ## 10.11 パフォーマンス目標
 
-| 指標 | 目標 |
-|---|---|
-| LCP | < 2.5s |
-| TTFB | < 600ms |
-| CLS | < 0.1 |
-| 初期 JS（gzip）| < 200KB |
+| 指標                  | 目標                             |
+| --------------------- | -------------------------------- |
+| LCP                   | < 2.5s                           |
+| TTFB                  | < 600ms                          |
+| CLS                   | < 0.1                            |
+| 初期 JS（gzip）       | < 200KB                          |
 | 表紙画像 LCP リソース | preload + `fetchpriority="high"` |
 
 ## 10.12 アクセシビリティ規約

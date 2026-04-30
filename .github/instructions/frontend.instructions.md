@@ -1,6 +1,6 @@
 ---
-description: 'Use when implementing Angular v21 standalone components, Signals (input/output/computed/effect), Tailwind CSS v4 (@theme tokens), Zoneless change detection, SSR/TransferState, Atomic Design layout, or WCAG 2.1 AA accessibility under src/frontend/.'
-applyTo: 'src/frontend/**'
+description: "Use when implementing Angular v21 standalone components, Signals (input/output/computed/effect), Tailwind CSS v4 (@theme tokens), Zoneless change detection, SSR/TransferState, Atomic Design layout, or WCAG 2.1 AA accessibility under src/frontend/."
+applyTo: "src/frontend/**"
 ---
 
 # Frontend (Angular v21) Instructions
@@ -28,7 +28,12 @@ applyTo: 'src/frontend/**'
 
 ## Tailwind CSS v4
 
-- **Design Token は `@theme` ディレクティブで一元管理**（`tailwind.config.js` は使わない）
+- **導入は [Angular 公式ガイド](https://angular.jp/guide/tailwind) に準拠**
+  - 推奨: `ng add tailwindcss`（自動セットアップ）
+  - 手動の場合: `tailwindcss` + `@tailwindcss/postcss` + `postcss` をインストールし、プロジェクトルートに `.postcssrc.json` を置き `@tailwindcss/postcss` プラグインを登録、`src/styles.css` に `@import 'tailwindcss';`（SCSS 採用時は `@use 'tailwindcss';`）を記述
+
+- **`tailwind.config.js` / `tailwind.config.ts` は作成しない**（v4 は CSS-first 設定）
+- **Design Token は `@theme` ディレクティブ で一元管理**（`src/styles.css` 内）
 - ダークモードは `dark:` バリアント
 - 任意値（`h-[100px]` 等）は最小限。token を優先
 - **クラス名のテンプレートリテラル組み立て禁止**（Tailwind が静的解析できなくなる）

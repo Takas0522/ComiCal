@@ -2,12 +2,12 @@
 
 ## 16.1 テストピラミッド
 
-| 層 | ツール | 範囲 |
-|---|---|---|
-| Unit (FE) | **Jest** | Angular Component / Service / Pipe / Directive / Signal store |
-| Unit (BE) | **xUnit v3** | Domain / Application 層 |
-| Integration (BE) | **xUnit v3 + Testcontainers** (MSSQL / Azurite) + WebApplicationFactory | Functions エンドポイント、Durable orchestration |
-| E2E | **Playwright** | 主要シナリオ（購読追加 / 検索 / 購入チェック / ログイン）|
+| 層               | ツール                                                                  | 範囲                                                          |
+| ---------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
+| Unit (FE)        | **Jest**                                                                | Angular Component / Service / Pipe / Directive / Signal store |
+| Unit (BE)        | **xUnit v3**                                                            | Domain / Application 層                                       |
+| Integration (BE) | **xUnit v3 + Testcontainers** (MSSQL / Azurite) + WebApplicationFactory | Functions エンドポイント、Durable orchestration               |
+| E2E              | **Playwright**                                                          | 主要シナリオ（購読追加 / 検索 / 購入チェック / ログイン）     |
 
 > Angular v21 の既定テストランナーは Vitest だが、本プロジェクトは **Jest を継続採用**。
 
@@ -76,7 +76,7 @@ src/tests/e2e/
 ## 16.8 テストデータ
 
 - **すべてのテストはシードを自前で投入**し、他テストに依存しない（並列実行可能）。
-- バッチ統合テストは楽天 API を直接呼ばず、**WireMock.Net** で固定レスポンスを返す。
+- バッチ統合テストでも **楽天 WebAPI を直接呼び出す**（モック層を介さない）。CI 用 `applicationId` は GitHub Actions Secrets / Key Vault から OIDC 経由で注入する。レート制限（1 req/sec）と取得件数を最小化し、長時間 / 大量検索系のシナリオは限定したクエリのみ実行する。
 
 ## 16.9 Flaky 対策
 
