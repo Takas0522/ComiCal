@@ -66,6 +66,10 @@
             },
             "development": {
               "buildTarget": "frontend:build:development"
+            },
+            "local": {
+              "buildTarget": "frontend:build:development",
+              "allowedHosts": true
             }
           },
           "defaultConfiguration": "development"
