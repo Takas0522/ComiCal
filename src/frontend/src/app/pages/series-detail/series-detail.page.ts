@@ -32,58 +32,59 @@ interface Series {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-page-layout>
-    <div data-testid="page-series-detail" class="py-6">
+    <div data-testid="page-series-detail" class="py-5">
       @if (isLoading()) {
         <div class="flex justify-center py-16"><app-spinner /></div>
       } @else if (series()) {
-        <div class="mb-6">
-          <h1 class="text-2xl font-bold text-[--color-text-primary] mb-1">{{ series()!.title }}</h1>
-          <p class="text-sm text-[--color-text-secondary]">
+        <div class="mb-5">
+          <h1 class="text-xl font-bold mb-1" style="color: var(--color-text-primary)">{{ series()!.title }}</h1>
+          <p class="text-sm" style="color: var(--color-text-secondary)">
             {{ series()!.authors[0]?.name ?? '' }} &nbsp;/&nbsp; {{ series()!.publisher.name }}
-            @if (series()!.isCompleted) { <span class="ml-2">完結</span> }
+            @if (series()!.isCompleted) {
+              <span class="ml-2 text-xs px-1.5 py-0.5 rounded-full" style="background: var(--color-surface-elevated); color: var(--color-text-tertiary)">完結</span>
+            }
           </p>
         </div>
         <button
           type="button"
-          class="mb-6 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-          [class]="series()!.isSubscribed
-            ? 'bg-[--color-surface-elevated] text-[--color-text-secondary] border border-[--color-border] hover:bg-red-50 hover:text-red-600'
-            : 'bg-[--color-primary] text-white hover:bg-[--color-primary-hover]'"
+          class="mb-5 px-5 py-2 rounded-full text-sm font-semibold transition-all"
+          [style]="series()!.isSubscribed
+            ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
+            : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'"
           (click)="toggleSubscription()"
         >{{ series()!.isSubscribed ? '購読解除' : '購読する' }}</button>
 
-        <h2 class="text-lg font-semibold text-[--color-text-primary] mb-3">巻一覧</h2>
+        <h2 class="text-sm font-semibold mb-3" style="color: var(--color-text-secondary)">巻一覧</h2>
         @if (!series()!.volumes?.length) {
-          <p class="text-[--color-text-secondary]">巻情報がありません。</p>
+          <p style="color: var(--color-text-secondary)">巻情報がありません。</p>
         } @else {
-          <ul class="divide-y divide-[--color-border]">
+          <ul class="flex flex-col gap-2">
             @for (vol of series()!.volumes; track vol.volumeId) {
-              <li class="py-3 flex items-center gap-3">
+              <li class="px-4 py-3 flex items-center gap-3 rounded-xl" style="background: var(--color-surface); box-shadow: var(--shadow-card)">
                 @if (vol.thumbnailUrl) {
                   <img [src]="vol.thumbnailUrl" [alt]="series()!.title + ' 第' + (vol.volumeNumber ?? '?') + '巻'"
-                       class="w-10 h-14 object-cover rounded shrink-0" loading="lazy" />
+                       class="w-10 h-14 object-cover rounded-lg shrink-0" loading="lazy" />
                 }
                 <div class="flex-1 min-w-0">
-                  <p class="text-[--color-text-primary] font-medium">
+                  <p class="font-semibold" style="color: var(--color-text-primary)">
                     @if (vol.volumeNumber) { 第{{ vol.volumeNumber }}巻 } @else { 単巻 }
                   </p>
-                  <p class="text-sm text-[--color-text-secondary]">
+                  <p class="text-sm" style="color: var(--color-text-secondary)">
                     {{ vol.releaseDate | releaseDate:vol.releaseDateIsMonthOnly }}
                   </p>
                 </div>
                 @if (vol.rakutenItemUrl) {
                   <a [href]="vol.rakutenItemUrl" target="_blank" rel="noopener noreferrer"
-                     class="shrink-0 text-xs text-[--color-primary] underline">楽天で見る</a>
+                     class="shrink-0 text-xs font-medium" style="color: var(--color-primary)">楽天で見る →</a>
                 }
               </li>
             }
           </ul>
         }
       } @else {
-        <p class="text-[--color-text-secondary] py-16 text-center">シリーズが見つかりませんでした。</p>
+        <p class="py-16 text-center" style="color: var(--color-text-secondary)">シリーズが見つかりませんでした。</p>
       }
     </div>
-    </app-page-layout>
   `,
 })
 export class SeriesDetailPage implements OnInit {

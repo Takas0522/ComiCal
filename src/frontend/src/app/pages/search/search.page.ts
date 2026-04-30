@@ -22,41 +22,48 @@ interface SeriesResult {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-page-layout>
-    <div data-testid="page-search" class="py-6">
-      <h1 class="text-2xl font-bold text-[--color-text-primary] mb-6">検索</h1>
+    <div data-testid="page-search" class="py-5">
+      <h1 class="text-xl font-bold mb-4" style="color: var(--color-text-primary)">検索</h1>
       <app-search-bar
         placeholder="タイトル・著者・出版社で検索..."
         [value]="query()"
         (search)="onSearch($event)"
-        class="mb-6 block"
+        class="mb-5 block"
       />
       @if (isLoading()) {
         <div class="flex justify-center py-16"><app-spinner /></div>
       } @else if (query() && results().length === 0) {
-        <p class="text-[--color-text-secondary] text-center py-16">
-          「{{ query() }}」に一致するシリーズが見つかりませんでした。
-        </p>
+        <div class="text-center py-16">
+          <p class="text-3xl mb-3" aria-hidden="true">🔍</p>
+          <p style="color: var(--color-text-secondary)">「{{ query() }}」に一致するシリーズが見つかりませんでした。</p>
+        </div>
       } @else if (!query()) {
-        <p class="text-[--color-text-secondary] text-center py-16">
-          キーワードを入力して検索してください。
-        </p>
+        <div class="text-center py-16">
+          <p class="text-4xl mb-3" aria-hidden="true">📚</p>
+          <p style="color: var(--color-text-secondary)">キーワードを入力して検索してください。</p>
+        </div>
       } @else {
-        <ul class="divide-y divide-[--color-border]">
+        <ul class="flex flex-col gap-2">
           @for (series of results(); track series.seriesId) {
-            <li class="py-4 flex items-center justify-between gap-4">
+            <li
+              class="flex items-center justify-between gap-4 p-4 rounded-xl"
+              style="background: var(--color-surface); box-shadow: var(--shadow-card)"
+            >
               <a [routerLink]="['/series', series.seriesId]" class="flex-1 min-w-0">
-                <p class="font-semibold text-[--color-text-primary] truncate">{{ series.title }}</p>
-                <p class="text-sm text-[--color-text-secondary] truncate">
+                <p class="font-semibold truncate" style="color: var(--color-text-primary)">{{ series.title }}</p>
+                <p class="text-sm truncate mt-0.5" style="color: var(--color-text-secondary)">
                   {{ series.authors[0]?.name ?? '著者不明' }} &nbsp;/&nbsp; {{ series.publisher.name }}
-                  @if (series.isCompleted) { <span class="ml-2 text-xs text-[--color-text-secondary]">完結</span> }
+                  @if (series.isCompleted) {
+                    <span class="ml-2 text-xs px-1.5 py-0.5 rounded-full" style="background: var(--color-surface-elevated); color: var(--color-text-tertiary)">完結</span>
+                  }
                 </p>
               </a>
               <button
                 type="button"
-                class="shrink-0 px-3 py-1.5 text-sm rounded-lg transition-colors"
-                [class]="series.isSubscribed
-                  ? 'bg-[--color-surface-elevated] text-[--color-text-secondary] border border-[--color-border] hover:bg-red-50 hover:text-red-600'
-                  : 'bg-[--color-primary] text-white hover:bg-[--color-primary-hover]'"
+                class="shrink-0 px-4 py-1.5 text-sm font-semibold rounded-full transition-all"
+                [style]="series.isSubscribed
+                  ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
+                  : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'"
                 (click)="toggleSubscription(series)"
               >{{ series.isSubscribed ? '購読中' : '購読する' }}</button>
             </li>

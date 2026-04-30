@@ -11,8 +11,10 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-page-layout>
-      <div data-testid="page-home" class="py-6">
-        <h1 class="text-2xl font-bold text-[--color-text-primary] mb-6">直近の発売予定</h1>
+      <div data-testid="page-home" class="py-5">
+        <div class="flex items-center justify-between mb-5">
+          <h1 class="text-xl font-bold" style="color: var(--color-text-primary)">直近の発売予定</h1>
+        </div>
         <app-card-grid [volumes]="volumes()" [loading]="isLoading()" />
       </div>
     </app-page-layout>
