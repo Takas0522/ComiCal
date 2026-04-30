@@ -12,10 +12,17 @@
     <PostDeploy Include="Scripts\PostDeploy\Script.PostDeployment.sql" />
     <!-- Exclude sub-scripts from model build (referenced via :r in entry points) -->
     <Build Remove="Scripts\**\*.sql" />
+    <!-- Full-text objects excluded from model: created conditionally in PostDeploy -->
+    <Build Remove="FullText\**\*.sql" />
+    <None Include="FullText\FTCatalog.sql" />
+    <None Include="FullText\FT_Authors.sql" />
+    <None Include="FullText\FT_Publishers.sql" />
+    <None Include="FullText\FT_Series.sql" />
     <None Include="Scripts\PreDeploy\01-create-fts-catalog.sql" />
     <None Include="Scripts\PreDeploy\02-fn-to-hiragana.sql" />
     <None Include="Scripts\PostDeploy\01-seed-reference-data.sql" />
     <None Include="Scripts\PostDeploy\02-seed-admin-user.sql" />
+    <None Include="Scripts\PostDeploy\03-fulltext-indexes.sql" />
     <None Include="Scripts\Seed\dev-sample-series.sql" />
   </ItemGroup>
 </Project>

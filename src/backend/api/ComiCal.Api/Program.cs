@@ -17,7 +17,11 @@ var host = new HostBuilder()
     })
     .ConfigureServices((ctx, services) =>
     {
-        services.AddApplicationInsightsTelemetryWorkerService();
+        // Application Insights: only enable when connection string is configured
+        // (func start injects an empty string by default, which causes a parse error)
+        if (!string.IsNullOrWhiteSpace(ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+            services.AddApplicationInsightsTelemetryWorkerService();
+
         services.AddApplicationServices();
 
         var connectionString = ctx.Configuration["SqlConnectionString"]

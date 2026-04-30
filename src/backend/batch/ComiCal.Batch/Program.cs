@@ -1,11 +1,8 @@
 using ComiCal.Application;
-using ComiCal.Batch.Activities;
-using ComiCal.Batch.Orchestrators;
 using ComiCal.Infrastructure.Blob;
 using ComiCal.Infrastructure.Rakuten;
 using ComiCal.Infrastructure.Sql;
 using Microsoft.Azure.Functions.Worker;
-using Microsoft.DurableTask.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -13,7 +10,10 @@ var host = new HostBuilder()
     .ConfigureFunctionsWorkerDefaults()
     .ConfigureServices((ctx, services) =>
     {
-        services.AddApplicationInsightsTelemetryWorkerService();
+        // Application Insights: only enable when connection string is configured
+        if (!string.IsNullOrWhiteSpace(ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
+            services.AddApplicationInsightsTelemetryWorkerService();
+
         services.AddApplicationServices();
 
         var connectionString = ctx.Configuration["SqlConnectionString"]
@@ -28,21 +28,8 @@ var host = new HostBuilder()
             ?? throw new InvalidOperationException("RakutenApplicationId is required");
         services.AddRakutenInfrastructure(rakutenAppId);
 
-        services.AddDurableTaskWorker(builder =>
-        {
-            builder.AddTasks(r =>
-            {
-                r.AddOrchestrator<DailyFetchOrchestrator>();
-                r.AddOrchestrator<FetchOrchestrator>();
-                r.AddOrchestrator<ThumbnailOrchestrator>();
-                r.AddActivity<CreateBatchRunActivity>();
-                r.AddActivity<FetchPageActivity>();
-                r.AddActivity<UpsertVolumesActivity>();
-                r.AddActivity<DownloadThumbnailActivity>();
-                r.AddActivity<FinalizeBatchRunActivity>();
-            });
-            builder.UseGrpc();
-        });
+        // Durable Task orchestrators/activities are auto-discovered by
+        // Microsoft.Azure.Functions.Worker.Extensions.DurableTask — no manual registration needed.
     })
     .Build();
 
