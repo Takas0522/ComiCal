@@ -1,11 +1,12 @@
 import { Component, ChangeDetectionStrategy, inject, OnInit } from '@angular/core';
 import { SubscriptionsStore } from '../../features/subscriptions.store';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-subscriptions-page',
   standalone: true,
-  imports: [SpinnerComponent],
+  imports: [SpinnerComponent, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div data-testid="page-subscriptions" class="py-6">
@@ -16,12 +17,23 @@ import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
         </div>
       } @else if (store.items().length === 0) {
         <p class="text-[--color-text-secondary] text-center py-16">
-          購読中のシリーズはありません。
+          購読中のシリーズはありません。<br>
+          <a routerLink="/search" class="text-[--color-primary] underline mt-2 inline-block">検索して追加する</a>
         </p>
       } @else {
         <ul class="divide-y divide-[--color-border]">
           @for (sub of store.items(); track sub.subscriptionId) {
-            <li class="py-3 text-[--color-text-primary]">{{ sub.seriesTitle }}</li>
+            <li class="py-4 flex items-center justify-between gap-4">
+              <a [routerLink]="['/series', sub.seriesId]"
+                 class="flex-1 font-semibold text-[--color-text-primary] hover:text-[--color-primary] truncate">
+                {{ sub.seriesTitle }}
+              </a>
+              <button
+                type="button"
+                class="shrink-0 px-3 py-1.5 text-sm rounded-lg border border-[--color-border] bg-[--color-surface-elevated] text-[--color-text-secondary] hover:bg-red-50 hover:text-red-600 transition-colors"
+                (click)="unsubscribe(sub.seriesId)"
+              >購読解除</button>
+            </li>
           }
         </ul>
       }
@@ -33,5 +45,11 @@ export class SubscriptionsPage implements OnInit {
 
   ngOnInit() {
     this.store.load();
+  }
+
+  unsubscribe(seriesId: string) {
+    this.store.unsubscribe(seriesId).subscribe({
+      next: () => this.store.load(),
+    });
   }
 }
