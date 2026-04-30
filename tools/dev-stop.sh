@@ -6,12 +6,12 @@ set -euo pipefail
 log() { echo -e "\033[1;34m[dev-stop]\033[0m $*"; }
 ok()  { echo -e "\033[1;32m[dev-stop]\033[0m $*"; }
 
-for pidfile in /tmp/comical-api.pid /tmp/comical-batch.pid; do
+for pidfile in /tmp/comical-api.pid /tmp/comical-batch.pid /tmp/comical-fe.pid; do
   if [[ -f "$pidfile" ]]; then
     PID=$(cat "$pidfile")
     if kill -0 "$PID" 2>/dev/null; then
-      log "プロセス $PID を停止しています..."
-      kill "$PID" && ok "停止しました ($pidfile)"
+      log "プロセス $PID を停止しています ($pidfile)..."
+      kill "$PID" && ok "停止しました"
     fi
     rm -f "$pidfile"
   fi

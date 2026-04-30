@@ -167,7 +167,7 @@ API_DIR="$REPO_ROOT/src/backend/api/ComiCal.Api"
 API_LOG="/tmp/comical-api.log"
 log "Azure Functions API を起動しています (port 7071) → $API_LOG"
 cd "$API_DIR"
-nohup func start --port 7071 > "$API_LOG" 2>&1 &
+setsid nohup func start --port 7071 > "$API_LOG" 2>&1 &
 API_PID=$!
 echo "$API_PID" > /tmp/comical-api.pid
 log "Functions API PID: $API_PID"
@@ -184,7 +184,7 @@ BATCH_DIR="$REPO_ROOT/src/backend/batch/ComiCal.Batch"
 BATCH_LOG="/tmp/comical-batch.log"
 log "Azure Functions Batch を起動しています (port 7072) → $BATCH_LOG"
 cd "$BATCH_DIR"
-nohup func start --port 7072 > "$BATCH_LOG" 2>&1 &
+setsid nohup func start --port 7072 > "$BATCH_LOG" 2>&1 &
 BATCH_PID=$!
 echo "$BATCH_PID" > /tmp/comical-batch.pid
 log "Functions Batch PID: $BATCH_PID"
@@ -213,17 +213,6 @@ echo ""
 # ---------------------------------------------------------------------------
 # 起動後サマリ
 # ---------------------------------------------------------------------------
-ok "===== 起動完了 ====="
-echo ""
-echo "  Functions API  : http://localhost:7071"
-echo "  Functions Batch: http://localhost:7072/api/batch/trigger"
-echo "  SQL Server     : ${SQL_IP}:1433  (DB: ComiCal)"
-echo "  Azurite Blob   : http://${AZURITE_IP}:10000/devstoreaccount1"
-echo ""
-echo "  API ログ  : tail -f $API_LOG"
-echo "  Batch ログ: tail -f $BATCH_LOG"
-echo ""
-
 if [[ "$EXISTING_RAKUTEN" == "__YOUR_RAKUTEN_APP_ID__" ]]; then
   warn "RakutenApplicationId が未設定です。バッチを実行するには:"
   warn "  $BATCH_SETTINGS の RakutenApplicationId を実際の楽天アプリIDに変更してください"
@@ -231,17 +220,56 @@ if [[ "$EXISTING_RAKUTEN" == "__YOUR_RAKUTEN_APP_ID__" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# 9. Angular dev server 起動
+# 9. Angular dev server 起動 — バックグラウンド (host 0.0.0.0 でホストからアクセス可能)
 # ---------------------------------------------------------------------------
+if [[ -f /tmp/comical-fe.pid ]]; then
+  OLD_PID=$(cat /tmp/comical-fe.pid)
+  kill "$OLD_PID" 2>/dev/null || true
+fi
+
+FE_LOG="/tmp/comical-fe.log"
+
 if $NO_FRONTEND; then
   ok "--no-frontend 指定のため Angular は起動しません"
-  echo "停止するには: bash tools/dev-stop.sh"
 else
-  ok "Angular dev server を起動します (port 4200)..."
-  echo "  Angular        : http://localhost:4200"
-  echo ""
-  echo "停止するには: Ctrl+C → bash tools/dev-stop.sh"
-  echo ""
+  log "Angular dev server を起動しています (port 4200, host 0.0.0.0) → $FE_LOG"
   cd "$REPO_ROOT"
-  pnpm --filter frontend dev
+  setsid nohup pnpm --filter frontend dev:local > "$FE_LOG" 2>&1 &
+  FE_PID=$!
+  echo "$FE_PID" > /tmp/comical-fe.pid
+  log "Angular PID: $FE_PID"
+
+  # Angular のコンパイル完了を待つ (最大 120 秒)
+  log "Angular のビルドを待っています (初回は 60〜90 秒かかります)..."
+  for i in $(seq 1 24); do
+    if grep -q "Local:" "$FE_LOG" 2>/dev/null || grep -q "Application bundle generation complete" "$FE_LOG" 2>/dev/null; then
+      ok "Angular dev server が起動しました"
+      break
+    fi
+    if [[ $i -eq 24 ]]; then
+      warn "120 秒以内に起動確認できませんでした (ログ: $FE_LOG)"
+      break
+    fi
+    echo -n "."
+    sleep 5
+  done
+  echo ""
 fi
+
+# ---------------------------------------------------------------------------
+# 起動完了サマリ（更新）
+# ---------------------------------------------------------------------------
+echo ""
+ok "===== 全サービスが起動しました ====="
+echo ""
+echo "  Angular        : http://localhost:4200  (ホストブラウザからアクセス可)"
+echo "  Functions API  : http://localhost:7071"
+echo "  Functions Batch: http://localhost:7072/api/batch/trigger"
+echo "  SQL Server     : ${SQL_IP}:1433"
+echo "  Azurite Blob   : http://${AZURITE_IP}:10000/devstoreaccount1"
+echo ""
+echo "  Angular ログ: tail -f $FE_LOG"
+echo "  API ログ    : tail -f $API_LOG"
+echo "  Batch ログ  : tail -f $BATCH_LOG"
+echo ""
+echo "停止するには: bash tools/dev-stop.sh"
