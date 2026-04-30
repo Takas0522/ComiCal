@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
 
 interface LoginProvider {
   name: string;
@@ -9,24 +10,27 @@ interface LoginProvider {
 @Component({
   selector: 'app-login-page',
   standalone: true,
+  imports: [PageLayoutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div data-testid="page-login" class="py-12 flex flex-col items-center">
-      <h1 class="text-2xl font-bold text-[--color-text-primary] mb-2">ログイン</h1>
-      <p class="text-[--color-text-secondary] mb-10">アカウントでログインしてください</p>
+    <app-page-layout>
+      <div data-testid="page-login" class="py-12 flex flex-col items-center">
+        <h1 class="text-2xl font-bold text-[--color-text-primary] mb-2">ログイン</h1>
+        <p class="text-[--color-text-secondary] mb-10">アカウントでログインしてください</p>
 
-      <div class="flex flex-col gap-3 w-full max-w-xs">
-        @for (provider of providers; track provider.path) {
-          <a
-            [href]="provider.path"
-            class="flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-[--color-border] bg-[--color-surface] hover:bg-[--color-surface-elevated] transition-colors text-[--color-text-primary] font-medium"
-            [attr.data-testid]="'btn-login-' + provider.name"
-          >
-            {{ provider.label }}
-          </a>
-        }
+        <div class="flex flex-col gap-3 w-full max-w-xs">
+          @for (provider of providers; track provider.path) {
+            <a
+              [href]="provider.path"
+              class="flex items-center justify-center gap-3 px-4 py-3 rounded-lg border border-[--color-border] bg-[--color-surface] hover:bg-[--color-surface-elevated] transition-colors text-[--color-text-primary] font-medium"
+              [attr.data-testid]="'btn-login-' + provider.name"
+            >
+              {{ provider.label }}
+            </a>
+          }
+        </div>
       </div>
-    </div>
+    </app-page-layout>
   `,
 })
 export class LoginPage {

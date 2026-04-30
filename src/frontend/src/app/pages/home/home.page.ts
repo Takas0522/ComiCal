@@ -2,17 +2,20 @@ import { Component, ChangeDetectionStrategy, signal, inject, OnInit } from '@ang
 import { HttpClient } from '@angular/common/http';
 import { CardGridComponent } from '../../organisms/card-grid/card-grid.component';
 import { Volume } from '../../molecules/volume-card/volume-card.component';
+import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
 
 @Component({
   selector: 'app-home-page',
   standalone: true,
-  imports: [CardGridComponent],
+  imports: [CardGridComponent, PageLayoutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div data-testid="page-home" class="py-6">
-      <h1 class="text-2xl font-bold text-[--color-text-primary] mb-6">直近の発売予定</h1>
-      <app-card-grid [volumes]="volumes()" [loading]="isLoading()" />
-    </div>
+    <app-page-layout>
+      <div data-testid="page-home" class="py-6">
+        <h1 class="text-2xl font-bold text-[--color-text-primary] mb-6">直近の発売予定</h1>
+        <app-card-grid [volumes]="volumes()" [loading]="isLoading()" />
+      </div>
+    </app-page-layout>
   `,
 })
 export class HomePage implements OnInit {

@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { ReleaseDatePipe } from '../../shared/pipes/release-date.pipe';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { RouterLink } from '@angular/router';
+import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
 
 type CalendarView = 'week' | 'month';
 
@@ -28,9 +29,10 @@ interface CalendarData {
 @Component({
   selector: 'app-calendar-page',
   standalone: true,
-  imports: [ReleaseDatePipe, SpinnerComponent, RouterLink],
+  imports: [ReleaseDatePipe, SpinnerComponent, RouterLink, PageLayoutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-page-layout>
     <div data-testid="page-calendar" class="py-6">
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-[--color-text-primary]">カレンダー</h1>
@@ -92,6 +94,7 @@ interface CalendarData {
         }
       }
     </div>
+    </app-page-layout>
   `,
 })
 export class CalendarPage implements OnInit {

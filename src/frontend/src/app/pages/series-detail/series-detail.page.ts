@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { ReleaseDatePipe } from '../../shared/pipes/release-date.pipe';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { SubscriptionsStore } from '../../features/subscriptions.store';
+import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
 
 interface Volume {
   volumeId: string;
@@ -27,9 +28,10 @@ interface Series {
 @Component({
   selector: 'app-series-detail-page',
   standalone: true,
-  imports: [ReleaseDatePipe, SpinnerComponent],
+  imports: [ReleaseDatePipe, SpinnerComponent, PageLayoutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-page-layout>
     <div data-testid="page-series-detail" class="py-6">
       @if (isLoading()) {
         <div class="flex justify-center py-16"><app-spinner /></div>
@@ -81,6 +83,7 @@ interface Series {
         <p class="text-[--color-text-secondary] py-16 text-center">シリーズが見つかりませんでした。</p>
       }
     </div>
+    </app-page-layout>
   `,
 })
 export class SeriesDetailPage implements OnInit {

@@ -4,6 +4,7 @@ import { RouterLink } from '@angular/router';
 import { SearchBarComponent } from '../../molecules/search-bar/search-bar.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { SubscriptionsStore } from '../../features/subscriptions.store';
+import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
 
 interface SeriesResult {
   seriesId: string;
@@ -17,9 +18,10 @@ interface SeriesResult {
 @Component({
   selector: 'app-search-page',
   standalone: true,
-  imports: [SearchBarComponent, SpinnerComponent, RouterLink],
+  imports: [SearchBarComponent, SpinnerComponent, RouterLink, PageLayoutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <app-page-layout>
     <div data-testid="page-search" class="py-6">
       <h1 class="text-2xl font-bold text-[--color-text-primary] mb-6">検索</h1>
       <app-search-bar
@@ -62,6 +64,7 @@ interface SeriesResult {
         </ul>
       }
     </div>
+    </app-page-layout>
   `,
 })
 export class SearchPage {
