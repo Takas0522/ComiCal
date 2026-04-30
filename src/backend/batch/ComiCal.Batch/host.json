@@ -13,5 +13,10 @@
       "Function": "Information",
       "Host.Aggregator": "Trace"
     }
+  },
+  "extensions": {
+    "durableTask": {
+      "hubName": "ComiCalBatch"
+    }
   }
 }

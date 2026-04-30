@@ -16,10 +16,12 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" />
     <PackageReference Include="Microsoft.DurableTask.Client" />
     <PackageReference Include="Microsoft.DurableTask.Worker" />
     <PackageReference Include="Microsoft.DurableTask.Worker.Grpc" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
   </ItemGroup>
 </Project>
