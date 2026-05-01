@@ -22,7 +22,7 @@ export class AuthStore {
   loadUser() {
     if (!isPlatformBrowser(this.platformId)) return;
     this.http.get<{ clientPrincipal: SwaUser | null }>('/.auth/me').subscribe({
-      next: r => this.user.set(r.clientPrincipal),
+      next: (r) => this.user.set(r.clientPrincipal),
       error: () => this.user.set(null),
     });
   }

@@ -20,10 +20,15 @@ interface LoginProvider {
           class="inline-flex items-center justify-center w-16 h-16 rounded-2xl text-3xl font-bold text-white mb-5"
           style="background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); box-shadow: 0 4px 20px rgba(232,0,45,0.4)"
           aria-hidden="true"
-        >漫</span>
+          >漫</span
+        >
 
-        <h1 class="text-xl font-bold mb-1" style="color: var(--color-text-primary)">まんがリマインダー</h1>
-        <p class="text-sm mb-8" style="color: var(--color-text-secondary)">アカウントでログインしてください</p>
+        <h1 class="text-xl font-bold mb-1" style="color: var(--color-text-primary)">
+          まんがリマインダー
+        </h1>
+        <p class="text-sm mb-8" style="color: var(--color-text-secondary)">
+          アカウントでログインしてください
+        </p>
 
         <div class="flex flex-col gap-3 w-full max-w-xs">
           @for (provider of providers; track provider.path) {

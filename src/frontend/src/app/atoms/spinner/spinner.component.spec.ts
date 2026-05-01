@@ -21,17 +21,23 @@ describe('SpinnerComponent', () => {
   });
 
   it('spinner has animate-spin class', () => {
-    const spinner: HTMLElement = fixture.debugElement.query(By.css('[data-testid="spinner"]')).nativeElement;
+    const spinner: HTMLElement = fixture.debugElement.query(
+      By.css('[data-testid="spinner"]'),
+    ).nativeElement;
     expect(spinner.className).toContain('animate-spin');
   });
 
   it('spinner has role="status"', () => {
-    const spinner: HTMLElement = fixture.debugElement.query(By.css('[data-testid="spinner"]')).nativeElement;
+    const spinner: HTMLElement = fixture.debugElement.query(
+      By.css('[data-testid="spinner"]'),
+    ).nativeElement;
     expect(spinner.getAttribute('role')).toBe('status');
   });
 
   it('spinner has accessible aria-label', () => {
-    const spinner: HTMLElement = fixture.debugElement.query(By.css('[data-testid="spinner"]')).nativeElement;
+    const spinner: HTMLElement = fixture.debugElement.query(
+      By.css('[data-testid="spinner"]'),
+    ).nativeElement;
     expect(spinner.getAttribute('aria-label')).toBe('読み込み中');
   });
 });

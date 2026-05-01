@@ -14,9 +14,7 @@ export class PurchasesStore {
   private readonly http = inject(HttpClient);
 
   readonly items = signal<Purchase[]>([]);
-  private readonly byVolumeId = computed(() =>
-    new Map(this.items().map(p => [p.volumeId, p]))
-  );
+  private readonly byVolumeId = computed(() => new Map(this.items().map((p) => [p.volumeId, p])));
 
   getState(volumeId: string): PurchaseState {
     return this.byVolumeId().get(volumeId)?.state ?? 'NotPurchased';

@@ -29,8 +29,6 @@ export const API_CLIENT = new InjectionToken<ComiCalApiClient>('API_CLIENT', {
  * provideApiClient({ baseUrl: 'https://api.example.com/v1' })
  */
 export function provideApiClient(options?: { baseUrl?: string }) {
-  const providers = options?.baseUrl
-    ? [{ provide: API_BASE_URL, useValue: options.baseUrl }]
-    : [];
+  const providers = options?.baseUrl ? [{ provide: API_BASE_URL, useValue: options.baseUrl }] : [];
   return makeEnvironmentProviders(providers);
 }

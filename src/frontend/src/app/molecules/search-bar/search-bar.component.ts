@@ -7,11 +7,7 @@ import { FormsModule } from '@angular/forms';
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form
-      role="search"
-      class="flex gap-2"
-      (submit)="onSubmit($event)"
-    >
+    <form role="search" class="flex gap-2" (submit)="onSubmit($event)">
       <input
         data-testid="input-search"
         type="search"
@@ -25,7 +21,9 @@ import { FormsModule } from '@angular/forms';
         type="submit"
         class="px-4 py-2 bg-[--color-primary] text-white rounded-lg hover:bg-[--color-primary-hover] transition-colors"
         aria-label="検索"
-      >検索</button>
+      >
+        検索
+      </button>
     </form>
   `,
 })

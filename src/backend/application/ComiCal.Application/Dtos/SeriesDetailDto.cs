@@ -1,4 +1,5 @@
 namespace ComiCal.Application.Dtos;
+
 public record SeriesDetailDto(
     Guid SeriesId,
     string Title,

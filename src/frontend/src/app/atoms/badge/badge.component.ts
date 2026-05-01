@@ -5,10 +5,7 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <span
-      [attr.data-testid]="'badge-' + variant()"
-      [class]="badgeClasses()"
-    >
+    <span [attr.data-testid]="'badge-' + variant()" [class]="badgeClasses()">
       <ng-content />
     </span>
   `,

@@ -12,38 +12,46 @@ interface NavItem {
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  styles: [`
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      padding: 6px 0;
-      color: var(--color-text-tertiary);
-      transition: color 0.15s;
-      position: relative;
-      flex: 1;
-    }
-    .nav-item:hover { color: var(--color-text-secondary); }
-    .nav-item.active {
-      color: var(--color-primary);
-    }
-    .nav-icon {
-      width: 26px;
-      height: 26px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      transition: background 0.15s;
-      font-size: 1.125rem;
-    }
-    .nav-item.active .nav-icon {
-      background: var(--color-primary-light);
-    }
-    .nav-label { font-size: 0.625rem; font-weight: 500; letter-spacing: 0.01em; }
-  `],
+  styles: [
+    `
+      .nav-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        padding: 6px 0;
+        color: var(--color-text-tertiary);
+        transition: color 0.15s;
+        position: relative;
+        flex: 1;
+      }
+      .nav-item:hover {
+        color: var(--color-text-secondary);
+      }
+      .nav-item.active {
+        color: var(--color-primary);
+      }
+      .nav-icon {
+        width: 26px;
+        height: 26px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: background 0.15s;
+        font-size: 1.125rem;
+      }
+      .nav-item.active .nav-icon {
+        background: var(--color-primary-light);
+      }
+      .nav-label {
+        font-size: 0.625rem;
+        font-weight: 500;
+        letter-spacing: 0.01em;
+      }
+    `,
+  ],
   template: `
     <nav
       data-testid="bottom-nav"
@@ -77,9 +85,9 @@ interface NavItem {
 })
 export class BottomNavComponent {
   protected readonly navItems: NavItem[] = [
-    { label: 'ホーム',   path: '/',              icon: '🏠' },
-    { label: 'カレンダー', path: '/calendar',    icon: '📅' },
-    { label: '検索',     path: '/search',        icon: '🔍' },
-    { label: '購読',     path: '/subscriptions', icon: '⭐' },
+    { label: 'ホーム', path: '/', icon: '🏠' },
+    { label: 'カレンダー', path: '/calendar', icon: '📅' },
+    { label: '検索', path: '/search', icon: '🔍' },
+    { label: '購読', path: '/subscriptions', icon: '⭐' },
   ];
 }

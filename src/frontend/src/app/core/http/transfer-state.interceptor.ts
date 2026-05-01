@@ -20,7 +20,7 @@ export const transferStateInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   return next(req).pipe(
-    tap(event => {
+    tap((event) => {
       if (isPlatformServer(platformId) && event instanceof HttpResponse) {
         transferState.set(stateKey, event.body);
       }

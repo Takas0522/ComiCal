@@ -20,16 +20,25 @@ export class SettingsStore {
         if (typeof s.affiliateLinkEnabled === 'boolean') {
           this.affiliateLinkEnabled.set(s.affiliateLinkEnabled);
         }
-      } catch { /* ignore */ }
+      } catch {
+        /* ignore */
+      }
     }
     effect(() => {
-      localStorage.setItem('settings', JSON.stringify({
-        theme: this.theme(),
-        affiliateLinkEnabled: this.affiliateLinkEnabled(),
-      }));
+      localStorage.setItem(
+        'settings',
+        JSON.stringify({
+          theme: this.theme(),
+          affiliateLinkEnabled: this.affiliateLinkEnabled(),
+        }),
+      );
     });
   }
 
-  setTheme(theme: Theme) { this.theme.set(theme); }
-  toggleAffiliateLink() { this.affiliateLinkEnabled.update(v => !v); }
+  setTheme(theme: Theme) {
+    this.theme.set(theme);
+  }
+  toggleAffiliateLink() {
+    this.affiliateLinkEnabled.update((v) => !v);
+  }
 }

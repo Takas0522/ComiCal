@@ -19,9 +19,7 @@ import { SkeletonComponent } from '../../atoms/skeleton/skeleton.component';
           }
         </div>
       } @else if (volumes().length === 0) {
-        <p class="text-center text-[--color-text-secondary] py-16">
-          表示できる巻がありません。
-        </p>
+        <p class="text-center text-[--color-text-secondary] py-16">表示できる巻がありません。</p>
       } @else {
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           @for (volume of volumes(); track volume.id) {

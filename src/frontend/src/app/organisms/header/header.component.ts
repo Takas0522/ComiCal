@@ -22,12 +22,17 @@ import { ToggleComponent } from '../../molecules/toggle/toggle.component';
     >
       <div class="container mx-auto px-4 h-14 flex items-center justify-between gap-4">
         <!-- Logo -->
-        <a routerLink="/" class="flex items-center gap-2 shrink-0 group" aria-label="まんがリマインダー ホームへ">
+        <a
+          routerLink="/"
+          class="flex items-center gap-2 shrink-0 group"
+          aria-label="まんがリマインダー ホームへ"
+        >
           <span
             class="inline-flex items-center justify-center w-7 h-7 rounded-lg text-white text-sm font-bold leading-none"
             style="background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); box-shadow: 0 2px 6px rgba(232,0,45,0.35)"
             aria-hidden="true"
-          >漫</span>
+            >漫</span
+          >
           <span class="text-base font-bold" style="color: var(--color-text-primary)">
             まんがリマインダー
           </span>
@@ -41,7 +46,10 @@ import { ToggleComponent } from '../../molecules/toggle/toggle.component';
               label="購読中のみ"
               (toggled)="subscriptions.toggleSubscribedOnly()"
             />
-            <span class="text-sm hidden sm:inline truncate max-w-28" style="color: var(--color-text-secondary)">
+            <span
+              class="text-sm hidden sm:inline truncate max-w-28"
+              style="color: var(--color-text-secondary)"
+            >
               {{ auth.displayName() }}
             </span>
             <a
@@ -49,13 +57,15 @@ import { ToggleComponent } from '../../molecules/toggle/toggle.component';
               class="text-sm px-3 py-1.5 rounded-full border transition-colors"
               style="color: var(--color-text-secondary); border-color: var(--color-border)"
               data-testid="btn-logout"
-            >ログアウト</a>
+              >ログアウト</a
+            >
           } @else {
             <a
               routerLink="/login"
               class="text-sm font-semibold px-4 py-1.5 rounded-full text-white btn-primary"
               data-testid="btn-login"
-            >ログイン</a>
+              >ログイン</a
+            >
           }
         </div>
       </div>

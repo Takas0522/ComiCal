@@ -7,8 +7,10 @@ import { Component, ChangeDetectionStrategy, input } from '@angular/core';
   template: `
     <div data-testid="skeleton" aria-hidden="true">
       @for (line of linesArray(); track $index) {
-        <div class="h-4 bg-[--color-border] rounded animate-pulse mb-2 last:mb-0"
-             [style.width]="$index % 3 === 2 ? '60%' : '100%'"></div>
+        <div
+          class="h-4 bg-[--color-border] rounded animate-pulse mb-2 last:mb-0"
+          [style.width]="$index % 3 === 2 ? '60%' : '100%'"
+        ></div>
       }
     </div>
   `,

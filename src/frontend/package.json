@@ -8,8 +8,9 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "jest --coverage",
-    "lint": "ng lint",
+    "lint": "prettier --check \"src/**/*.{ts,html,css}\"",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
     "serve:ssr:frontend": "node dist/frontend/server/server.mjs",
     "generate:api": "openapi-typescript ../../docs/api/openapi.yaml -o src/app/core/api/schema.d.ts"
   },

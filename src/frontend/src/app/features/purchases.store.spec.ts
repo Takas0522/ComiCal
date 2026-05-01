@@ -9,10 +9,7 @@ describe('PurchasesStore', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     store = TestBed.inject(PurchasesStore);
     httpMock = TestBed.inject(HttpTestingController);
@@ -38,7 +35,7 @@ describe('PurchasesStore', () => {
 
   it('updateState() response contains updated purchase', () => {
     let result: { purchaseId: string; volumeId: string; state: string } | null = null;
-    store.updateState('vol2', 'Read').subscribe(r => (result = r));
+    store.updateState('vol2', 'Read').subscribe((r) => (result = r));
     const req = httpMock.expectOne('/api/v1/me/purchases/vol2');
     req.flush({ purchaseId: 'p2', volumeId: 'vol2', state: 'Read' });
     expect(result).not.toBeNull();

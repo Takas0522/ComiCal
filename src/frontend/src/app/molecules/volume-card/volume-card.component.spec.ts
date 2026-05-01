@@ -55,7 +55,10 @@ describe('VolumeCardComponent', () => {
   });
 
   it('renders thumbnail img when thumbnailUrl is provided', () => {
-    fixture.componentRef.setInput('volume', { ...mockVolume, thumbnailUrl: 'https://example.com/thumb.jpg' });
+    fixture.componentRef.setInput('volume', {
+      ...mockVolume,
+      thumbnailUrl: 'https://example.com/thumb.jpg',
+    });
     fixture.detectChanges();
     const img = fixture.debugElement.query(By.css('img'));
     expect(img).toBeTruthy();
@@ -63,7 +66,10 @@ describe('VolumeCardComponent', () => {
   });
 
   it('shows rakuten link when rakutenItemUrl is provided', () => {
-    fixture.componentRef.setInput('volume', { ...mockVolume, rakutenItemUrl: 'https://books.rakuten.co.jp/test' });
+    fixture.componentRef.setInput('volume', {
+      ...mockVolume,
+      rakutenItemUrl: 'https://books.rakuten.co.jp/test',
+    });
     fixture.detectChanges();
     const link = fixture.debugElement.query(By.css('[data-testid="link-rakuten"]'));
     expect(link).toBeTruthy();

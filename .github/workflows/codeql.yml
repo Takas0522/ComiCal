@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@6bb031afdd31c0934dd9c5a3afd4c1b7ac7b9e34 # v3.28.5
+        uses: github/codeql-action/init@0317bd866e2a5371dd9827110664107b306af4a8 # v3.28.5
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
@@ -38,6 +38,6 @@ jobs:
       - if: matrix.build-mode == 'manual'
         run: dotnet build src/backend/ComiCal.sln
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@6bb031afdd31c0934dd9c5a3afd4c1b7ac7b9e34 # v3.28.5
+        uses: github/codeql-action/analyze@0317bd866e2a5371dd9827110664107b306af4a8 # v3.28.5
         with:
           category: "/language:${{ matrix.language }}"

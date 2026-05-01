@@ -4,795 +4,795 @@
  */
 
 export interface paths {
-    "/series": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * シリーズ検索
-         * @description タイトル / 著者 / 発売日 From / 出版社でシリーズを検索します。SQL フルテキスト検索 + ひらがな正規化を使用します。
-         */
-        get: operations["searchSeries"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  '/series': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/series/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * シリーズ詳細
-         * @description シリーズ詳細情報と巻一覧を返します。
-         */
-        get: operations["getSeriesDetail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * シリーズ検索
+     * @description タイトル / 著者 / 発売日 From / 出版社でシリーズを検索します。SQL フルテキスト検索 + ひらがな正規化を使用します。
+     */
+    get: operations['searchSeries'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/series/{id}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/volumes/upcoming": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * 直近発売予定一覧
-         * @description keyset ページネーションで直近の発売予定巻を返します。
-         */
-        get: operations["getUpcomingVolumes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * シリーズ詳細
+     * @description シリーズ詳細情報と巻一覧を返します。
+     */
+    get: operations['getSeriesDetail'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/volumes/upcoming': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/volumes/calendar": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * カレンダービュー
-         * @description 指定した年月または週の発売予定を日付別にグループ化して返します。
-         */
-        get: operations["getCalendarVolumes"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * 直近発売予定一覧
+     * @description keyset ページネーションで直近の発売予定巻を返します。
+     */
+    get: operations['getUpcomingVolumes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/volumes/calendar': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/me/subscriptions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** 購読一覧取得 */
-        get: operations["getMySubscriptions"];
-        put?: never;
-        /** 購読登録 */
-        post: operations["subscribeSeries"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * カレンダービュー
+     * @description 指定した年月または週の発売予定を日付別にグループ化して返します。
+     */
+    get: operations['getCalendarVolumes'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/me/subscriptions': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/me/subscriptions/{seriesId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** 購読解除 */
-        delete: operations["unsubscribeSeries"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** 購読一覧取得 */
+    get: operations['getMySubscriptions'];
+    put?: never;
+    /** 購読登録 */
+    post: operations['subscribeSeries'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/me/subscriptions/{seriesId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/me/purchases/{volumeId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** 購入状態更新 */
-        put: operations["updatePurchaseState"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post?: never;
+    /** 購読解除 */
+    delete: operations['unsubscribeSeries'];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/me/purchases/{volumeId}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/me/sync/qr": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * QR 同期トークン発行
-         * @description 匿名ユーザーのデータを他端末に転送するための暗号化 Blob を発行します。TTL は 5 分です。
-         */
-        post: operations["generateQrSyncToken"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    /** 購入状態更新 */
+    put: operations['updatePurchaseState'];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/me/sync/qr': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/me/sync/qr/{token}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * QR 同期データ取得
-         * @description QR コードで発行されたトークンから暗号化データを取得します。
-         */
-        get: operations["getQrSyncData"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * QR 同期トークン発行
+     * @description 匿名ユーザーのデータを他端末に転送するための暗号化 Blob を発行します。TTL は 5 分です。
+     */
+    post: operations['generateQrSyncToken'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/me/sync/qr/{token}': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/me/account/delete": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * アカウント削除リクエスト
-         * @description ソフト削除を実行します。30 日後にハード削除バッチが物理削除します。
-         */
-        post: operations["deleteAccount"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /**
+     * QR 同期データ取得
+     * @description QR コードで発行されたトークンから暗号化データを取得します。
+     */
+    get: operations['getQrSyncData'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/me/account/delete': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/admin/batch-runs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** バッチ実行履歴一覧 */
-        get: operations["getBatchRuns"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    /**
+     * アカウント削除リクエスト
+     * @description ソフト削除を実行します。30 日後にハード削除バッチが物理削除します。
+     */
+    post: operations['deleteAccount'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/batch-runs': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/admin/batch/trigger": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** バッチ手動起動 */
-        post: operations["triggerBatch"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    /** バッチ実行履歴一覧 */
+    get: operations['getBatchRuns'];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  '/admin/batch/trigger': {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    get?: never;
+    put?: never;
+    /** バッチ手動起動 */
+    post: operations['triggerBatch'];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        ProblemDetails: {
-            /**
-             * Format: uri
-             * @example https://comical.example.jp/errors/validation
-             */
-            type: string;
-            /** @example Validation failed */
-            title: string;
-            /** @example 400 */
-            status: number;
-            detail?: string;
-            /** @example 00-abcdef123456-01 */
-            traceId?: string;
-            errors?: {
-                [key: string]: string[];
-            };
-        };
-        PageInfo: {
-            nextCursor?: string | null;
-            hasMore?: boolean;
-        };
-        AuthorDto: {
-            /** Format: uuid */
-            authorId: string;
-            name: string;
-            /** @enum {string} */
-            role: "Primary" | "Co" | "Original";
-        };
-        PublisherDto: {
-            /** Format: uuid */
-            publisherId: string;
-            name: string;
-        };
-        VolumeDto: {
-            /** Format: uuid */
-            volumeId: string;
-            isbn13: string;
-            volumeNumber?: number | null;
-            /**
-             * Format: date
-             * @description 未定の場合 null。月のみの場合は末日を設定
-             */
-            releaseDate: string | null;
-            /** @description true の場合、releaseDate は月末日。UI では 'YYYY年M月' と表示 */
-            releaseDateIsMonthOnly: boolean;
-            /** Format: uri */
-            thumbnailUrl?: string | null;
-            /** Format: uri */
-            rakutenItemUrl?: string | null;
-            /**
-             * @default NotPurchased
-             * @enum {string}
-             */
-            purchaseState: "NotPurchased" | "Reserved" | "Purchased" | "Read";
-        };
-        SeriesDto: {
-            /** Format: uuid */
-            seriesId: string;
-            title: string;
-            authors: components["schemas"]["AuthorDto"][];
-            publisher: components["schemas"]["PublisherDto"];
-            isCompleted?: boolean;
-            /** @description ログイン済みユーザーのみ有効 */
-            isSubscribed?: boolean;
-            nextVolume?: components["schemas"]["VolumeDto"];
-        };
-        SeriesDetailDto: components["schemas"]["SeriesDto"] & {
-            volumes?: components["schemas"]["VolumeDto"][];
-        };
-        SeriesPagedResult: {
-            items: components["schemas"]["SeriesDto"][];
-            pageInfo: components["schemas"]["PageInfo"];
-        };
-        VolumePagedResult: {
-            items: (components["schemas"]["VolumeDto"] & {
-                series?: components["schemas"]["SeriesDto"];
-            })[];
-            pageInfo: components["schemas"]["PageInfo"];
-        };
-        CalendarDayDto: {
-            /** Format: date */
-            date: string;
-            volumes: (components["schemas"]["VolumeDto"] & {
-                series?: components["schemas"]["SeriesDto"];
-            })[];
-        };
-        CalendarDto: {
-            days: components["schemas"]["CalendarDayDto"][];
-            undatedVolumes: (components["schemas"]["VolumeDto"] & {
-                series?: components["schemas"]["SeriesDto"];
-            })[];
-        };
-        SubscriptionDto: {
-            /** Format: uuid */
-            subscriptionId: string;
-            /** Format: uuid */
-            seriesId: string;
-            series?: components["schemas"]["SeriesDto"];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        SubscriptionPagedResult: {
-            items: components["schemas"]["SubscriptionDto"][];
-            pageInfo: components["schemas"]["PageInfo"];
-        };
-        SubscribeRequest: {
-            /** Format: uuid */
-            seriesId: string;
-        };
-        PurchaseDto: {
-            /** Format: uuid */
-            purchaseId: string;
-            /** Format: uuid */
-            volumeId: string;
-            /** @enum {string} */
-            state: "NotPurchased" | "Reserved" | "Purchased" | "Read";
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        UpdatePurchaseRequest: {
-            /** @enum {string} */
-            state: "NotPurchased" | "Reserved" | "Purchased" | "Read";
-        };
-        QrSyncUploadRequest: {
-            /** @description AES-GCM で暗号化した IndexedDB データ (Base64) */
-            encryptedPayload: string;
-        };
-        QrSyncTokenDto: {
-            token: string;
-            /** Format: date-time */
-            expiresAt: string;
-        };
-        QrSyncDataDto: {
-            /** @description AES-GCM 暗号化済みデータ (Base64) */
-            encryptedPayload: string;
-        };
-        BatchRunDto: {
-            /** Format: uuid */
-            batchRunId: string;
-            /** Format: date-time */
-            startedAt: string;
-            /** Format: date-time */
-            completedAt?: string | null;
-            /** @enum {string} */
-            status: "Running" | "Succeeded" | "Failed" | "Cancelled";
-            fetchedItemCount?: number;
-            upsertedVolumeCount?: number;
-            downloadedThumbnailCount?: number;
-            skippedThumbnailCount?: number;
-            failedItemCount?: number;
-        };
-        BatchTriggerResponseDto: {
-            /** Format: uuid */
-            batchRunId: string;
-            message: string;
-        };
+  schemas: {
+    ProblemDetails: {
+      /**
+       * Format: uri
+       * @example https://comical.example.jp/errors/validation
+       */
+      type: string;
+      /** @example Validation failed */
+      title: string;
+      /** @example 400 */
+      status: number;
+      detail?: string;
+      /** @example 00-abcdef123456-01 */
+      traceId?: string;
+      errors?: {
+        [key: string]: string[];
+      };
     };
-    responses: {
-        /** @description バリデーションエラー */
-        ValidationError: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description リソースが見つかりません */
-        NotFound: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description 認証が必要です */
-        Unauthorized: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description 権限がありません */
-        Forbidden: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description リソースの競合 */
-        Conflict: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["ProblemDetails"];
-            };
-        };
-        /** @description レートリミット超過 */
-        TooManyRequests: {
-            headers: {
-                /** @description 次のリクエストまでの待機秒数 */
-                "Retry-After"?: number;
-                [name: string]: unknown;
-            };
-            content: {
-                "application/problem+json": components["schemas"]["ProblemDetails"];
-            };
-        };
+    PageInfo: {
+      nextCursor?: string | null;
+      hasMore?: boolean;
     };
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    AuthorDto: {
+      /** Format: uuid */
+      authorId: string;
+      name: string;
+      /** @enum {string} */
+      role: 'Primary' | 'Co' | 'Original';
+    };
+    PublisherDto: {
+      /** Format: uuid */
+      publisherId: string;
+      name: string;
+    };
+    VolumeDto: {
+      /** Format: uuid */
+      volumeId: string;
+      isbn13: string;
+      volumeNumber?: number | null;
+      /**
+       * Format: date
+       * @description 未定の場合 null。月のみの場合は末日を設定
+       */
+      releaseDate: string | null;
+      /** @description true の場合、releaseDate は月末日。UI では 'YYYY年M月' と表示 */
+      releaseDateIsMonthOnly: boolean;
+      /** Format: uri */
+      thumbnailUrl?: string | null;
+      /** Format: uri */
+      rakutenItemUrl?: string | null;
+      /**
+       * @default NotPurchased
+       * @enum {string}
+       */
+      purchaseState: 'NotPurchased' | 'Reserved' | 'Purchased' | 'Read';
+    };
+    SeriesDto: {
+      /** Format: uuid */
+      seriesId: string;
+      title: string;
+      authors: components['schemas']['AuthorDto'][];
+      publisher: components['schemas']['PublisherDto'];
+      isCompleted?: boolean;
+      /** @description ログイン済みユーザーのみ有効 */
+      isSubscribed?: boolean;
+      nextVolume?: components['schemas']['VolumeDto'];
+    };
+    SeriesDetailDto: components['schemas']['SeriesDto'] & {
+      volumes?: components['schemas']['VolumeDto'][];
+    };
+    SeriesPagedResult: {
+      items: components['schemas']['SeriesDto'][];
+      pageInfo: components['schemas']['PageInfo'];
+    };
+    VolumePagedResult: {
+      items: (components['schemas']['VolumeDto'] & {
+        series?: components['schemas']['SeriesDto'];
+      })[];
+      pageInfo: components['schemas']['PageInfo'];
+    };
+    CalendarDayDto: {
+      /** Format: date */
+      date: string;
+      volumes: (components['schemas']['VolumeDto'] & {
+        series?: components['schemas']['SeriesDto'];
+      })[];
+    };
+    CalendarDto: {
+      days: components['schemas']['CalendarDayDto'][];
+      undatedVolumes: (components['schemas']['VolumeDto'] & {
+        series?: components['schemas']['SeriesDto'];
+      })[];
+    };
+    SubscriptionDto: {
+      /** Format: uuid */
+      subscriptionId: string;
+      /** Format: uuid */
+      seriesId: string;
+      series?: components['schemas']['SeriesDto'];
+      /** Format: date-time */
+      createdAt: string;
+    };
+    SubscriptionPagedResult: {
+      items: components['schemas']['SubscriptionDto'][];
+      pageInfo: components['schemas']['PageInfo'];
+    };
+    SubscribeRequest: {
+      /** Format: uuid */
+      seriesId: string;
+    };
+    PurchaseDto: {
+      /** Format: uuid */
+      purchaseId: string;
+      /** Format: uuid */
+      volumeId: string;
+      /** @enum {string} */
+      state: 'NotPurchased' | 'Reserved' | 'Purchased' | 'Read';
+      /** Format: date-time */
+      updatedAt?: string;
+    };
+    UpdatePurchaseRequest: {
+      /** @enum {string} */
+      state: 'NotPurchased' | 'Reserved' | 'Purchased' | 'Read';
+    };
+    QrSyncUploadRequest: {
+      /** @description AES-GCM で暗号化した IndexedDB データ (Base64) */
+      encryptedPayload: string;
+    };
+    QrSyncTokenDto: {
+      token: string;
+      /** Format: date-time */
+      expiresAt: string;
+    };
+    QrSyncDataDto: {
+      /** @description AES-GCM 暗号化済みデータ (Base64) */
+      encryptedPayload: string;
+    };
+    BatchRunDto: {
+      /** Format: uuid */
+      batchRunId: string;
+      /** Format: date-time */
+      startedAt: string;
+      /** Format: date-time */
+      completedAt?: string | null;
+      /** @enum {string} */
+      status: 'Running' | 'Succeeded' | 'Failed' | 'Cancelled';
+      fetchedItemCount?: number;
+      upsertedVolumeCount?: number;
+      downloadedThumbnailCount?: number;
+      skippedThumbnailCount?: number;
+      failedItemCount?: number;
+    };
+    BatchTriggerResponseDto: {
+      /** Format: uuid */
+      batchRunId: string;
+      message: string;
+    };
+  };
+  responses: {
+    /** @description バリデーションエラー */
+    ValidationError: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/problem+json': components['schemas']['ProblemDetails'];
+      };
+    };
+    /** @description リソースが見つかりません */
+    NotFound: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/problem+json': components['schemas']['ProblemDetails'];
+      };
+    };
+    /** @description 認証が必要です */
+    Unauthorized: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/problem+json': components['schemas']['ProblemDetails'];
+      };
+    };
+    /** @description 権限がありません */
+    Forbidden: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/problem+json': components['schemas']['ProblemDetails'];
+      };
+    };
+    /** @description リソースの競合 */
+    Conflict: {
+      headers: {
+        [name: string]: unknown;
+      };
+      content: {
+        'application/problem+json': components['schemas']['ProblemDetails'];
+      };
+    };
+    /** @description レートリミット超過 */
+    TooManyRequests: {
+      headers: {
+        /** @description 次のリクエストまでの待機秒数 */
+        'Retry-After'?: number;
+        [name: string]: unknown;
+      };
+      content: {
+        'application/problem+json': components['schemas']['ProblemDetails'];
+      };
+    };
+  };
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    searchSeries: {
-        parameters: {
-            query?: {
-                /** @description タイトルまたは著者の検索キーワード */
-                q?: string;
-                /** @description 発売日 From (ISO 8601 date) */
-                releaseFrom?: string;
-                /** @description 出版社名 */
-                publisher?: string;
-                /** @description keyset ページネーション カーソル */
-                cursor?: string;
-                /** @description 取得件数 (最大 50) */
-                limit?: number;
-                /** @description 並び順 */
-                sort?: "releaseDate" | "relevance";
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 検索結果 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SeriesPagedResult"];
-                };
-            };
-            400: components["responses"]["ValidationError"];
-            429: components["responses"]["TooManyRequests"];
-        };
+  searchSeries: {
+    parameters: {
+      query?: {
+        /** @description タイトルまたは著者の検索キーワード */
+        q?: string;
+        /** @description 発売日 From (ISO 8601 date) */
+        releaseFrom?: string;
+        /** @description 出版社名 */
+        publisher?: string;
+        /** @description keyset ページネーション カーソル */
+        cursor?: string;
+        /** @description 取得件数 (最大 50) */
+        limit?: number;
+        /** @description 並び順 */
+        sort?: 'releaseDate' | 'relevance';
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getSeriesDetail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description シリーズ ID (GUID) */
-                id: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 検索結果 */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description シリーズ詳細 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SeriesDetailDto"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["TooManyRequests"];
+        content: {
+          'application/json': components['schemas']['SeriesPagedResult'];
         };
+      };
+      400: components['responses']['ValidationError'];
+      429: components['responses']['TooManyRequests'];
     };
-    getUpcomingVolumes: {
-        parameters: {
-            query?: {
-                /** @description (ReleaseDate, VolumeId) keyset カーソル */
-                cursor?: string;
-                limit?: number;
-                /** @description 購読中シリーズのみに絞り込む */
-                subscribedOnly?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 発売予定一覧 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VolumePagedResult"];
-                };
-            };
-            429: components["responses"]["TooManyRequests"];
-        };
+  };
+  getSeriesDetail: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        /** @description シリーズ ID (GUID) */
+        id: string;
+      };
+      cookie?: never;
     };
-    getCalendarVolumes: {
-        parameters: {
-            query: {
-                year: number;
-                /** @description 月ビュー用 (1-12) */
-                month?: number;
-                /** @description 週ビュー用 (ISO 週番号 1-53) */
-                week?: number;
-                subscribedOnly?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description シリーズ詳細 */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description カレンダーデータ */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CalendarDto"];
-                };
-            };
-            400: components["responses"]["ValidationError"];
-            429: components["responses"]["TooManyRequests"];
+        content: {
+          'application/json': components['schemas']['SeriesDetailDto'];
         };
+      };
+      404: components['responses']['NotFound'];
+      429: components['responses']['TooManyRequests'];
     };
-    getMySubscriptions: {
-        parameters: {
-            query?: {
-                cursor?: string;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 購読一覧 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubscriptionPagedResult"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            429: components["responses"]["TooManyRequests"];
-        };
+  };
+  getUpcomingVolumes: {
+    parameters: {
+      query?: {
+        /** @description (ReleaseDate, VolumeId) keyset カーソル */
+        cursor?: string;
+        limit?: number;
+        /** @description 購読中シリーズのみに絞り込む */
+        subscribedOnly?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    subscribeSeries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 発売予定一覧 */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SubscribeRequest"];
-            };
+        content: {
+          'application/json': components['schemas']['VolumePagedResult'];
         };
-        responses: {
-            /** @description 購読登録完了 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubscriptionDto"];
-                };
-            };
-            400: components["responses"]["ValidationError"];
-            401: components["responses"]["Unauthorized"];
-            409: components["responses"]["Conflict"];
-            429: components["responses"]["TooManyRequests"];
-        };
+      };
+      429: components['responses']['TooManyRequests'];
     };
-    unsubscribeSeries: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                seriesId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description 購読解除完了 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["TooManyRequests"];
-        };
+  };
+  getCalendarVolumes: {
+    parameters: {
+      query: {
+        year: number;
+        /** @description 月ビュー用 (1-12) */
+        month?: number;
+        /** @description 週ビュー用 (ISO 週番号 1-53) */
+        week?: number;
+        subscribedOnly?: boolean;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    updatePurchaseState: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                volumeId: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description カレンダーデータ */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePurchaseRequest"];
-            };
+        content: {
+          'application/json': components['schemas']['CalendarDto'];
         };
-        responses: {
-            /** @description 購入状態更新完了 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["PurchaseDto"];
-                };
-            };
-            400: components["responses"]["ValidationError"];
-            401: components["responses"]["Unauthorized"];
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["TooManyRequests"];
-        };
+      };
+      400: components['responses']['ValidationError'];
+      429: components['responses']['TooManyRequests'];
     };
-    generateQrSyncToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["QrSyncUploadRequest"];
-            };
-        };
-        responses: {
-            /** @description トークン発行完了 */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QrSyncTokenDto"];
-                };
-            };
-            400: components["responses"]["ValidationError"];
-            429: components["responses"]["TooManyRequests"];
-        };
+  };
+  getMySubscriptions: {
+    parameters: {
+      query?: {
+        cursor?: string;
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getQrSyncData: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                token: string;
-            };
-            cookie?: never;
+    requestBody?: never;
+    responses: {
+      /** @description 購読一覧 */
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description 暗号化同期データ */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QrSyncDataDto"];
-                };
-            };
-            404: components["responses"]["NotFound"];
-            429: components["responses"]["TooManyRequests"];
+        content: {
+          'application/json': components['schemas']['SubscriptionPagedResult'];
         };
+      };
+      401: components['responses']['Unauthorized'];
+      429: components['responses']['TooManyRequests'];
     };
-    deleteAccount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description アカウント削除リクエスト受付 */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            401: components["responses"]["Unauthorized"];
-            429: components["responses"]["TooManyRequests"];
-        };
+  };
+  subscribeSeries: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    getBatchRuns: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description バッチ実行履歴 */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BatchRunDto"][];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-        };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['SubscribeRequest'];
+      };
     };
-    triggerBatch: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      /** @description 購読登録完了 */
+      201: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            /** @description バッチ起動受付 */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["BatchTriggerResponseDto"];
-                };
-            };
-            401: components["responses"]["Unauthorized"];
-            403: components["responses"]["Forbidden"];
-            409: components["responses"]["Conflict"];
+        content: {
+          'application/json': components['schemas']['SubscriptionDto'];
         };
+      };
+      400: components['responses']['ValidationError'];
+      401: components['responses']['Unauthorized'];
+      409: components['responses']['Conflict'];
+      429: components['responses']['TooManyRequests'];
     };
+  };
+  unsubscribeSeries: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        seriesId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 購読解除完了 */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      404: components['responses']['NotFound'];
+      429: components['responses']['TooManyRequests'];
+    };
+  };
+  updatePurchaseState: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        volumeId: string;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['UpdatePurchaseRequest'];
+      };
+    };
+    responses: {
+      /** @description 購入状態更新完了 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['PurchaseDto'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      401: components['responses']['Unauthorized'];
+      404: components['responses']['NotFound'];
+      429: components['responses']['TooManyRequests'];
+    };
+  };
+  generateQrSyncToken: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        'application/json': components['schemas']['QrSyncUploadRequest'];
+      };
+    };
+    responses: {
+      /** @description トークン発行完了 */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QrSyncTokenDto'];
+        };
+      };
+      400: components['responses']['ValidationError'];
+      429: components['responses']['TooManyRequests'];
+    };
+  };
+  getQrSyncData: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        token: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description 暗号化同期データ */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['QrSyncDataDto'];
+        };
+      };
+      404: components['responses']['NotFound'];
+      429: components['responses']['TooManyRequests'];
+    };
+  };
+  deleteAccount: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description アカウント削除リクエスト受付 */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      401: components['responses']['Unauthorized'];
+      429: components['responses']['TooManyRequests'];
+    };
+  };
+  getBatchRuns: {
+    parameters: {
+      query?: {
+        limit?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description バッチ実行履歴 */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchRunDto'][];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+    };
+  };
+  triggerBatch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description バッチ起動受付 */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          'application/json': components['schemas']['BatchTriggerResponseDto'];
+        };
+      };
+      401: components['responses']['Unauthorized'];
+      403: components['responses']['Forbidden'];
+      409: components['responses']['Conflict'];
+    };
+  };
 }

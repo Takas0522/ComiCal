@@ -21,9 +21,11 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
           <div class="text-center py-16">
             <p class="text-4xl mb-3" aria-hidden="true">⭐</p>
             <p style="color: var(--color-text-secondary)">購読中のシリーズはありません。</p>
-            <a routerLink="/search"
-               class="inline-block mt-4 px-5 py-2 rounded-full text-sm font-semibold text-white btn-primary"
-            >検索して追加する</a>
+            <a
+              routerLink="/search"
+              class="inline-block mt-4 px-5 py-2 rounded-full text-sm font-semibold text-white btn-primary"
+              >検索して追加する</a
+            >
           </div>
         } @else {
           <ul class="flex flex-col gap-2">
@@ -32,16 +34,20 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
                 class="flex items-center justify-between gap-4 p-4 rounded-xl"
                 style="background: var(--color-surface); box-shadow: var(--shadow-card)"
               >
-                <a [routerLink]="['/series', sub.seriesId]"
-                   class="flex-1 font-semibold truncate transition-colors"
-                   style="color: var(--color-text-primary)"
-                >{{ sub.seriesTitle }}</a>
+                <a
+                  [routerLink]="['/series', sub.seriesId]"
+                  class="flex-1 font-semibold truncate transition-colors"
+                  style="color: var(--color-text-primary)"
+                  >{{ sub.seriesTitle }}</a
+                >
                 <button
                   type="button"
                   class="shrink-0 px-3 py-1.5 text-sm rounded-full transition-all"
                   style="background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)"
                   (click)="unsubscribe(sub.seriesId)"
-                >購読解除</button>
+                >
+                  購読解除
+                </button>
               </li>
             }
           </ul>
