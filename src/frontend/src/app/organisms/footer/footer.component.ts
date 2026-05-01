@@ -25,20 +25,6 @@ import { RouterLink } from '@angular/router';
             style="color: var(--color-text-primary)"
             >OSS ライセンス</a
           >
-          <a
-            routerLink="/legal/terms"
-            data-testid="link-terms"
-            class="hover:underline"
-            style="color: var(--color-text-primary)"
-            >利用規約</a
-          >
-          <a
-            routerLink="/legal/privacy"
-            data-testid="link-privacy"
-            class="hover:underline"
-            style="color: var(--color-text-primary)"
-            >プライバシーポリシー</a
-          >
         </nav>
         <p class="text-[0.6875rem] leading-relaxed">
           <a

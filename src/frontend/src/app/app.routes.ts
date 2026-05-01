@@ -39,16 +39,6 @@ export const routes: Routes = [
     title: 'ログイン | まんがリマインダー',
   },
   {
-    path: 'legal/privacy',
-    loadComponent: () => import('./pages/legal/privacy.page').then(m => m.PrivacyPage),
-    title: 'プライバシーポリシー | まんがリマインダー',
-  },
-  {
-    path: 'legal/terms',
-    loadComponent: () => import('./pages/legal/terms.page').then(m => m.TermsPage),
-    title: '利用規約 | まんがリマインダー',
-  },
-  {
     path: 'legal/oss',
     loadComponent: () => import('./pages/legal/oss.page').then(m => m.OssPage),
     title: 'OSS ライセンス情報 | まんがリマインダー',
