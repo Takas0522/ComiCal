@@ -92,6 +92,8 @@ jobs:
           dotnet build src/backend/ComiCal.slnx --configuration Release
           pnpm install
           pnpm --filter frontend build
+          cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
+          cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
 
       - name: Publish Functions
         run: |
@@ -137,5 +139,6 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOY_TOKEN }}
           action: upload
-          app_location: src/frontend
-          output_location: dist/frontend/browser
+          app_location: src/frontend/dist/frontend/browser
+          output_location: ""
+          skip_app_build: true

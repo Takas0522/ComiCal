@@ -81,3 +81,8 @@ sbom.*.json
 
 # ----- Local secrets (never commit) -----
 .secrets/
+
+# ----- Local deploy artifacts (built by CI, never commit) -----
+publish/
+api.zip
+batch.zip
