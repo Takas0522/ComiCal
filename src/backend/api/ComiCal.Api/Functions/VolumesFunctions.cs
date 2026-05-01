@@ -40,21 +40,38 @@ public static class VolumesFunctions
         var useCase = ctx.InstanceServices.GetRequiredService<GetCalendarVolumesUseCase>();
         var blobUrl = ctx.InstanceServices.GetRequiredService<BlobBaseUrl>().Value;
 
-        if (!int.TryParse(req.GetQueryParam("year"), out var year))
-        {
-            var bad = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            await bad.WriteAsJsonAsync(new
-            {
-                type = "https://comical.example.jp/errors/validation",
-                title = "year is required",
-                status = 400
-            }, "application/problem+json", ct);
-            return bad;
-        }
+        var fromStr = req.GetQueryParam("from");
+        var toStr = req.GetQueryParam("to");
+        DateTime? fromDate = DateTime.TryParse(fromStr, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+            out var f) ? f : null;
+        DateTime? toDate = DateTime.TryParse(toStr, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+            out var t) ? t : null;
 
-        _ = int.TryParse(req.GetQueryParam("month"), out var month);
-        _ = int.TryParse(req.GetQueryParam("week"), out var week);
-        var query = new CalendarQuery(year, month > 0 ? month : 1, week > 0 ? week : null);
+        CalendarQuery query;
+        if (fromDate.HasValue && toDate.HasValue)
+        {
+            query = new CalendarQuery(fromDate.Value.Year, fromDate.Value.Month, null, null, fromDate, toDate);
+        }
+        else
+        {
+            if (!int.TryParse(req.GetQueryParam("year"), out var year))
+            {
+                var bad = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
+                await bad.WriteAsJsonAsync(new
+                {
+                    type = "https://comical.example.jp/errors/validation",
+                    title = "year (or from/to) is required",
+                    status = 400
+                }, "application/problem+json", ct);
+                return bad;
+            }
+
+            _ = int.TryParse(req.GetQueryParam("month"), out var month);
+            _ = int.TryParse(req.GetQueryParam("week"), out var week);
+            query = new CalendarQuery(year, month > 0 ? month : 1, week > 0 ? week : null);
+        }
 
         var result = await useCase.ExecuteAsync(query, blobUrl, ct);
         if (result.IsFailure) return await req.ToProblemAsync(result.Error);

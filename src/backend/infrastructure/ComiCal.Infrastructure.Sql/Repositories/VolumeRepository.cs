@@ -59,7 +59,12 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
         CalendarQuery query, CancellationToken ct = default)
     {
         DateTime from, to;
-        if (query.Week.HasValue)
+        if (query.FromDate.HasValue && query.ToDate.HasValue)
+        {
+            from = query.FromDate.Value.Date;
+            to = query.ToDate.Value.Date;
+        }
+        else if (query.Week.HasValue)
         {
             // Calculate ISO week start (Monday)
             var jan4 = new DateTime(query.Year, 1, 4);

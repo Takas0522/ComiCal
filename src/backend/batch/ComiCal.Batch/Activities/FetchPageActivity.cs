@@ -25,9 +25,15 @@ public partial class FetchPageActivity(
             string.IsNullOrWhiteSpace(item.ItemUrl) ? null : item.ItemUrl
         )).ToList();
 
-        LogPageFetched(logger, input.Page, result.Last, items.Count);
+        // Rakuten Books Search API caps queryable pages at 100 (page 101+ returns HTTP 400).
+        // The `Last` field in the response can exceed this cap, so we clamp here to
+        // prevent FetchOrchestrator from chaining ContinueAsNew past the limit.
+        const int RakutenMaxPage = 100;
+        var totalPages = Math.Min(result.Last, RakutenMaxPage);
 
-        return new FetchPageOutput(result.Last, items.Count, items);
+        LogPageFetched(logger, input.Page, totalPages, items.Count);
+
+        return new FetchPageOutput(totalPages, items.Count, items);
     }
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Fetched page {Page}/{TotalPages}: {Count} items")]
