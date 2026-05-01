@@ -39,8 +39,9 @@ public sealed class FetchOrchestratorTests
         var fetchOutput = new FetchPageOutput(TotalPages: 3, FetchedCount: 30, Items: []);
         var upsertOutput = new UpsertVolumesOutput(UpsertedCount: 28, ThumbnailPending: [], FailedIsbn13s: []);
         var context = BuildContext(fetchOutput, upsertOutput);
+        context.GetInput<FetchInput>().Returns(MakeInput(Guid.NewGuid(), page: 1));
 
-        _ = await new FetchOrchestrator().RunAsync(context, MakeInput(Guid.NewGuid(), page: 1));
+        _ = await FetchOrchestrator.Run(context);
 
         context.Received(1).ContinueAsNew(Arg.Any<object?>(), false);
     }
@@ -51,8 +52,9 @@ public sealed class FetchOrchestratorTests
         var fetchOutput = new FetchPageOutput(TotalPages: 5, FetchedCount: 30, Items: []);
         var upsertOutput = new UpsertVolumesOutput(UpsertedCount: 30, ThumbnailPending: [], FailedIsbn13s: []);
         var context = BuildContext(fetchOutput, upsertOutput);
+        context.GetInput<FetchInput>().Returns(MakeInput(Guid.NewGuid(), page: 2, accumFetched: 30, accumUpserted: 30));
 
-        _ = await new FetchOrchestrator().RunAsync(context, MakeInput(Guid.NewGuid(), page: 2, accumFetched: 30, accumUpserted: 30));
+        _ = await FetchOrchestrator.Run(context);
 
         context.Received(1).ContinueAsNew(
             Arg.Is<object?>(o => o != null && ((FetchInput)o).Page == 3),
@@ -67,8 +69,9 @@ public sealed class FetchOrchestratorTests
         var fetchOutput = new FetchPageOutput(TotalPages: 1, FetchedCount: 10, Items: []);
         var upsertOutput = new UpsertVolumesOutput(UpsertedCount: 9, ThumbnailPending: [], FailedIsbn13s: ["9784088726236"]);
         var context = BuildContext(fetchOutput, upsertOutput);
+        context.GetInput<FetchInput>().Returns(MakeInput(Guid.NewGuid(), page: 1));
 
-        var result = await new FetchOrchestrator().RunAsync(context, MakeInput(Guid.NewGuid(), page: 1));
+        var result = await FetchOrchestrator.Run(context);
 
         context.DidNotReceive().ContinueAsNew(Arg.Any<object?>(), Arg.Any<bool>());
         Assert.NotNull(result);
@@ -86,7 +89,8 @@ public sealed class FetchOrchestratorTests
 
         // Simulate being called on the 3rd (final) page with accumulated counts
         var input = MakeInput(Guid.NewGuid(), page: 3, accumFetched: 60, accumUpserted: 56);
-        var result = await new FetchOrchestrator().RunAsync(context, input);
+        context.GetInput<FetchInput>().Returns(input);
+        var result = await FetchOrchestrator.Run(context);
 
         Assert.Equal(65, result.FetchedCount);   // 60 + 5
         Assert.Equal(60, result.UpsertedCount);  // 56 + 4
@@ -113,7 +117,8 @@ public sealed class FetchOrchestratorTests
             .Returns(_ => Task.FromResult(upsertOutput));
 
         var input = new FetchInput(Guid.NewGuid(), Page: 2, DateFrom, DateTo, 10, 9, [existingThumbnail]);
-        var result = await new FetchOrchestrator().RunAsync(context, input);
+        context.GetInput<FetchInput>().Returns(input);
+        var result = await FetchOrchestrator.Run(context);
 
         // 1 from accumulated + 1 from this page
         Assert.Equal(2, result.ThumbnailPending.Count);

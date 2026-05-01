@@ -48,11 +48,11 @@ interface Series {
         <button
           type="button"
           class="mb-5 px-5 py-2 rounded-full text-sm font-semibold transition-all"
-          [style]="series()!.isSubscribed
+          [style]="isSubscribed()
             ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
             : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'"
           (click)="toggleSubscription()"
-        >{{ series()!.isSubscribed ? '購読解除' : '購読する' }}</button>
+        >{{ isSubscribed() ? '購読解除' : '購読する' }}</button>
 
         <h2 class="text-sm font-semibold mb-3" style="color: var(--color-text-secondary)">巻一覧</h2>
         @if (!series()!.volumes?.length) {
@@ -109,14 +109,15 @@ export class SeriesDetailPage implements OnInit {
   toggleSubscription() {
     const s = this.series();
     if (!s) return;
-    if (s.isSubscribed) {
-      this.subscriptionsStore.unsubscribe(s.seriesId).subscribe({
-        next: () => this.series.update(v => v ? { ...v, isSubscribed: false } : v),
-      });
+    if (this.isSubscribed()) {
+      this.subscriptionsStore.unsubscribe(s.seriesId).subscribe();
     } else {
-      this.subscriptionsStore.subscribe(s.seriesId).subscribe({
-        next: () => this.series.update(v => v ? { ...v, isSubscribed: true } : v),
-      });
+      this.subscriptionsStore.subscribe(s.seriesId, s.title).subscribe();
     }
+  }
+
+  isSubscribed(): boolean {
+    const s = this.series();
+    return s ? this.subscriptionsStore.subscribedSeriesIds().has(s.seriesId) : false;
   }
 }

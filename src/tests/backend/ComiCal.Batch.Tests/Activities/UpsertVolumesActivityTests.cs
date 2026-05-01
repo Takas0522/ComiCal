@@ -2,7 +2,6 @@ using ComiCal.Batch.Activities;
 using ComiCal.Batch.Models;
 using ComiCal.Domain.Entities;
 using ComiCal.Domain.Repositories;
-using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
@@ -12,14 +11,19 @@ namespace ComiCal.Batch.Tests.Activities;
 public sealed class UpsertVolumesActivityTests
 {
     private readonly IVolumeRepository _volumeRepo = Substitute.For<IVolumeRepository>();
+    private readonly ISeriesRepository _seriesRepo = Substitute.For<ISeriesRepository>();
+    private readonly IAuthorRepository _authorRepo = Substitute.For<IAuthorRepository>();
+    private readonly IPublisherRepository _publisherRepo = Substitute.For<IPublisherRepository>();
     private readonly IBatchRunRepository _batchRunRepo = Substitute.For<IBatchRunRepository>();
-    private readonly TaskActivityContext _context = Substitute.For<TaskActivityContext>();
     private readonly UpsertVolumesActivity _sut;
 
     public UpsertVolumesActivityTests()
     {
         _sut = new UpsertVolumesActivity(
             _volumeRepo,
+            _seriesRepo,
+            _authorRepo,
+            _publisherRepo,
             _batchRunRepo,
             Substitute.For<ILogger<UpsertVolumesActivity>>());
     }
@@ -38,7 +42,7 @@ public sealed class UpsertVolumesActivityTests
                 "https://img.example.com/1.jpg", null),
         ]);
 
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         Assert.Equal(1, result.UpsertedCount);
         Assert.Single(result.ThumbnailPending);
@@ -57,7 +61,7 @@ public sealed class UpsertVolumesActivityTests
             new RakutenVolumeData(isbn, "テスト 2巻", "著者A", "出版社", "2025-07-15", null, null),
         ]);
 
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         Assert.Equal(1, result.UpsertedCount);
         Assert.Empty(result.ThumbnailPending);
@@ -82,7 +86,7 @@ public sealed class UpsertVolumesActivityTests
                 "https://img.example.com/1.jpg", "https://item.example.com/"),
         ]);
 
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         Assert.Equal(1, result.UpsertedCount);
         Assert.Single(result.ThumbnailPending);
@@ -103,7 +107,7 @@ public sealed class UpsertVolumesActivityTests
             new RakutenVolumeData(invalidIsbn, "タイトル", "著者", "出版社", "", null, null),
         ]);
 
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         Assert.Equal(0, result.UpsertedCount);
         Assert.Single(result.FailedIsbn13s);
@@ -125,7 +129,7 @@ public sealed class UpsertVolumesActivityTests
             new RakutenVolumeData(isbn, "テスト 1巻", "著者A", "出版社", "2025-06-15", null, null),
         ]);
 
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         Assert.Equal(0, result.UpsertedCount);
         Assert.Single(result.FailedIsbn13s);
@@ -153,7 +157,7 @@ public sealed class UpsertVolumesActivityTests
             new RakutenVolumeData(badIsbn, "失敗 2巻", "著者", "出版社", "2025-07-15", null, null),
         ]);
 
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         Assert.Equal(1, result.UpsertedCount);
         Assert.Single(result.FailedIsbn13s);

@@ -30,8 +30,20 @@ public sealed class SeriesRepository(ComiCalDbContext db) : ISeriesRepository
 
         if (!string.IsNullOrWhiteSpace(query.Q))
         {
-            q = q.Where(s => EF.Functions.Contains(s.Title, query.Q) ||
-                             EF.Functions.Contains(s.NormalizedTitle, query.Q));
+            // FT インデックスは [NormalizedTitleHiragana] (PERSISTED computed column) に張られている。
+            // CONTAINS は引数に関数式を取れないため、まず DB 側で `dbo.fnToHiragana(@q)` を評価し、
+            // その結果をひらがな化済みのプレフィックス検索語 ("<hira>*") として CONTAINS に渡す。
+            var sanitized = query.Q.Replace("\"", " ").Trim();
+            var hiragana = await db.Database
+                .SqlQuery<string>($"SELECT [dbo].[fnToHiragana]({sanitized}) AS Value")
+                .FirstAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(hiragana))
+            {
+                var ftSearchTerm = "\"" + hiragana + "*\"";
+                q = q.Where(s => EF.Functions.Contains(
+                    EF.Property<string>(s, "NormalizedTitleHiragana"), ftSearchTerm));
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(query.Publisher))

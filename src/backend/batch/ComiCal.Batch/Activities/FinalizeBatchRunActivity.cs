@@ -1,17 +1,16 @@
 using ComiCal.Batch.Models;
 using ComiCal.Domain.Repositories;
-using Microsoft.DurableTask;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Activities;
 
-[DurableTask("FinalizeBatchRunActivity")]
 public partial class FinalizeBatchRunActivity(
     IBatchRunRepository batchRunRepo,
     ILogger<FinalizeBatchRunActivity> logger)
-    : TaskActivity<FinalizeBatchRunInput, bool>
 {
-    public override async Task<bool> RunAsync(TaskActivityContext context, FinalizeBatchRunInput input)
+    [Function("FinalizeBatchRunActivity")]
+    public async Task<bool> Run([ActivityTrigger] FinalizeBatchRunInput input)
     {
         var batchRun = await batchRunRepo.FindByIdAsync(input.BatchRunId);
         if (batchRun is null)

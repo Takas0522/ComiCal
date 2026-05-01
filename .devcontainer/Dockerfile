@@ -40,16 +40,6 @@ RUN curl -fsSL https://packages.microsoft.com/keys/microsoft.asc \
 
 ENV PATH="/opt/mssql-tools18/bin:${PATH}"
 
-# ----- sqlpackage (SSDT/DACPAC) -----
-RUN ARCH=$(dpkg --print-architecture) \
-    && if [ "$ARCH" = "amd64" ]; then SQLPKG_RID=linux-x64; else SQLPKG_RID=linux-arm64; fi \
-    && curl -fsSL "https://aka.ms/sqlpackage-linux" -o /tmp/sqlpackage.zip \
-    && mkdir -p /opt/sqlpackage \
-    && unzip -q /tmp/sqlpackage.zip -d /opt/sqlpackage \
-    && chmod +x /opt/sqlpackage/sqlpackage \
-    && ln -s /opt/sqlpackage/sqlpackage /usr/local/bin/sqlpackage \
-    && rm /tmp/sqlpackage.zip
-
 # ----- Azure Functions Core Tools v4 -----
 RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -o /tmp/ms-prod.deb \
     && dpkg -i /tmp/ms-prod.deb \
@@ -58,11 +48,15 @@ RUN curl -fsSL https://packages.microsoft.com/config/ubuntu/24.04/packages-micro
     && rm -rf /var/lib/apt/lists/* /tmp/ms-prod.deb
 
 # ----- .NET global tools (vscode ユーザーで利用) -----
+# sqlpackage は dotnet global tool としてインストールするとホストアーキテクチャ (linux-x64 / linux-arm64) に自動追従されるため、
+# Apple Silicon など ARM64 ホストでも rosetta エラーにならずに動作する。
+# (aka.ms/sqlpackage-linux は x64 固定 zip を返すため ARM64 では使用不可)
 USER ${USERNAME}
 ENV PATH="/home/${USERNAME}/.dotnet/tools:${PATH}"
 
 RUN dotnet tool install --global dotnet-ef \
     && dotnet tool install --global dotnet-format \
-    && dotnet tool install --global dotnet-outdated-tool
+    && dotnet tool install --global dotnet-outdated-tool \
+    && dotnet tool install --global Microsoft.SqlPackage
 
 USER root

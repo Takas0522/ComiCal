@@ -39,8 +39,9 @@ public sealed class ThumbnailOrchestratorTests
     public async Task RunAsync_NItems_CallsDownloadThumbnailActivityNTimes(int itemCount)
     {
         var context = BuildContext(() => new DownloadThumbnailOutput(true, false, false, null));
+        context.GetInput<ThumbnailInput>().Returns(MakeInput(itemCount));
 
-        var result = await new ThumbnailOrchestrator().RunAsync(context, MakeInput(itemCount));
+        var result = await ThumbnailOrchestrator.Run(context);
 
         await context.Received(itemCount).CallActivityAsync<DownloadThumbnailOutput>(
             Arg.Is<TaskName>(n => n.Name == "DownloadThumbnailActivity"),
@@ -55,8 +56,9 @@ public sealed class ThumbnailOrchestratorTests
     public async Task RunAsync_EmptyItems_NoActivityCallsAndZeroCounts()
     {
         var context = BuildContext(() => new DownloadThumbnailOutput(true, false, false, null));
+        context.GetInput<ThumbnailInput>().Returns(MakeInput(0));
 
-        var result = await new ThumbnailOrchestrator().RunAsync(context, MakeInput(0));
+        var result = await ThumbnailOrchestrator.Run(context);
 
         await context.DidNotReceive().CallActivityAsync<DownloadThumbnailOutput>(
             Arg.Any<TaskName>(), Arg.Any<object?>(), Arg.Any<TaskOptions?>());
@@ -81,8 +83,9 @@ public sealed class ThumbnailOrchestratorTests
         context.CallActivityAsync<DownloadThumbnailOutput>(
                 Arg.Any<TaskName>(), Arg.Any<object?>(), Arg.Any<TaskOptions?>())
             .Returns(_ => Task.FromResult(outputs.Dequeue()));
+        context.GetInput<ThumbnailInput>().Returns(MakeInput(3));
 
-        var result = await new ThumbnailOrchestrator().RunAsync(context, MakeInput(3));
+        var result = await ThumbnailOrchestrator.Run(context);
 
         Assert.Equal(1, result.DownloadedCount);
         Assert.Equal(1, result.SkippedCount);
@@ -100,8 +103,9 @@ public sealed class ThumbnailOrchestratorTests
         ]);
 
         var context = BuildContext(() => new DownloadThumbnailOutput(true, false, false, null));
+        context.GetInput<ThumbnailInput>().Returns(input);
 
-        await new ThumbnailOrchestrator().RunAsync(context, input);
+        await ThumbnailOrchestrator.Run(context);
 
         await context.Received(1).CallActivityAsync<DownloadThumbnailOutput>(
             Arg.Any<TaskName>(),

@@ -26,13 +26,12 @@ public static class PurchasesFunctions
         if (body is null)
         {
             var bad = req.CreateResponse(HttpStatusCode.BadRequest);
-            bad.Headers.Add("Content-Type", "application/problem+json");
             await bad.WriteAsJsonAsync(new
             {
                 type = "https://comical.example.jp/errors/validation",
                 title = "body is required",
                 status = 400
-            }, ct);
+            }, "application/problem+json", ct);
             return bad;
         }
 
@@ -41,7 +40,6 @@ public static class PurchasesFunctions
         if (!validation.IsValid)
         {
             var bad = req.CreateResponse(HttpStatusCode.BadRequest);
-            bad.Headers.Add("Content-Type", "application/problem+json");
             await bad.WriteAsJsonAsync(new
             {
                 type = "https://comical.example.jp/errors/validation",
@@ -50,7 +48,7 @@ public static class PurchasesFunctions
                 errors = validation.Errors
                     .GroupBy(e => e.PropertyName)
                     .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray())
-            }, ct);
+            }, "application/problem+json", ct);
             return bad;
         }
 

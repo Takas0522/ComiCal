@@ -6,7 +6,7 @@ using System.Threading.RateLimiting;
 
 namespace ComiCal.Infrastructure.Rakuten;
 
-public sealed class RakutenBooksApiClient : IDisposable
+public sealed class RakutenBooksApiClient
 {
     private readonly HttpClient _httpClient;
     private readonly RateLimiter _rateLimiter;
@@ -47,13 +47,15 @@ public sealed class RakutenBooksApiClient : IDisposable
                 : string.Empty,
             ["page"] = page.ToString(CultureInfo.InvariantCulture),
             ["hits"] = "30",
-            ["sort"] = "releaseDate",
+            ["sort"] = "-releaseDate",
+            ["formatVersion"] = "2",
         };
 
-        if (releaseDateFrom.HasValue)
-            queryParams["releaseDateFrom"] = releaseDateFrom.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
-        if (releaseDateTo.HasValue)
-            queryParams["releaseDateTo"] = releaseDateTo.Value.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        // NOTE: Rakuten Books Search API does not support releaseDate range filtering.
+        // We pass the page only; date filtering is performed client-side from the
+        // SalesDate field on each item.
+        _ = releaseDateFrom;
+        _ = releaseDateTo;
 
         var qs = string.Join("&", queryParams.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
         var url = $"{BaseUrl}?{qs}";
@@ -64,8 +66,6 @@ public sealed class RakutenBooksApiClient : IDisposable
         return JsonSerializer.Deserialize<RakutenBooksSearchResult>(json, JsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize Rakuten Books response");
     }
-
-    public void Dispose() => _rateLimiter.Dispose();
 }
 
 public record RakutenBooksSearchResult(

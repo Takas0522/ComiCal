@@ -40,13 +40,12 @@ public static class SubscriptionsFunctions
         if (body is null || body.SeriesId == Guid.Empty)
         {
             var bad = req.CreateResponse(HttpStatusCode.BadRequest);
-            bad.Headers.Add("Content-Type", "application/problem+json");
             await bad.WriteAsJsonAsync(new
             {
                 type = "https://comical.example.jp/errors/validation",
                 title = "seriesId is required",
                 status = 400
-            }, ct);
+            }, "application/problem+json", ct);
             return bad;
         }
 

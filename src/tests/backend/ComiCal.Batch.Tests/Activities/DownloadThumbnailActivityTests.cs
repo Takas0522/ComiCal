@@ -3,7 +3,6 @@ using ComiCal.Batch.Activities;
 using ComiCal.Batch.Models;
 using ComiCal.Domain.Repositories;
 using ComiCal.Infrastructure.Blob;
-using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
@@ -34,7 +33,7 @@ public sealed class DownloadThumbnailActivityTests
             null);
 
         // Act
-        var result = await sut.RunAsync(Substitute.For<TaskActivityContext>(), input);
+        var result = await sut.Run(input);
 
         // Assert
         Assert.False(result.Downloaded);

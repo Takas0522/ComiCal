@@ -13,7 +13,14 @@ public sealed class SeriesConfiguration : IEntityTypeConfiguration<Series>
         builder.Property(s => s.SeriesId).ValueGeneratedOnAdd();
         builder.Property(s => s.Title).HasMaxLength(512).IsRequired();
         builder.Property(s => s.NormalizedTitle).HasMaxLength(512).IsRequired();
-        // NormalizedTitleHiragana is a computed PERSISTED column — not mapped to entity
+        // NormalizedTitleHiragana is a computed PERSISTED column managed by the DACPAC schema.
+        // We map it as a read-only shadow property so we can target it with EF.Functions.Contains
+        // (the FT index lives on this column).
+        builder.Property<string>("NormalizedTitleHiragana")
+            .HasMaxLength(512)
+            .HasComputedColumnSql("[dbo].[fnToHiragana]([NormalizedTitle])", stored: true)
+            .ValueGeneratedOnAddOrUpdate()
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
         builder.Property(s => s.IsCompleted).HasDefaultValue(false);
         builder.Property(s => s.IsDeleted).HasDefaultValue(false);
         builder.Property(s => s.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");

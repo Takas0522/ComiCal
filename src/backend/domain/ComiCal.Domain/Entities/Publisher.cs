@@ -29,6 +29,18 @@ public sealed class Publisher
             now);
     }
 
+    public static Publisher CreateWithId(Guid publisherId, string name, string normalizedName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(normalizedName);
+        var now = DateTime.UtcNow;
+        return new Publisher(
+            publisherId,
+            name[..Math.Min(name.Length, 128)],
+            normalizedName[..Math.Min(normalizedName.Length, 128)],
+            now);
+    }
+
     public void UpdateNormalizedName(string normalizedName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(normalizedName);

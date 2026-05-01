@@ -28,4 +28,16 @@ public sealed class Author
             normalizedName[..Math.Min(normalizedName.Length, 128)],
             now);
     }
+
+    public static Author CreateWithId(Guid authorId, string name, string normalizedName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(normalizedName);
+        var now = DateTime.UtcNow;
+        return new Author(
+            authorId,
+            name[..Math.Min(name.Length, 128)],
+            normalizedName[..Math.Min(normalizedName.Length, 128)],
+            now);
+    }
 }

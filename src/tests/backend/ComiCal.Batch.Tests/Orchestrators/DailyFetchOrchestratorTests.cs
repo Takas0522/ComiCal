@@ -42,7 +42,7 @@ public sealed class DailyFetchOrchestratorTests
         var batchRunId = Guid.NewGuid();
         var context = BuildContext(batchRunId, new FetchSummary(50, 40, 0, []));
 
-        var result = await new DailyFetchOrchestrator().RunAsync(context, null);
+        var result = await DailyFetchOrchestrator.Run(context);
 
         Assert.Equal(batchRunId.ToString(), result);
     }
@@ -53,7 +53,7 @@ public sealed class DailyFetchOrchestratorTests
         var batchRunId = Guid.NewGuid();
         var context = BuildContext(batchRunId, new FetchSummary(0, 0, 0, []));
 
-        await new DailyFetchOrchestrator().RunAsync(context, null);
+        await DailyFetchOrchestrator.Run(context);
 
         await context.Received(1).CallActivityAsync<Guid>(
             Arg.Is<TaskName>(n => n.Name == "CreateBatchRunActivity"),
@@ -67,7 +67,7 @@ public sealed class DailyFetchOrchestratorTests
         var batchRunId = Guid.NewGuid();
         var context = BuildContext(batchRunId, new FetchSummary(0, 0, 0, []));
 
-        await new DailyFetchOrchestrator().RunAsync(context, null);
+        await DailyFetchOrchestrator.Run(context);
 
         await context.Received(1).CallSubOrchestratorAsync<FetchSummary>(
             Arg.Is<TaskName>(n => n.Name == "FetchOrchestrator"),
@@ -81,7 +81,7 @@ public sealed class DailyFetchOrchestratorTests
         var batchRunId = Guid.NewGuid();
         var context = BuildContext(batchRunId, new FetchSummary(0, 0, 0, []));
 
-        await new DailyFetchOrchestrator().RunAsync(context, null);
+        await DailyFetchOrchestrator.Run(context);
 
         await context.Received(1).CallActivityAsync<bool>(
             Arg.Is<TaskName>(n => n.Name == "FinalizeBatchRunActivity"),
@@ -101,7 +101,7 @@ public sealed class DailyFetchOrchestratorTests
         var thumbSummary = new ThumbnailSummary(1, 0, 0);
         var context = BuildContext(batchRunId, fetchSummary, thumbSummary);
 
-        await new DailyFetchOrchestrator().RunAsync(context, null);
+        await DailyFetchOrchestrator.Run(context);
 
         await context.Received(1).CallSubOrchestratorAsync<ThumbnailSummary>(
             Arg.Is<TaskName>(n => n.Name == "ThumbnailOrchestrator"),
@@ -115,7 +115,7 @@ public sealed class DailyFetchOrchestratorTests
         var batchRunId = Guid.NewGuid();
         var context = BuildContext(batchRunId, new FetchSummary(10, 10, 0, []));
 
-        await new DailyFetchOrchestrator().RunAsync(context, null);
+        await DailyFetchOrchestrator.Run(context);
 
         await context.DidNotReceive().CallSubOrchestratorAsync<ThumbnailSummary>(
             Arg.Any<TaskName>(),

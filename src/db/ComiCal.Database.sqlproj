@@ -6,6 +6,7 @@
     <ModelCollation>1033, CI</ModelCollation>
     <RunSqlCodeAnalysis>false</RunSqlCodeAnalysis>
     <SuppressTSqlWarnings>71502</SuppressTSqlWarnings>
+    <ProjectGuid>{00000000-0000-0000-0000-000000000000}</ProjectGuid>
   </PropertyGroup>
   <ItemGroup>
     <PreDeploy Include="Scripts\PreDeploy\Script.PreDeployment.sql" />

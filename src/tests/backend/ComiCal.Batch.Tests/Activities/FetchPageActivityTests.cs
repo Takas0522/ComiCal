@@ -2,7 +2,6 @@ using ComiCal.Batch.Activities;
 using ComiCal.Batch.Models;
 using ComiCal.Batch.Tests.TestHelpers;
 using ComiCal.Infrastructure.Rakuten;
-using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using System.Text.Json;
@@ -58,7 +57,7 @@ public sealed class FetchPageActivityTests
         ]));
         var input = new FetchPageInput(Guid.NewGuid(), 1, DateOnly.FromDateTime(DateTime.Today), null);
 
-        var result = await sut.RunAsync(Substitute.For<TaskActivityContext>(), input);
+        var result = await sut.Run(input);
 
         Assert.Equal(3, result.TotalPages);
         Assert.Equal(2, result.FetchedCount);
@@ -75,7 +74,7 @@ public sealed class FetchPageActivityTests
     {
         var sut = CreateSut(BuildJson(1, [RakutenItem("9784088726236", imageUrl: blankUrl)]));
 
-        var result = await sut.RunAsync(Substitute.For<TaskActivityContext>(),
+        var result = await sut.Run(
             new FetchPageInput(Guid.NewGuid(), 1, null, null));
 
         Assert.Null(result.Items[0].LargeImageUrl);
@@ -87,7 +86,7 @@ public sealed class FetchPageActivityTests
         const string imageUrl = "https://img.example.com/cover.jpg";
         var sut = CreateSut(BuildJson(1, [RakutenItem("9784088726236", imageUrl: imageUrl)]));
 
-        var result = await sut.RunAsync(Substitute.For<TaskActivityContext>(),
+        var result = await sut.Run(
             new FetchPageInput(Guid.NewGuid(), 1, null, null));
 
         Assert.Equal(imageUrl, result.Items[0].LargeImageUrl);

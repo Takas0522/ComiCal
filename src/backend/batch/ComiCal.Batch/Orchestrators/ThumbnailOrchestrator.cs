@@ -1,11 +1,11 @@
 using ComiCal.Batch.Models;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Orchestrators;
 
-[DurableTask("ThumbnailOrchestrator")]
-public class ThumbnailOrchestrator : TaskOrchestrator<ThumbnailInput, ThumbnailSummary>
+public static class ThumbnailOrchestrator
 {
     private const int MaxParallelism = 8;
 
@@ -13,9 +13,11 @@ public class ThumbnailOrchestrator : TaskOrchestrator<ThumbnailInput, ThumbnailS
         LoggerMessage.Define<int, int, int>(LogLevel.Information, new EventId(1, "ThumbnailsDone"),
             "Thumbnails: downloaded={Downloaded}, skipped={Skipped}, failed={Failed}");
 
-    public override async Task<ThumbnailSummary> RunAsync(TaskOrchestrationContext context, ThumbnailInput input)
+    [Function("ThumbnailOrchestrator")]
+    public static async Task<ThumbnailSummary> Run([OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        var logger = context.CreateReplaySafeLogger<ThumbnailOrchestrator>();
+        var input = context.GetInput<ThumbnailInput>()!;
+        var logger = context.CreateReplaySafeLogger("ThumbnailOrchestrator");
         var retryOptions = TaskOptions.FromRetryPolicy(new RetryPolicy(3, TimeSpan.FromSeconds(3), 2.0));
 
         var downloaded = 0;

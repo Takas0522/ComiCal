@@ -1,20 +1,18 @@
 using ComiCal.Batch.Models;
 using ComiCal.Domain.Repositories;
 using ComiCal.Infrastructure.Blob;
-using Microsoft.DurableTask;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Activities;
 
-[DurableTask("DownloadThumbnailActivity")]
 public partial class DownloadThumbnailActivity(
     BlobStorageService blobService,
     IThumbnailAssetRepository thumbnailRepo,
     ILogger<DownloadThumbnailActivity> logger)
-    : TaskActivity<DownloadThumbnailInput, DownloadThumbnailOutput>
 {
-    public override async Task<DownloadThumbnailOutput> RunAsync(
-        TaskActivityContext context, DownloadThumbnailInput input)
+    [Function("DownloadThumbnailActivity")]
+    public async Task<DownloadThumbnailOutput> Run([ActivityTrigger] DownloadThumbnailInput input)
     {
         try
         {

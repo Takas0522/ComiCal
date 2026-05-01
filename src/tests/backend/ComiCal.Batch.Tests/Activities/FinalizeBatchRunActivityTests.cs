@@ -3,7 +3,6 @@ using ComiCal.Batch.Models;
 using ComiCal.Domain.Entities;
 using ComiCal.Domain.Enums;
 using ComiCal.Domain.Repositories;
-using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using Xunit;
@@ -13,7 +12,6 @@ namespace ComiCal.Batch.Tests.Activities;
 public sealed class FinalizeBatchRunActivityTests
 {
     private readonly IBatchRunRepository _batchRunRepo = Substitute.For<IBatchRunRepository>();
-    private readonly TaskActivityContext _context = Substitute.For<TaskActivityContext>();
     private readonly FinalizeBatchRunActivity _sut;
 
     public FinalizeBatchRunActivityTests()
@@ -33,7 +31,7 @@ public sealed class FinalizeBatchRunActivityTests
         var input = new FinalizeBatchRunInput(batchRunId, 100, 80, 70, 10, 5, true);
 
         // Act
-        var result = await _sut.RunAsync(_context, input);
+        var result = await _sut.Run(input);
 
         // Assert
         Assert.True(result);
@@ -50,7 +48,7 @@ public sealed class FinalizeBatchRunActivityTests
         var batchRun = BatchRun.Create();
         _batchRunRepo.FindByIdAsync(batchRunId, Arg.Any<CancellationToken>()).Returns(batchRun);
 
-        await _sut.RunAsync(_context, new FinalizeBatchRunInput(batchRunId, 50, 40, 30, 5, 3, true));
+        await _sut.Run(new FinalizeBatchRunInput(batchRunId, 50, 40, 30, 5, 3, true));
 
         Assert.Equal(BatchRunStatus.Failed, batchRun.Status);
     }
@@ -62,7 +60,7 @@ public sealed class FinalizeBatchRunActivityTests
         var batchRun = BatchRun.Create();
         _batchRunRepo.FindByIdAsync(batchRunId, Arg.Any<CancellationToken>()).Returns(batchRun);
 
-        await _sut.RunAsync(_context, new FinalizeBatchRunInput(batchRunId, 50, 50, 45, 5, 0, true));
+        await _sut.Run(new FinalizeBatchRunInput(batchRunId, 50, 50, 45, 5, 0, true));
 
         Assert.Equal(BatchRunStatus.Succeeded, batchRun.Status);
         Assert.NotNull(batchRun.CompletedAt);
@@ -76,7 +74,7 @@ public sealed class FinalizeBatchRunActivityTests
         _batchRunRepo.FindByIdAsync(batchRunId, Arg.Any<CancellationToken>()).Returns((BatchRun?)null);
 
         // Act
-        var result = await _sut.RunAsync(_context, new FinalizeBatchRunInput(batchRunId, 0, 0, 0, 0, 0, true));
+        var result = await _sut.Run(new FinalizeBatchRunInput(batchRunId, 0, 0, 0, 0, 0, true));
 
         // Assert
         Assert.False(result);

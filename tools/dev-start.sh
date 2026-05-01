@@ -137,7 +137,23 @@ else
 
   DACPAC="$REPO_ROOT/src/db/bin/Debug/ComiCal.Database.dacpac"
   log "DACPAC をデプロイしています → ComiCal データベース (${SQL_IP}:1433)..."
-  "$HOME/.dotnet/tools/sqlpackage" \
+
+  # sqlpackage の場所を解決:
+  #   1. PATH (DevContainer Dockerfile が /usr/local/bin/sqlpackage にシンボリックリンクを作成)
+  #   2. /opt/sqlpackage/sqlpackage (Dockerfile での実体配置先)
+  #   3. $HOME/.dotnet/tools/sqlpackage (dotnet global tool としてインストールしている場合のフォールバック)
+  if command -v sqlpackage >/dev/null 2>&1; then
+    SQLPACKAGE_BIN="$(command -v sqlpackage)"
+  elif [[ -x /opt/sqlpackage/sqlpackage ]]; then
+    SQLPACKAGE_BIN="/opt/sqlpackage/sqlpackage"
+  elif [[ -x "$HOME/.dotnet/tools/sqlpackage" ]]; then
+    SQLPACKAGE_BIN="$HOME/.dotnet/tools/sqlpackage"
+  else
+    err "sqlpackage が見つかりません。DevContainer を再ビルドしてください (.devcontainer/Dockerfile が /usr/local/bin/sqlpackage を作成します)"
+    exit 1
+  fi
+
+  "$SQLPACKAGE_BIN" \
     /Action:Publish \
     /SourceFile:"$DACPAC" \
     /TargetConnectionString:"${SQL_CONN}" \

@@ -44,6 +44,19 @@ public sealed class Series
             now);
     }
 
+    public static Series CreateWithId(Guid seriesId, string title, string normalizedTitle, Guid? publisherId = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(title);
+        ArgumentException.ThrowIfNullOrWhiteSpace(normalizedTitle);
+        var now = DateTime.UtcNow;
+        return new Series(
+            seriesId,
+            title[..Math.Min(title.Length, 512)],
+            normalizedTitle[..Math.Min(normalizedTitle.Length, 512)],
+            publisherId,
+            now);
+    }
+
     public void SetPrimaryAuthor(Guid? authorId)
     {
         PrimaryAuthorId = authorId;

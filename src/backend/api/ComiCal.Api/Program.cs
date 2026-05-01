@@ -5,6 +5,10 @@ using ComiCal.Infrastructure.Sql;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
+using System.Text.Json;
+using Microsoft.Azure.Functions.Worker.Http;
+using Azure.Core.Serialization;
 
 var host = new HostBuilder()
     .ConfigureFunctionsWebApplication(builder =>
@@ -17,6 +21,14 @@ var host = new HostBuilder()
     })
     .ConfigureServices((ctx, services) =>
     {
+        // Configure HTTP / JSON serialization to camelCase so the Angular frontend
+        // (whose openapi-generated types are camelCase) can deserialize responses.
+        services.Configure<WorkerOptions>(o =>
+        {
+            var json = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+            o.Serializer = new JsonObjectSerializer(json);
+        });
+
         // Application Insights: only enable when connection string is configured
         // (func start injects an empty string by default, which causes a parse error)
         if (!string.IsNullOrWhiteSpace(ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))

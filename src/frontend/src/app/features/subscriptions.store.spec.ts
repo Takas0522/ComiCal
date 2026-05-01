@@ -1,17 +1,24 @@
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { signal } from '@angular/core';
 import { SubscriptionsStore } from './subscriptions.store';
+import { AuthStore } from './auth.store';
 
 describe('SubscriptionsStore', () => {
   let store: SubscriptionsStore;
   let httpMock: HttpTestingController;
 
   beforeEach(() => {
+    const authStub = {
+      isLoggedIn: signal(true),
+      user: signal({ userId: 'u1', userDetails: 'u', userRoles: [], identityProvider: 'aad' }),
+    };
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: AuthStore, useValue: authStub },
       ],
     });
     store = TestBed.inject(SubscriptionsStore);

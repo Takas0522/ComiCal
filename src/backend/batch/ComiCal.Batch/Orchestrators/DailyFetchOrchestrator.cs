@@ -1,18 +1,19 @@
 using ComiCal.Batch.Models;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Orchestrators;
 
-[DurableTask("DailyFetchOrchestrator")]
-public class DailyFetchOrchestrator : TaskOrchestrator<object?, string>
+public static class DailyFetchOrchestrator
 {
     private static readonly Action<ILogger, Guid, Exception?> LogBatchRunCreated =
         LoggerMessage.Define<Guid>(LogLevel.Information, new EventId(1, "BatchRunCreated"), "BatchRun created: {BatchRunId}");
 
-    public override async Task<string> RunAsync(TaskOrchestrationContext context, object? _)
+    [Function("DailyFetchOrchestrator")]
+    public static async Task<string> Run([OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        var logger = context.CreateReplaySafeLogger<DailyFetchOrchestrator>();
+        var logger = context.CreateReplaySafeLogger("DailyFetchOrchestrator");
         var retryOptions = TaskOptions.FromRetryPolicy(new RetryPolicy(3, TimeSpan.FromSeconds(5), 2.0));
 
         // 1. Create BatchRun record

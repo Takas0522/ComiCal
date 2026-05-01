@@ -1,7 +1,6 @@
 using ComiCal.Batch.Activities;
 using ComiCal.Domain.Entities;
 using ComiCal.Domain.Repositories;
-using Microsoft.DurableTask;
 using NSubstitute;
 using Xunit;
 
@@ -10,7 +9,6 @@ namespace ComiCal.Batch.Tests.Activities;
 public sealed class CreateBatchRunActivityTests
 {
     private readonly IBatchRunRepository _batchRunRepo = Substitute.For<IBatchRunRepository>();
-    private readonly TaskActivityContext _context = Substitute.For<TaskActivityContext>();
     private readonly CreateBatchRunActivity _sut;
 
     public CreateBatchRunActivityTests()
@@ -27,7 +25,7 @@ public sealed class CreateBatchRunActivityTests
             .Returns(expectedId);
 
         // Act
-        var result = await _sut.RunAsync(_context, null);
+        var result = await _sut.Run(null);
 
         // Assert
         Assert.Equal(expectedId, result);
@@ -44,7 +42,7 @@ public sealed class CreateBatchRunActivityTests
             .Returns(Guid.NewGuid());
 
         // Act
-        await _sut.RunAsync(_context, null);
+        await _sut.Run(null);
 
         // Assert — BatchRun.Create() always generates a non-empty GUID
         Assert.NotNull(captured);

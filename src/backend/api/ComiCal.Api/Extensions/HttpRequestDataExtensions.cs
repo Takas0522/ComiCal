@@ -26,14 +26,15 @@ public static class HttpRequestDataExtensions
         };
 
         var res = req.CreateResponse(status);
-        res.Headers.Add("Content-Type", "application/problem+json");
+        // NOTE: WriteAsJsonAsync overload below sets Content-Type internally; adding it manually
+        //       causes a duplicate-value FormatException.
         await res.WriteAsJsonAsync(new
         {
             type,
             title = error.Message,
             status = (int)status,
             traceId
-        });
+        }, "application/problem+json");
         return res;
     }
 

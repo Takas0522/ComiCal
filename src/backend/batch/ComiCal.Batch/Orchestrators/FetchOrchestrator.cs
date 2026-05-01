@@ -1,19 +1,21 @@
 using ComiCal.Batch.Models;
+using Microsoft.Azure.Functions.Worker;
 using Microsoft.DurableTask;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Orchestrators;
 
-[DurableTask("FetchOrchestrator")]
-public class FetchOrchestrator : TaskOrchestrator<FetchInput, FetchSummary>
+public static class FetchOrchestrator
 {
     private static readonly Action<ILogger, int, int, int, Exception?> LogPageFetched =
         LoggerMessage.Define<int, int, int>(LogLevel.Information, new EventId(1, "PageFetched"),
             "Page {Page}/{TotalPages} fetched: {FetchedCount} items");
 
-    public override async Task<FetchSummary> RunAsync(TaskOrchestrationContext context, FetchInput input)
+    [Function("FetchOrchestrator")]
+    public static async Task<FetchSummary> Run([OrchestrationTrigger] TaskOrchestrationContext context)
     {
-        var logger = context.CreateReplaySafeLogger<FetchOrchestrator>();
+        var input = context.GetInput<FetchInput>()!;
+        var logger = context.CreateReplaySafeLogger("FetchOrchestrator");
         var retryOptions = TaskOptions.FromRetryPolicy(new RetryPolicy(3, TimeSpan.FromSeconds(5), 2.0));
 
         // Fetch this page

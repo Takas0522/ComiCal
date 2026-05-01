@@ -43,13 +43,12 @@ public static class VolumesFunctions
         if (!int.TryParse(req.GetQueryParam("year"), out var year))
         {
             var bad = req.CreateResponse(System.Net.HttpStatusCode.BadRequest);
-            bad.Headers.Add("Content-Type", "application/problem+json");
             await bad.WriteAsJsonAsync(new
             {
                 type = "https://comical.example.jp/errors/validation",
                 title = "year is required",
                 status = 400
-            }, ct);
+            }, "application/problem+json", ct);
             return bad;
         }
 

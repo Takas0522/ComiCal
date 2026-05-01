@@ -28,14 +28,15 @@ public sealed class ProblemDetailsMiddleware(ILogger<ProblemDetailsMiddleware> l
             {
                 var traceId = context.Items.TryGetValue("TraceId", out var t) ? t?.ToString() : null;
                 var res = req.CreateResponse(HttpStatusCode.InternalServerError);
-                res.Headers.Add("Content-Type", "application/problem+json");
+                // NOTE: WriteAsJsonAsync overload below sets Content-Type to "application/problem+json"
+                //       internally. Adding the header manually causes a duplicate-value FormatException.
                 await res.WriteAsJsonAsync(new
                 {
                     type = "https://comical.example.jp/errors/internal",
                     title = "An unexpected error occurred",
                     status = 500,
                     traceId
-                });
+                }, "application/problem+json");
                 context.GetInvocationResult().Value = res;
             }
         }
