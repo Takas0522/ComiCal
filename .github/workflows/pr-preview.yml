@@ -36,6 +36,7 @@ jobs:
           app_location: "src/frontend"
           api_location: ""
           output_location: "dist/frontend/browser"
+          skip_app_build: true
 
   close-preview:
     if: github.event.action == 'closed'
