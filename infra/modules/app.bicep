@@ -7,6 +7,9 @@ param env string
 @description('Azure region')
 param location string
 
+@description('Region for Static Web App (must be one of westus2, centralus, eastus2, westeurope, eastasia). Defaults to eastasia as the closest region to japaneast.')
+param swaLocation string = 'eastasia'
+
 @description('SQL Server fully-qualified domain name (from data module)')
 param sqlServerFqdn string
 
@@ -66,7 +69,8 @@ resource kv 'Microsoft.KeyVault/vaults@2023-07-01' = {
     enableRbacAuthorization: true
     enableSoftDelete: true
     softDeleteRetentionInDays: 90
-    enablePurgeProtection: enablePurgeProtection
+    // Note: enablePurgeProtection cannot be set to false once true; omit when false
+    enablePurgeProtection: enablePurgeProtection ? true : null
   }
 }
 
@@ -251,7 +255,7 @@ resource kvRoleAssignFuncBatch 'Microsoft.Authorization/roleAssignments@2022-04-
 
 resource swa 'Microsoft.Web/staticSites@2024-04-01' = {
   name: swaName
-  location: location
+  location: swaLocation
   sku: {
     name: 'Standard'
     tier: 'Standard'
