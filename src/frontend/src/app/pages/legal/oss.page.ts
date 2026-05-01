@@ -20,8 +20,7 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
           <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary)">
             本サービス「まんがリマインダー (ComiCal)」は
             <strong style="color: var(--color-text-primary)">MIT License</strong>
-            のもとで公開されているオープンソースソフトウェアです。
-            ソースコードは
+            のもとで公開されているオープンソースソフトウェアです。 ソースコードは
             <a
               href="https://github.com/Takas0522/ComiCal"
               target="_blank"
@@ -57,11 +56,12 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
             <li>Powered by Rakuten Books</li>
             <li>「楽天」「Rakuten Books」は楽天グループ株式会社の商標です。</li>
             <li>
-              表紙画像は楽天 API より取得した素材を、楽天アフィリエイト規約に基づくプロモーション目的の範囲で再配信しています。
+              表紙画像は楽天 API
+              より取得した素材を、楽天アフィリエイト規約に基づくプロモーション目的の範囲で再配信しています。
             </li>
             <li>
-              書籍購入リンクには楽天アフィリエイト ID
-              を付与しています（ユーザー設定で OFF にした場合も、本クレジット表示は規約上維持されます）。
+              書籍購入リンクには楽天アフィリエイト ID を付与しています（ユーザー設定で OFF
+              にした場合も、本クレジット表示は規約上維持されます）。
             </li>
           </ul>
         </section>
@@ -73,8 +73,8 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
           <p class="text-sm leading-relaxed" style="color: var(--color-text-secondary)">
             本サービスはフロントエンドに Angular / Tailwind CSS、バックエンドに .NET / EF Core /
             Azure Functions Durable Task ほか多数のオープンソースソフトウェアを利用しています。
-            完全なリスト（パッケージ名 / バージョン / ライセンス）は SBOM (CycloneDX 形式)
-            として GitHub Releases に添付しています。
+            完全なリスト（パッケージ名 / バージョン / ライセンス）は SBOM (CycloneDX 形式) として
+            GitHub Releases に添付しています。
           </p>
         </section>
       </div>

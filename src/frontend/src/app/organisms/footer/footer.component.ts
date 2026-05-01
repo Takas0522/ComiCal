@@ -51,9 +51,7 @@ import { RouterLink } from '@angular/router';
             >Powered by Rakuten Web サービス</a
           >
         </p>
-        <p class="text-[0.6875rem]">
-          &copy; ComiCal Project &mdash; MIT License
-        </p>
+        <p class="text-[0.6875rem]">&copy; ComiCal Project &mdash; MIT License</p>
       </div>
     </footer>
   `,
