@@ -107,6 +107,24 @@ resource containerSyncTmp 'Microsoft.Storage/storageAccounts/blobServices/contai
   }
 }
 
+// FlexConsumption deployment package containers (one per Function App).
+// The Function App's Managed Identity uploads its zip here on each deployment.
+resource containerAppPackageApi 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: 'app-package-api'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
+resource containerAppPackageBatch 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
+  parent: blobService
+  name: 'app-package-batch'
+  properties: {
+    publicAccess: 'None'
+  }
+}
+
 resource queueService 'Microsoft.Storage/storageAccounts/queueServices@2023-05-01' = {
   parent: storageAccount
   name: 'default'

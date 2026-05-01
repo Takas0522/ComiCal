@@ -36,8 +36,16 @@ var planApiName = '${prefix}-${env}-jpe-plan-api'
 var planBatchName = '${prefix}-${env}-jpe-plan-batch'
 var appConfigName = '${prefix}-${env}-jpe-appcfg'
 
-// Role definition ID for "Key Vault Secrets User"
+// Role definition IDs
 var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
+var storageBlobDataOwnerRoleId = 'b7e6dc6d-f1e8-4753-8033-0f276bb0955b'
+var storageQueueDataContributorRoleId = '974c5e8b-45b9-4653-ba55-5f855dd0fb88'
+var storageTableDataContributorRoleId = '0a9a7e1f-b9d0-4cc4-a60d-0319b160aaa3'
+
+// Reference existing storage account for role assignments
+resource existingStorage 'Microsoft.Storage/storageAccounts@2023-05-01' existing = {
+  name: storageAccountName
+}
 
 // SQL connection string using Managed Identity — no password required
 var sqlConnectionString = 'Server=tcp:${sqlServerFqdn},1433;Initial Catalog=${sqlDatabaseName};Authentication=Active Directory Default;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;'
@@ -93,17 +101,16 @@ resource kvSecretAppInsights 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// App Service Plans (Consumption, Linux) — API and Batch use separate plans
-// to ensure independent scaling and deployment
+// App Service Plans (FlexConsumption, Linux) — API and Batch use separate plans
 // ──────────────────────────────────────────────────────────────────────────────
 
 resource planApi 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: planApiName
   location: location
-  kind: 'linux'
+  kind: 'functionapp'
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: 'FC1'
+    tier: 'FlexConsumption'
   }
   properties: {
     reserved: true
@@ -113,10 +120,10 @@ resource planApi 'Microsoft.Web/serverfarms@2024-04-01' = {
 resource planBatch 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: planBatchName
   location: location
-  kind: 'linux'
+  kind: 'functionapp'
   sku: {
-    name: 'Y1'
-    tier: 'Dynamic'
+    name: 'FC1'
+    tier: 'FlexConsumption'
   }
   properties: {
     reserved: true
@@ -137,29 +144,51 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     serverFarmId: planApi.id
     httpsOnly: true
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${existingStorage.properties.primaryEndpoints.blob}app-package-api'
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 100
+        instanceMemoryMB: 2048
+      }
+      runtime: {
+        name: 'dotnet-isolated'
+        version: '10.0'
+      }
+    }
     siteConfig: {
-      linuxFxVersion: 'DOTNET-ISOLATED|10.0'
       minTlsVersion: '1.2'
       appSettings: [
         {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
         }
         {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/AzureWebJobsStorage/)'
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/AppInsightsConnectionString/)'
         }
         {
-          name: 'ConnectionStrings__DefaultConnection'
+          name: 'SqlConnectionString'
           value: sqlConnectionString
+        }
+        {
+          name: 'StorageAccountUri'
+          value: 'https://${storageAccountName}.blob.core.windows.net'
+        }
+        {
+          name: 'BlobBaseUrl'
+          value: 'https://${storageAccountName}.blob.core.windows.net/covers'
         }
         {
           name: 'AppConfiguration__Endpoint'
@@ -169,7 +198,6 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
     }
   }
   dependsOn: [
-    kvSecretStorage
     kvSecretAppInsights
   ]
 }
@@ -188,29 +216,55 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     serverFarmId: planBatch.id
     httpsOnly: true
+    functionAppConfig: {
+      deployment: {
+        storage: {
+          type: 'blobContainer'
+          value: '${existingStorage.properties.primaryEndpoints.blob}app-package-batch'
+          authentication: {
+            type: 'SystemAssignedIdentity'
+          }
+        }
+      }
+      scaleAndConcurrency: {
+        maximumInstanceCount: 100
+        instanceMemoryMB: 2048
+      }
+      runtime: {
+        name: 'dotnet-isolated'
+        version: '10.0'
+      }
+    }
     siteConfig: {
-      linuxFxVersion: 'DOTNET-ISOLATED|10.0'
       minTlsVersion: '1.2'
       appSettings: [
         {
-          name: 'FUNCTIONS_WORKER_RUNTIME'
-          value: 'dotnet-isolated'
+          name: 'AzureWebJobsStorage__accountName'
+          value: storageAccountName
         }
         {
-          name: 'FUNCTIONS_EXTENSION_VERSION'
-          value: '~4'
-        }
-        {
-          name: 'AzureWebJobsStorage'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/AzureWebJobsStorage/)'
+          name: 'AzureWebJobsStorage__credential'
+          value: 'managedidentity'
         }
         {
           name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
           value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/AppInsightsConnectionString/)'
         }
         {
-          name: 'ConnectionStrings__DefaultConnection'
+          name: 'SqlConnectionString'
           value: sqlConnectionString
+        }
+        {
+          name: 'StorageAccountUri'
+          value: 'https://${storageAccountName}.blob.core.windows.net'
+        }
+        {
+          name: 'BlobBaseUrl'
+          value: 'https://${storageAccountName}.blob.core.windows.net/covers'
+        }
+        {
+          name: 'RakutenApplicationId'
+          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAppId/)'
         }
         {
           name: 'AppConfiguration__Endpoint'
@@ -220,9 +274,73 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
     }
   }
   dependsOn: [
-    kvSecretStorage
     kvSecretAppInsights
   ]
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Storage RBAC — grant Function App MIs access to the storage account
+// (host runtime + FlexConsumption deployment package container)
+// ──────────────────────────────────────────────────────────────────────────────
+
+resource storageRoleFuncApiBlob 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: existingStorage
+  name: guid(existingStorage.id, funcApi.id, storageBlobDataOwnerRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
+    principalId: funcApi.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageRoleFuncApiQueue 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: existingStorage
+  name: guid(existingStorage.id, funcApi.id, storageQueueDataContributorRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataContributorRoleId)
+    principalId: funcApi.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageRoleFuncApiTable 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: existingStorage
+  name: guid(existingStorage.id, funcApi.id, storageTableDataContributorRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+    principalId: funcApi.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageRoleFuncBatchBlob 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: existingStorage
+  name: guid(existingStorage.id, funcBatch.id, storageBlobDataOwnerRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
+    principalId: funcBatch.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageRoleFuncBatchQueue 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: existingStorage
+  name: guid(existingStorage.id, funcBatch.id, storageQueueDataContributorRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataContributorRoleId)
+    principalId: funcBatch.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource storageRoleFuncBatchTable 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  scope: existingStorage
+  name: guid(existingStorage.id, funcBatch.id, storageTableDataContributorRoleId)
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+    principalId: funcBatch.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
