@@ -78,3 +78,6 @@ sbom.*.json
 # ----- Session / agent state -----
 .copilot/
 .claude/sessions/
+
+# ----- Local secrets (never commit) -----
+.secrets/
