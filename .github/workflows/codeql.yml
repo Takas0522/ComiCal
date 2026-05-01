@@ -36,7 +36,7 @@ jobs:
         with:
           global-json-file: global.json
       - if: matrix.build-mode == 'manual'
-        run: dotnet build src/backend/ComiCal.sln
+        run: dotnet build src/backend/ComiCal.slnx
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@0317bd866e2a5371dd9827110664107b306af4a8 # v3.28.5
         with:
