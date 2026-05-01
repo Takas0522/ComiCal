@@ -3,6 +3,12 @@ name: CD - Dev
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Manual run reason'
+        required: false
+        default: 'manual'
 
 permissions:
   contents: read
