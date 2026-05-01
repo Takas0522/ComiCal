@@ -1,4 +1,5 @@
 namespace ComiCal.Application.Dtos;
+
 public record VolumeDto(
     Guid VolumeId,
     string Isbn13,
@@ -6,4 +7,7 @@ public record VolumeDto(
     DateOnly? ReleaseDate,
     bool ReleaseDateIsMonthOnly,
     string? ThumbnailUrl,
-    string? RakutenItemUrl);
+    string? RakutenItemUrl,
+    VolumeSeriesRef? Series = null);
+
+public record VolumeSeriesRef(Guid SeriesId, string Title);

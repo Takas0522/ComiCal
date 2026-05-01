@@ -16,6 +16,7 @@ public sealed class Volume
     public DateTime UpdatedAt { get; private set; }
 
     public ThumbnailAsset? ThumbnailAsset { get; private set; }
+    public Series? Series { get; private set; }
 
     private Volume(Guid volumeId, Guid seriesId, string isbn13, DateTime createdAt)
     {

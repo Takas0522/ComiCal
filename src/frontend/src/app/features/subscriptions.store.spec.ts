@@ -37,7 +37,12 @@ describe('SubscriptionsStore', () => {
     expect(req.request.method).toBe('GET');
     req.flush({
       items: [
-        { subscriptionId: 's1', seriesId: 'ser1', seriesTitle: 'テスト漫画', createdAt: '2025-01-01T00:00:00Z' },
+        {
+          subscriptionId: 's1',
+          seriesId: 'ser1',
+          seriesTitle: 'テスト漫画',
+          createdAt: '2025-01-01T00:00:00Z',
+        },
       ],
     });
     expect(store.items().length).toBe(1);
@@ -57,6 +62,11 @@ describe('SubscriptionsStore', () => {
     const req = httpMock.expectOne('/api/v1/me/subscriptions');
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ seriesId: 'ser2' });
-    req.flush({ subscriptionId: 's2', seriesId: 'ser2', seriesTitle: '新作漫画', createdAt: '2025-01-01T00:00:00Z' });
+    req.flush({
+      subscriptionId: 's2',
+      seriesId: 'ser2',
+      seriesTitle: '新作漫画',
+      createdAt: '2025-01-01T00:00:00Z',
+    });
   });
 });

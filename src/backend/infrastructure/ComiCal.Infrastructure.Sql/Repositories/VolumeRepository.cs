@@ -23,6 +23,7 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
         var now = DateTime.UtcNow.Date;
         var q = db.Volumes
             .Include(v => v.ThumbnailAsset)
+            .Include(v => v.Series)
             .Where(v => !v.IsDeleted && v.ReleaseDate.HasValue && v.ReleaseDate >= now);
 
         if (query.FilterBySeriesIds?.Count > 0)
@@ -74,6 +75,7 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
 
         var q = db.Volumes
             .Include(v => v.ThumbnailAsset)
+            .Include(v => v.Series)
             .Where(v => !v.IsDeleted && v.ReleaseDate.HasValue &&
                         v.ReleaseDate >= from && v.ReleaseDate < to);
 

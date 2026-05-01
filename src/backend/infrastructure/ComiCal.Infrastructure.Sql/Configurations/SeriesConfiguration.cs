@@ -46,7 +46,7 @@ public sealed class SeriesConfiguration : IEntityTypeConfiguration<Series>
             .UsePropertyAccessMode(PropertyAccessMode.Field);
 
         builder.HasMany(s => s.Volumes)
-            .WithOne()
+            .WithOne(v => v.Series!)
             .HasForeignKey(v => v.SeriesId)
             .OnDelete(DeleteBehavior.Cascade);
 
