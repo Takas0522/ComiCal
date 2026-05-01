@@ -297,7 +297,10 @@ resource storageRoleFuncApiQueue 'Microsoft.Authorization/roleAssignments@2022-0
   scope: existingStorage
   name: guid(existingStorage.id, funcApi.id, storageQueueDataContributorRoleId)
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataContributorRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      storageQueueDataContributorRoleId
+    )
     principalId: funcApi.identity.principalId
     principalType: 'ServicePrincipal'
   }
@@ -307,7 +310,10 @@ resource storageRoleFuncApiTable 'Microsoft.Authorization/roleAssignments@2022-0
   scope: existingStorage
   name: guid(existingStorage.id, funcApi.id, storageTableDataContributorRoleId)
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      storageTableDataContributorRoleId
+    )
     principalId: funcApi.identity.principalId
     principalType: 'ServicePrincipal'
   }
@@ -327,7 +333,10 @@ resource storageRoleFuncBatchQueue 'Microsoft.Authorization/roleAssignments@2022
   scope: existingStorage
   name: guid(existingStorage.id, funcBatch.id, storageQueueDataContributorRoleId)
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageQueueDataContributorRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      storageQueueDataContributorRoleId
+    )
     principalId: funcBatch.identity.principalId
     principalType: 'ServicePrincipal'
   }
@@ -337,7 +346,10 @@ resource storageRoleFuncBatchTable 'Microsoft.Authorization/roleAssignments@2022
   scope: existingStorage
   name: guid(existingStorage.id, funcBatch.id, storageTableDataContributorRoleId)
   properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageTableDataContributorRoleId)
+    roleDefinitionId: subscriptionResourceId(
+      'Microsoft.Authorization/roleDefinitions',
+      storageTableDataContributorRoleId
+    )
     principalId: funcBatch.identity.principalId
     principalType: 'ServicePrincipal'
   }
