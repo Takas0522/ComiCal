@@ -126,25 +126,23 @@ jobs:
         if: env.RUN_INFRA == 'true'
         env:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          SQL_ENTRA_ADMIN_OBJECT_ID: ${{ vars.AZURE_CLIENT_OBJECT_ID }}
         run: |
           az deployment sub what-if \
             --location japaneast \
             --template-file infra/main.bicep \
-            --parameters infra/params/dev.bicepparam \
-            --parameters sqlEntraAdminLogin='comical-github-oidc' \
-            --parameters sqlEntraAdminObjectId='${{ vars.AZURE_CLIENT_OBJECT_ID }}'
+            --parameters infra/params/dev.bicepparam
 
       - name: Bicep Deploy
         if: env.RUN_INFRA == 'true'
         env:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          SQL_ENTRA_ADMIN_OBJECT_ID: ${{ vars.AZURE_CLIENT_OBJECT_ID }}
         run: |
           az deployment sub create \
             --location japaneast \
             --template-file infra/main.bicep \
             --parameters infra/params/dev.bicepparam \
-            --parameters sqlEntraAdminLogin='comical-github-oidc' \
-            --parameters sqlEntraAdminObjectId='${{ vars.AZURE_CLIENT_OBJECT_ID }}' \
             --name "deploy-dev-${{ github.run_number }}"
 
       - name: Get deployment outputs
