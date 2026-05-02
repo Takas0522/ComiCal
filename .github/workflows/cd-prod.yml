@@ -43,7 +43,7 @@ jobs:
           run_install: false
 
       - name: Azure Login (OIDC)
-        uses: azure/login@a65d910e8af852a8061972ce2a7ce2b3b4b92e7 # v2.3.0
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
