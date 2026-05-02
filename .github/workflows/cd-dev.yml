@@ -85,16 +85,18 @@ jobs:
           echo "rg=$RG" >> $GITHUB_OUTPUT
 
       - name: DB Publish (sqlpackage)
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         run: |
           dotnet tool install --global microsoft.sqlpackage || true
           dotnet build src/db/ComiCal.Database.sqlproj --configuration Release
-          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
-          echo "::add-mask::$ACCESS_TOKEN"
           sqlpackage /Action:Publish \
             /SourceFile:"src/db/bin/Release/ComiCal.Database.dacpac" \
             /TargetServerName:"${{ steps.outputs.outputs.sqlFqdn }}" \
             /TargetDatabaseName:"${{ steps.outputs.outputs.sqlDb }}" \
-            /AccessToken:"$ACCESS_TOKEN" \
+            /TargetUser:"sqladmin" \
+            /TargetPassword:"$SQL_ADMIN_PASSWORD" \
+            /TargetEncryptConnection:True \
             /p:BlockOnPossibleDataLoss=true
 
       - name: Build Backend
