@@ -69,22 +69,32 @@ jobs:
             --parameters infra/params/dev.bicepparam \
             --name "deploy-dev-${{ github.run_number }}"
 
-      - name: Get SQL connection string
-        id: sql-conn
+      - name: Get deployment outputs
+        id: outputs
         run: |
-          CONN=$(az deployment sub show \
-            --name "deploy-dev-${{ github.run_number }}" \
-            --query "properties.outputs.sqlConnectionString.value" -o tsv)
-          echo "::add-mask::$CONN"
-          echo "connection=$CONN" >> $GITHUB_OUTPUT
+          DEPLOY_NAME="deploy-dev-${{ github.run_number }}"
+          SQL_FQDN=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlServerFqdn.value" -o tsv)
+          SQL_DB=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlDatabaseName.value" -o tsv)
+          API_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcApiName.value" -o tsv)
+          BATCH_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcBatchName.value" -o tsv)
+          RG=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.resourceGroupName.value" -o tsv)
+          echo "sqlFqdn=$SQL_FQDN" >> $GITHUB_OUTPUT
+          echo "sqlDb=$SQL_DB" >> $GITHUB_OUTPUT
+          echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
+          echo "batchApp=$BATCH_APP" >> $GITHUB_OUTPUT
+          echo "rg=$RG" >> $GITHUB_OUTPUT
 
       - name: DB Publish (sqlpackage)
         run: |
           dotnet tool install --global microsoft.sqlpackage || true
           dotnet build src/db/ComiCal.Database.sqlproj --configuration Release
+          ACCESS_TOKEN=$(az account get-access-token --resource https://database.windows.net --query accessToken -o tsv)
+          echo "::add-mask::$ACCESS_TOKEN"
           sqlpackage /Action:Publish \
             /SourceFile:"src/db/bin/Release/ComiCal.Database.dacpac" \
-            /TargetConnectionString:"${{ steps.sql-conn.outputs.connection }}" \
+            /TargetServerName:"${{ steps.outputs.outputs.sqlFqdn }}" \
+            /TargetDatabaseName:"${{ steps.outputs.outputs.sqlDb }}" \
+            /AccessToken:"$ACCESS_TOKEN" \
             /p:BlockOnPossibleDataLoss=true
 
       - name: Build Backend
@@ -104,22 +114,16 @@ jobs:
 
       - name: Deploy API to Azure Functions
         run: |
-          API_APP=$(az deployment sub show \
-            --name "deploy-dev-${{ github.run_number }}" \
-            --query "properties.outputs.apiFunctionAppName.value" -o tsv)
           az functionapp deployment source config-zip \
-            --resource-group "rg-comical-dev-japaneast" \
-            --name "$API_APP" \
+            --resource-group "${{ steps.outputs.outputs.rg }}" \
+            --name "${{ steps.outputs.outputs.apiApp }}" \
             --src api.zip
 
       - name: Deploy Batch to Azure Functions
         run: |
-          BATCH_APP=$(az deployment sub show \
-            --name "deploy-dev-${{ github.run_number }}" \
-            --query "properties.outputs.batchFunctionAppName.value" -o tsv)
           az functionapp deployment source config-zip \
-            --resource-group "rg-comical-dev-japaneast" \
-            --name "$BATCH_APP" \
+            --resource-group "${{ steps.outputs.outputs.rg }}" \
+            --name "${{ steps.outputs.outputs.batchApp }}" \
             --src batch.zip
 
       - name: Build Frontend
