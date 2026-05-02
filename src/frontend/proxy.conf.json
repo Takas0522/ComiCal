@@ -1,0 +1,15 @@
+{
+  "/api": {
+    "target": "http://localhost:7071",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/blob": {
+    "target": "http://172.21.0.2:10000/devstoreaccount1",
+    "secure": false,
+    "changeOrigin": true,
+    "pathRewrite": { "^/blob": "" },
+    "logLevel": "debug"
+  }
+}

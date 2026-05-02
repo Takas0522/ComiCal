@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ComiCal.Shared</AssemblyName>
+    <RootNamespace>ComiCal.Shared</RootNamespace>
+    <!-- CA1716: 'Shared' is a reserved keyword in VB; suppressed intentionally for project architecture -->
+    <NoWarn>$(NoWarn);CA1716</NoWarn>
+  </PropertyGroup>
+</Project>

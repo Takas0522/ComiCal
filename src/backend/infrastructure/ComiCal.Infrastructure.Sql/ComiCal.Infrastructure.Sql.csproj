@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ComiCal.Infrastructure.Sql</AssemblyName>
+    <RootNamespace>ComiCal.Infrastructure.Sql</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../domain/ComiCal.Domain/ComiCal.Domain.csproj" />
+    <ProjectReference Include="../../application/ComiCal.Application/ComiCal.Application.csproj" />
+    <ProjectReference Include="../../shared/ComiCal.Shared/ComiCal.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+</Project>

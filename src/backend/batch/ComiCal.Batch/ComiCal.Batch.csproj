@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ComiCal.Batch</AssemblyName>
+    <RootNamespace>ComiCal.Batch</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../application/ComiCal.Application/ComiCal.Application.csproj" />
+    <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Sql/ComiCal.Infrastructure.Sql.csproj" />
+    <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Blob/ComiCal.Infrastructure.Blob.csproj" />
+    <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Rakuten/ComiCal.Infrastructure.Rakuten.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" />
+    <PackageReference Include="Microsoft.DurableTask.Client" />
+    <PackageReference Include="Microsoft.DurableTask.Worker" />
+    <PackageReference Include="Microsoft.DurableTask.Worker.Grpc" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
+  </ItemGroup>
+</Project>

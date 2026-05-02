@@ -1,0 +1,49 @@
+
+# ComiCal ローカル開発インフラ
+# 用途: SQL Server 2022 + Azurite (Blob/Queue/Table) をローカルで起動
+# 起動: docker compose up -d
+# 停止: docker compose down
+
+services:
+  sqlserver:
+    build:
+      context: ./.devcontainer/sqlserver
+    image: comical-sqlserver-fts:2022
+    platform: linux/amd64
+    container_name: comical-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "P@ssw0rdComiCal1"
+      MSSQL_PID: "Developer"
+      MSSQL_MEMORY_LIMIT_MB: "3072"
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "P@ssw0rdComiCal1" -Q "SELECT 1" -No
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    container_name: comical-azurite
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --loose --skipApiVersionCheck
+    ports:
+      - "10000:10000"  # Blob
+      - "10001:10001"  # Queue
+      - "10002:10002"  # Table
+    volumes:
+      - azurite_data:/data
+    healthcheck:
+      test: nc -z localhost 10000
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  sqlserver_data:
+  azurite_data:

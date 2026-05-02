@@ -1,0 +1,15 @@
+<Solution>
+  <Project Path="domain/ComiCal.Domain/ComiCal.Domain.csproj" />
+  <Project Path="shared/ComiCal.Shared/ComiCal.Shared.csproj" />
+  <Project Path="application/ComiCal.Application/ComiCal.Application.csproj" />
+  <Project Path="infrastructure/ComiCal.Infrastructure.Sql/ComiCal.Infrastructure.Sql.csproj" />
+  <Project Path="infrastructure/ComiCal.Infrastructure.Blob/ComiCal.Infrastructure.Blob.csproj" />
+  <Project Path="infrastructure/ComiCal.Infrastructure.Rakuten/ComiCal.Infrastructure.Rakuten.csproj" />
+  <Project Path="api/ComiCal.Api/ComiCal.Api.csproj" />
+  <Project Path="batch/ComiCal.Batch/ComiCal.Batch.csproj" />
+  <Project Path="../tests/backend/ComiCal.Domain.Tests/ComiCal.Domain.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Application.Tests/ComiCal.Application.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Api.Tests/ComiCal.Api.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Batch.Tests/ComiCal.Batch.Tests.csproj" />
+  <Project Path="../tests/backend/ComiCal.Infrastructure.Tests/ComiCal.Infrastructure.Tests.csproj" />
+</Solution>

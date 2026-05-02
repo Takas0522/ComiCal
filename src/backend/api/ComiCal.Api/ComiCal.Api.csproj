@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>ComiCal.Api</AssemblyName>
+    <RootNamespace>ComiCal.Api</RootNamespace>
+    <OutputType>Exe</OutputType>
+    <AzureFunctionsVersion>v4</AzureFunctionsVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../application/ComiCal.Application/ComiCal.Application.csproj" />
+    <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Sql/ComiCal.Infrastructure.Sql.csproj" />
+    <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Blob/ComiCal.Infrastructure.Blob.csproj" />
+    <ProjectReference Include="../../shared/ComiCal.Shared/ComiCal.Shared.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Sdk">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
+    <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
+  </ItemGroup>
+</Project>
