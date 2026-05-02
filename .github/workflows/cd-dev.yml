@@ -100,7 +100,7 @@ jobs:
             /p:BlockOnPossibleDataLoss=true
 
       - name: Build Backend
-        run: dotnet build src/backend/ComiCal.slnx --configuration Release --no-restore
+        run: dotnet build src/backend/ComiCal.slnx --configuration Release
 
       - name: Publish API Functions
         run: |
