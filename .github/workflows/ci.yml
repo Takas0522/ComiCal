@@ -46,7 +46,7 @@ jobs:
       - name: Test
         run: pnpm --filter frontend exec jest --ci --coverage
       - name: Upload coverage
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: frontend-coverage
           path: src/frontend/coverage/
@@ -99,7 +99,7 @@ jobs:
           --collect:"XPlat Code Coverage"
           --results-directory TestResults/
       - name: Upload coverage
-        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08 # v4.6.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: backend-coverage
           path: TestResults/
