@@ -2,7 +2,7 @@ name: CD - Dev
 
 on:
   push:
-    branches: [main]
+    branches: [main, feature/fix-cd]
   workflow_dispatch:
     inputs:
       reason:
