@@ -100,3 +100,9 @@ output kvUri string = app.outputs.kvUri
 
 @description('App Configuration endpoint')
 output appConfigEndpoint string = app.outputs.appConfigEndpoint
+
+@description('SQL Server fully qualified domain name')
+output sqlServerFqdn string = data.outputs.sqlServerFqdn
+
+@description('SQL database name')
+output sqlDatabaseName string = data.outputs.sqlDatabaseName

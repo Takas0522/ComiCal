@@ -40,10 +40,11 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@26f6d4f2c533a43e6b5da0b4a5dd983f98f7b49a # v6.0.4
         with:
+          version: '10'
           run_install: false
 
       - name: Azure Login (OIDC)
-        uses: azure/login@a65d910e8af852a8061972ce2a7ce2b3b4b92e7 # v2.3.0
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -68,26 +69,38 @@ jobs:
             --parameters infra/params/dev.bicepparam \
             --name "deploy-dev-${{ github.run_number }}"
 
-      - name: Get SQL connection string
-        id: sql-conn
+      - name: Get deployment outputs
+        id: outputs
         run: |
-          CONN=$(az deployment sub show \
-            --name "deploy-dev-${{ github.run_number }}" \
-            --query "properties.outputs.sqlConnectionString.value" -o tsv)
-          echo "::add-mask::$CONN"
-          echo "connection=$CONN" >> $GITHUB_OUTPUT
+          DEPLOY_NAME="deploy-dev-${{ github.run_number }}"
+          SQL_FQDN=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlServerFqdn.value" -o tsv)
+          SQL_DB=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlDatabaseName.value" -o tsv)
+          API_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcApiName.value" -o tsv)
+          BATCH_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcBatchName.value" -o tsv)
+          RG=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.resourceGroupName.value" -o tsv)
+          echo "sqlFqdn=$SQL_FQDN" >> $GITHUB_OUTPUT
+          echo "sqlDb=$SQL_DB" >> $GITHUB_OUTPUT
+          echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
+          echo "batchApp=$BATCH_APP" >> $GITHUB_OUTPUT
+          echo "rg=$RG" >> $GITHUB_OUTPUT
 
       - name: DB Publish (sqlpackage)
+        env:
+          SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
         run: |
           dotnet tool install --global microsoft.sqlpackage || true
           dotnet build src/db/ComiCal.Database.sqlproj --configuration Release
           sqlpackage /Action:Publish \
             /SourceFile:"src/db/bin/Release/ComiCal.Database.dacpac" \
-            /TargetConnectionString:"${{ steps.sql-conn.outputs.connection }}" \
+            /TargetServerName:"${{ steps.outputs.outputs.sqlFqdn }}" \
+            /TargetDatabaseName:"${{ steps.outputs.outputs.sqlDb }}" \
+            /TargetUser:"sqladmin" \
+            /TargetPassword:"$SQL_ADMIN_PASSWORD" \
+            /TargetEncryptConnection:True \
             /p:BlockOnPossibleDataLoss=true
 
       - name: Build Backend
-        run: dotnet build src/backend/ComiCal.slnx --configuration Release --no-restore
+        run: dotnet build src/backend/ComiCal.slnx --configuration Release
 
       - name: Publish API Functions
         run: |
@@ -103,22 +116,16 @@ jobs:
 
       - name: Deploy API to Azure Functions
         run: |
-          API_APP=$(az deployment sub show \
-            --name "deploy-dev-${{ github.run_number }}" \
-            --query "properties.outputs.apiFunctionAppName.value" -o tsv)
           az functionapp deployment source config-zip \
-            --resource-group "rg-comical-dev-japaneast" \
-            --name "$API_APP" \
+            --resource-group "${{ steps.outputs.outputs.rg }}" \
+            --name "${{ steps.outputs.outputs.apiApp }}" \
             --src api.zip
 
       - name: Deploy Batch to Azure Functions
         run: |
-          BATCH_APP=$(az deployment sub show \
-            --name "deploy-dev-${{ github.run_number }}" \
-            --query "properties.outputs.batchFunctionAppName.value" -o tsv)
           az functionapp deployment source config-zip \
-            --resource-group "rg-comical-dev-japaneast" \
-            --name "$BATCH_APP" \
+            --resource-group "${{ steps.outputs.outputs.rg }}" \
+            --name "${{ steps.outputs.outputs.batchApp }}" \
             --src batch.zip
 
       - name: Build Frontend
