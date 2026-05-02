@@ -59,6 +59,7 @@ jobs:
       - name: Bicep What-If
         env:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          SQL_ENTRA_ADMIN_OBJECT_ID: ${{ vars.AZURE_CLIENT_OBJECT_ID }}
         run: |
           az deployment sub what-if \
             --location japaneast \
@@ -68,6 +69,7 @@ jobs:
       - name: Bicep Deploy
         env:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
+          SQL_ENTRA_ADMIN_OBJECT_ID: ${{ vars.AZURE_CLIENT_OBJECT_ID }}
         run: |
           az deployment sub create \
             --location japaneast \
