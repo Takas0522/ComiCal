@@ -19,6 +19,12 @@ param sqlAdminLogin string = 'sqladmin'
 @description('SQL Server administrator password — supply via CI/CD secret, not bicepparam')
 param sqlAdminPassword string
 
+@description('Entra ID admin login name on SQL Server (display name of the deploying SP)')
+param sqlEntraAdminLogin string
+
+@description('Entra ID admin object ID on SQL Server (the SP\'s objectId, not the appId)')
+param sqlEntraAdminObjectId string
+
 @description('Log Analytics workspace retention in days (30 for dev, 90 for prod)')
 param logRetentionDays int = 30
 
@@ -61,6 +67,8 @@ module data 'modules/data.bicep' = {
     sqlVCores: sqlVCores
     sqlAdminLogin: sqlAdminLogin
     sqlAdminPassword: sqlAdminPassword
+    sqlEntraAdminLogin: sqlEntraAdminLogin
+    sqlEntraAdminObjectId: sqlEntraAdminObjectId
   }
   dependsOn: [
     observability
