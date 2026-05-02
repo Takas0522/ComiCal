@@ -11,8 +11,39 @@ permissions:
   pull-requests: write
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      db: ${{ steps.filter.outputs.db }}
+      workflows: ${{ steps.filter.outputs.workflows }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'src/frontend/**'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - '.nvmrc'
+            backend:
+              - 'src/backend/**'
+              - 'src/tests/backend/**'
+              - 'global.json'
+            db:
+              - 'src/db/**'
+            workflows:
+              - '.github/workflows/**'
+
   lint-frontend:
     name: Lint Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -31,6 +62,8 @@ jobs:
 
   test-frontend:
     name: Test Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -53,6 +86,8 @@ jobs:
 
   build-frontend:
     name: Build Frontend
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -70,6 +105,8 @@ jobs:
 
   lint-backend:
     name: Lint Backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -83,6 +120,8 @@ jobs:
 
   test-backend:
     name: Test Backend
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -106,6 +145,8 @@ jobs:
 
   build-db:
     name: Build DB (SSDT)
+    needs: changes
+    if: needs.changes.outputs.db == 'true' || needs.changes.outputs.workflows == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -114,3 +155,27 @@ jobs:
           global-json-file: global.json
       - name: Build DACPAC
         run: dotnet build src/db/ComiCal.Database.sqlproj
+
+  ci-passed:
+    name: CI Passed
+    needs:
+      - lint-frontend
+      - test-frontend
+      - build-frontend
+      - lint-backend
+      - test-backend
+      - build-db
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify required jobs succeeded or were skipped
+        env:
+          RESULTS: ${{ toJson(needs) }}
+        run: |
+          echo "$RESULTS"
+          # Skipped is acceptable (path-filtered out); failure / cancelled are not.
+          if echo "$RESULTS" | grep -E '"result"[[:space:]]*:[[:space:]]*"(failure|cancelled)"'; then
+            echo "::error::One or more required CI jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All required CI jobs succeeded or were skipped (path-filtered)."
