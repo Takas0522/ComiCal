@@ -17,12 +17,6 @@ param sqlAdminLogin string = 'sqladmin'
 @description('SQL Server administrator password')
 param sqlAdminPassword string
 
-@description('Entra ID admin login name on SQL Server (display name of the principal — typically the deploying SP)')
-param sqlEntraAdminLogin string
-
-@description('Entra ID admin object ID on SQL Server (NOT the application/client ID)')
-param sqlEntraAdminObjectId string
-
 var sqlServerName = '${prefix}-${env}-jpe-sql'
 var sqlDatabaseName = '${prefix}-${env}-jpe-sqldb'
 // Storage account names must be lowercase alphanumeric, no hyphens, max 24 chars.
@@ -42,17 +36,6 @@ resource sqlServer 'Microsoft.Sql/servers@2023-08-01-preview' = {
     minimalTlsVersion: '1.2'
     // Allow Azure services to connect (required for Functions → SQL without VNet)
     publicNetworkAccess: 'Enabled'
-    // Entra (AAD) admin — required so the deploying SP can issue
-    // CREATE USER FROM EXTERNAL PROVIDER for Function App managed identities.
-    // SQL admin login is retained (azureADOnlyAuthentication: false) for sqlpackage DACPAC publish.
-    administrators: {
-      administratorType: 'ActiveDirectory'
-      principalType: 'Application'
-      login: sqlEntraAdminLogin
-      sid: sqlEntraAdminObjectId
-      tenantId: subscription().tenantId
-      azureADOnlyAuthentication: false
-    }
   }
 }
 
