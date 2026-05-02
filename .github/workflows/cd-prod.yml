@@ -24,8 +24,14 @@ jobs:
       cancel-in-progress: false
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
@@ -103,7 +109,7 @@ jobs:
       - name: Build All
         run: |
           dotnet build src/backend/ComiCal.slnx --configuration Release
-          pnpm install
+          pnpm install --frozen-lockfile
           pnpm --filter frontend build
           cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
           cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json

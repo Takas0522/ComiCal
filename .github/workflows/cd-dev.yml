@@ -26,9 +26,14 @@ jobs:
       workflows: ${{ steps.filter.outputs.workflows }}
       deploy_config: ${{ steps.filter.outputs.deploy_config }}
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 2
+          persist-credentials: false
       - uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
         id: filter
         with:
@@ -67,6 +72,10 @@ jobs:
       RUN_FRONTEND: ${{ needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true' || github.event_name == 'workflow_dispatch' }}
 
     steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@8d3c67de8e2fe68ef647c8db1e6a09f647780f40 # v2.19.0
+        with:
+          egress-policy: audit
       - name: Show what will run
         run: |
           echo "infra=$RUN_INFRA"
@@ -83,6 +92,8 @@ jobs:
       - name: Checkout
         if: env.RUN_INFRA == 'true' || env.RUN_DB == 'true' || env.RUN_BACKEND == 'true' || env.RUN_FRONTEND == 'true'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
 
       - name: Setup .NET
         if: env.RUN_DB == 'true' || env.RUN_BACKEND == 'true'
@@ -213,7 +224,7 @@ jobs:
       - name: Build Frontend
         if: env.RUN_FRONTEND == 'true'
         run: |
-          pnpm install
+          pnpm install --frozen-lockfile
           pnpm --filter frontend build
           cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
           cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
