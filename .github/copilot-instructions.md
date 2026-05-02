@@ -113,6 +113,19 @@ az deployment sub what-if -l japaneast -f infra/main.bicep -p infra/params/dev.b
 - **Actions は SHA でピン留め**（タグではなく、supply chain 攻撃防止）
 - **環境**: dev / prod。PR ごとに SWA Preview Environment
 
+## Branching & Merge Policy（必読）
+
+- **Trunk-based development を厳守**。`main` への直接 push は原則禁止。
+- **すべての変更は PR 経由**で `main` に取り込む。AI エージェント / Copilot による作業も例外なく PR を起こすこと。
+  - ローカルでの `git push origin main` / `git merge --ff-only` 等で main を直接前進させない。
+  - 緊急対応で直 push せざるを得ない場合は、後追いで PR を作成し履歴を残すこと。
+- **マージ方式は Squash Merge を基本**とする（履歴を線形化、Conventional Commits タイトルが 1 コミットになる）。
+  - Merge commit / Rebase merge は使わない。
+  - 複数の Dependabot PR をまとめる場合も、**集約用ブランチ → 1 つの PR → Squash Merge** のフローを取り、個別 PR には「PR #N に集約」とコメントしてから close する。
+- **PR タイトルは Conventional Commits** 形式（Squash 後のコミットメッセージになるため）。
+- **branch 命名**: `feat/...`, `fix/...`, `chore/...`, `docs/...` など Conventional Commits の type を prefix に。短寿命（数日以内）でマージ・削除。
+- **CI が green であることがマージ条件**。failing なまま main に入れない。
+
 ## See Also
 
 - [`docs/init.md`](../docs/init.md) — プロジェクト原典
