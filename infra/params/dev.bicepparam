@@ -10,5 +10,3 @@ param logRetentionDays = 30
 param enablePurgeProtection = false
 param alertWebhookUrl = ''
 param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD')
-param sqlEntraAdminLogin = readEnvironmentVariable('SQL_ENTRA_ADMIN_LOGIN', 'comical-github-oidc')
-param sqlEntraAdminObjectId = readEnvironmentVariable('SQL_ENTRA_ADMIN_OBJECT_ID')

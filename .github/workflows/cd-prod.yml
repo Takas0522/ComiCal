@@ -59,7 +59,6 @@ jobs:
       - name: Bicep What-If
         env:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
-          SQL_ENTRA_ADMIN_OBJECT_ID: ${{ vars.AZURE_CLIENT_OBJECT_ID }}
         run: |
           az deployment sub what-if \
             --location japaneast \
@@ -69,7 +68,6 @@ jobs:
       - name: Bicep Deploy
         env:
           SQL_ADMIN_PASSWORD: ${{ secrets.SQL_ADMIN_PASSWORD }}
-          SQL_ENTRA_ADMIN_OBJECT_ID: ${{ vars.AZURE_CLIENT_OBJECT_ID }}
         run: |
           az deployment sub create \
             --location japaneast \
@@ -91,6 +89,21 @@ jobs:
           echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
           echo "batchApp=$BATCH_APP" >> $GITHUB_OUTPUT
           echo "rg=$RG" >> $GITHUB_OUTPUT
+
+      - name: Set SQL Server Entra admin
+        # Idempotent. Required so the deploying SP can issue
+        # CREATE USER FROM EXTERNAL PROVIDER against the database.
+        run: |
+          set -euo pipefail
+          RG='${{ steps.outputs.outputs.rg }}'
+          SQL_FQDN='${{ steps.outputs.outputs.sqlFqdn }}'
+          SQL_SERVER="${SQL_FQDN%%.*}"
+          az sql server ad-admin create \
+            --resource-group "$RG" \
+            --server "$SQL_SERVER" \
+            --display-name 'comical-github-oidc' \
+            --object-id '${{ vars.AZURE_CLIENT_OBJECT_ID }}' \
+            -o none
 
       - name: DB Publish
         env:
