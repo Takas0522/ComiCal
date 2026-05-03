@@ -304,6 +304,13 @@ jobs:
               JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
               JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
               WHERE r.name = N'db_datawriter' AND m.name = @bchName) EXEC sp_executesql @addRoleBchW;
+
+          -- Grant EXECUTE on scalar functions / stored procs (e.g. dbo.fnToHiragana).
+          -- db_datareader / db_datawriter alone do NOT include EXECUTE.
+          DECLARE @grantApi nvarchar(max) = N'GRANT EXECUTE TO ' + QUOTENAME(@apiName);
+          DECLARE @grantBch nvarchar(max) = N'GRANT EXECUTE TO ' + QUOTENAME(@bchName);
+          EXEC sp_executesql @grantApi;
+          EXEC sp_executesql @grantBch;
           SQL
 
           # Authenticate via the active az CLI session (the OIDC SP that

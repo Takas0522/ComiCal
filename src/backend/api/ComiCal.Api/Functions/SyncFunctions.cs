@@ -11,7 +11,7 @@ public static class SyncFunctions
 {
     [Function("UploadSyncQr")]
     public static async Task<HttpResponseData> UploadAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/me/sync/qr")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/me/sync/qr")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {
@@ -38,7 +38,7 @@ public static class SyncFunctions
 
     [Function("GetSyncQrData")]
     public static async Task<HttpResponseData> GetAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/me/sync/qr/{token}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/me/sync/qr/{token}")] HttpRequestData req,
         string token,
         FunctionContext ctx,
         CancellationToken ct)

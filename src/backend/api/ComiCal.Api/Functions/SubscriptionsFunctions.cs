@@ -11,7 +11,7 @@ public static class SubscriptionsFunctions
 {
     [Function("GetSubscriptions")]
     public static async Task<HttpResponseData> GetAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/me/subscriptions")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/me/subscriptions")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {
@@ -29,7 +29,7 @@ public static class SubscriptionsFunctions
 
     [Function("AddSubscription")]
     public static async Task<HttpResponseData> AddAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/me/subscriptions")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/me/subscriptions")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {
@@ -60,7 +60,7 @@ public static class SubscriptionsFunctions
 
     [Function("RemoveSubscription")]
     public static async Task<HttpResponseData> RemoveAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "delete", Route = "v1/me/subscriptions/{seriesId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "delete", Route = "v1/me/subscriptions/{seriesId}")] HttpRequestData req,
         Guid seriesId,
         FunctionContext ctx,
         CancellationToken ct)

@@ -202,6 +202,51 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
   ]
 }
 
+// API Function App authentication settings.
+// SWA-linked backend forwards anonymous requests to this Function App, and
+// each endpoint enforces required-auth checks via x-ms-client-principal
+// (see /me/* and /admin/* handlers). We must therefore keep Easy Auth
+// "enabled but unauthenticated-allowed" so that requests reach the Function
+// code. Without this, Azure Functions returns 401 Bearer challenges before
+// our middleware runs.
+resource funcApiAuthSettings 'Microsoft.Web/sites/config@2024-04-01' = {
+  parent: funcApi
+  name: 'authsettingsV2'
+  properties: {
+    platform: {
+      enabled: true
+      runtimeVersion: '~1'
+    }
+    globalValidation: {
+      requireAuthentication: false
+      unauthenticatedClientAction: 'AllowAnonymous'
+    }
+    httpSettings: {
+      requireHttps: true
+      routes: {
+        apiPrefix: '/.auth'
+      }
+      forwardProxy: {
+        convention: 'NoProxy'
+      }
+    }
+    identityProviders: {
+      azureStaticWebApps: {
+        enabled: true
+        registration: {
+          clientId: swa.properties.defaultHostname
+        }
+      }
+    }
+    login: {
+      tokenStore: {
+        enabled: false
+      }
+      preserveUrlFragmentsForLogins: false
+    }
+  }
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // Function App — Batch (Durable Functions, Consumption, separate plan)
 // ──────────────────────────────────────────────────────────────────────────────

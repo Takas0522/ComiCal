@@ -11,7 +11,7 @@ public static class AdminFunctions
 {
     [Function("GetBatchRuns")]
     public static async Task<HttpResponseData> GetBatchRunsAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/admin/batch-runs")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/admin/batch-runs")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {
@@ -30,7 +30,7 @@ public static class AdminFunctions
 
     [Function("TriggerBatch")]
     public static async Task<HttpResponseData> TriggerBatchAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/admin/batch/trigger")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/admin/batch/trigger")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {

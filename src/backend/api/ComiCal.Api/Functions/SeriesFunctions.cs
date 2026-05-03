@@ -13,7 +13,7 @@ public static class SeriesFunctions
 {
     [Function("SearchSeries")]
     public static async Task<HttpResponseData> SearchAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/series")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/series")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {
@@ -40,7 +40,7 @@ public static class SeriesFunctions
 
     [Function("GetSeriesDetail")]
     public static async Task<HttpResponseData> GetDetailAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/series/{id}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/series/{id}")] HttpRequestData req,
         Guid id,
         FunctionContext ctx,
         CancellationToken ct)
