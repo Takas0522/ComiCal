@@ -212,7 +212,7 @@ jobs:
         if: env.RUN_INFRA == 'true' || env.RUN_DB == 'true' || env.RUN_BACKEND == 'true'
         run: |
           set -euo pipefail
-          # Install go-sqlcmd (single static binary, supports --access-token-file)
+          # Install go-sqlcmd (single static binary; uses az CLI session for AAD auth)
           curl -sSL -o /tmp/sqlcmd.tar.bz2 \
             https://github.com/microsoft/go-sqlcmd/releases/download/v1.8.0/sqlcmd-linux-amd64.tar.bz2
           mkdir -p /tmp/sqlcmd && tar -xjf /tmp/sqlcmd.tar.bz2 -C /tmp/sqlcmd
@@ -273,9 +273,11 @@ jobs:
               WHERE r.name = N'db_datawriter' AND m.name = @bchName) EXEC sp_executesql @addRoleBchW;
           SQL
 
-          az account get-access-token --resource https://database.windows.net --query accessToken -o tsv > /tmp/dbtoken
-          $SQLCMD -S "$SQL_FQDN" -d "$SQL_DB" --access-token-file /tmp/dbtoken -i /tmp/grant.sql -b
-          rm -f /tmp/dbtoken
+          # Authenticate via the active az CLI session (the OIDC SP that
+          # was just set as the SQL Entra admin in the previous step).
+          $SQLCMD -S "$SQL_FQDN" -d "$SQL_DB" \
+            --authentication-method ActiveDirectoryAzCli \
+            -i /tmp/grant.sql -b
 
       - name: Build Backend
         if: env.RUN_BACKEND == 'true'
