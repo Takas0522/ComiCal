@@ -24,7 +24,10 @@ public sealed class BlobStorageService(BlobServiceClient blobServiceClient)
             return null; // unchanged
 
         var blobName = Convert.ToHexString(hash).ToLowerInvariant() + ".jpg";
-        var blobKey = $"covers/{blobName}";
+        // BlobKey is the path within the container (e.g. "<hash>.jpg").
+        // The container name ("covers") is already part of BlobBaseUrl, so do NOT
+        // include it here — otherwise the public URL becomes ".../covers/covers/...".
+        var blobKey = blobName;
         var container = blobServiceClient.GetBlobContainerClient(CoversContainer);
         var blob = container.GetBlobClient(blobName);
 
