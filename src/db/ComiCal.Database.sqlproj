@@ -24,6 +24,7 @@
     <None Include="Scripts\PostDeploy\01-seed-reference-data.sql" />
     <None Include="Scripts\PostDeploy\02-seed-admin-user.sql" />
     <None Include="Scripts\PostDeploy\03-fulltext-indexes.sql" />
+    <None Include="Scripts\PostDeploy\04-fix-thumbnail-blobkey.sql" />
     <None Include="Scripts\Seed\dev-sample-series.sql" />
   </ItemGroup>
 </Project>
