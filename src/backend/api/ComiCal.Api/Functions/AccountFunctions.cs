@@ -11,7 +11,7 @@ public static class AccountFunctions
 {
     [Function("DeleteAccount")]
     public static async Task<HttpResponseData> DeleteAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "post", Route = "v1/me/account/delete")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "v1/me/account/delete")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {

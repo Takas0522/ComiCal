@@ -13,7 +13,7 @@ public static class VolumesFunctions
 {
     [Function("GetUpcomingVolumes")]
     public static async Task<HttpResponseData> GetUpcomingAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/volumes/upcoming")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/volumes/upcoming")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {
@@ -33,7 +33,7 @@ public static class VolumesFunctions
 
     [Function("GetCalendarVolumes")]
     public static async Task<HttpResponseData> GetCalendarAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "get", Route = "v1/volumes/calendar")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", Route = "v1/volumes/calendar")] HttpRequestData req,
         FunctionContext ctx,
         CancellationToken ct)
     {

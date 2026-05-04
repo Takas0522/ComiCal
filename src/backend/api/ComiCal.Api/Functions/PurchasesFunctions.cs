@@ -14,7 +14,7 @@ public static class PurchasesFunctions
 {
     [Function("UpdatePurchaseState")]
     public static async Task<HttpResponseData> UpdateAsync(
-        [HttpTrigger(AuthorizationLevel.Function, "put", Route = "v1/me/purchases/{volumeId}")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "put", Route = "v1/me/purchases/{volumeId}")] HttpRequestData req,
         Guid volumeId,
         FunctionContext ctx,
         CancellationToken ct)
