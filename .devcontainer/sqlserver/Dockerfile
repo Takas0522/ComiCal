@@ -5,7 +5,8 @@
 #
 # NOTE: ARM64 ホストでは linux/amd64 (qemu/rosetta) 経由でビルド/実行する必要がある
 #       （Microsoft は ARM64 向けに mssql-server-fts を提供していない）。
-FROM --platform=linux/amd64 mcr.microsoft.com/mssql/server:2022-latest
+# Pin by digest (Scorecard PinnedDependencies). Update along with tag bumps.
+FROM --platform=linux/amd64 mcr.microsoft.com/mssql/server:2022-latest@sha256:2dca9ee5cd5316952d9b6ef4a0c088ac95b55e3502accdda0fc12ad6ede7b905
 
 USER root
 

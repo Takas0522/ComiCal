@@ -1,7 +1,8 @@
 # ComiCal DevContainer
 # Base: Microsoft devcontainers/dotnet (.NET 10 をベースに、Node/Azure CLI/Bicep は features で追加)
 # 注: .NET 10 の devcontainer イメージは noble (Ubuntu 24.04) バリアントのみ公開されている (bookworm は無し)
-FROM mcr.microsoft.com/devcontainers/dotnet:1-10.0-noble
+# Pin by digest (Scorecard PinnedDependencies). Update along with tag bumps.
+FROM mcr.microsoft.com/devcontainers/dotnet:1-10.0-noble@sha256:f9abf00d067ae68b03c767d38d7020cb82d22ed705545807be7e89c755ecaf10
 
 ARG USERNAME=vscode
 
