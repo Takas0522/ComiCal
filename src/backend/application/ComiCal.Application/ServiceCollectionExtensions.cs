@@ -1,3 +1,4 @@
+using ComiCal.Application.Services;
 using ComiCal.Application.UseCases.Account;
 using ComiCal.Application.UseCases.Admin;
 using ComiCal.Application.UseCases.Purchases;
@@ -22,11 +23,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<GetCalendarVolumesUseCase>();
         services.AddScoped<GetSubscriptionsUseCase>();
         services.AddScoped<AddSubscriptionUseCase>();
+        services.AddScoped<AddSubscriptionFromRakutenUseCase>();
         services.AddScoped<RemoveSubscriptionUseCase>();
         services.AddScoped<UpdatePurchaseStateUseCase>();
         services.AddScoped<DeleteAccountUseCase>();
         services.AddScoped<GetBatchRunsUseCase>();
         services.AddScoped<ResolveUserUseCase>();
+
+        // Services
+        services.AddScoped<SeriesUpsertService>();
 
         // Validators
         services.AddValidatorsFromAssemblyContaining<SearchSeriesRequestValidator>(ServiceLifetime.Singleton);

@@ -1,3 +1,4 @@
+using ComiCal.Application.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using System.Threading.RateLimiting;
@@ -7,8 +8,15 @@ namespace ComiCal.Infrastructure.Rakuten;
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddRakutenInfrastructure(
-        this IServiceCollection services, string applicationId)
+        this IServiceCollection services, string? applicationId)
     {
+        if (string.IsNullOrWhiteSpace(applicationId))
+        {
+            // API キー未設定の場合は no-op 実装を登録（検索候補が空になるが起動は成功する）
+            services.AddSingleton<IRakutenBookSearchService, NullRakutenBookSearchService>();
+            return services;
+        }
+
         // 1 request/second sliding window rate limiter
         var rateLimiter = new SlidingWindowRateLimiter(new SlidingWindowRateLimiterOptions
         {
@@ -31,6 +39,9 @@ public static class ServiceCollectionExtensions
             options.Retry.MaxRetryAttempts = 5;
             options.Retry.Delay = TimeSpan.FromSeconds(2);
         });
+
+        // シングルトンで登録（キャッシュを保持するため）
+        services.AddSingleton<IRakutenBookSearchService, RakutenBookSearchService>();
 
         return services;
     }

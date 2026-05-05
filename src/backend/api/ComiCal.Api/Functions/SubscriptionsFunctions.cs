@@ -37,25 +37,50 @@ public static class SubscriptionsFunctions
             return await req.ToProblemAsync(ComiCal.Shared.Error.Unauthorized());
 
         var body = await req.ReadJsonAsync<AddSubscriptionBody>();
-        if (body is null || body.SeriesId == Guid.Empty)
+        if (body is null)
         {
             var bad = req.CreateResponse(HttpStatusCode.BadRequest);
             await bad.WriteAsJsonAsync(new
             {
                 type = "https://comical.example.jp/errors/validation",
-                title = "seriesId is required",
+                title = "seriesId または rakutenIsbn が必要です。",
                 status = 400
             }, "application/problem+json", ct);
             return bad;
         }
 
-        var useCase = ctx.InstanceServices.GetRequiredService<AddSubscriptionUseCase>();
-        var result = await useCase.ExecuteAsync(user.UserId, body.SeriesId, ct);
-        if (result.IsFailure) return await req.ToProblemAsync(result.Error);
+        // 楽天 ISBN による購読（未登録シリーズをオンデマンドで取り込む）
+        if (!string.IsNullOrWhiteSpace(body.RakutenIsbn))
+        {
+            var rakutenUseCase = ctx.InstanceServices.GetRequiredService<AddSubscriptionFromRakutenUseCase>();
+            var result = await rakutenUseCase.ExecuteAsync(user.UserId, body.RakutenIsbn, ct);
+            if (result.IsFailure) return await req.ToProblemAsync(result.Error);
 
-        var res = req.CreateResponse(HttpStatusCode.Created);
-        await res.WriteAsJsonAsync(result.Value, ct);
-        return res;
+            var res = req.CreateResponse(HttpStatusCode.Created);
+            await res.WriteAsJsonAsync(result.Value, ct);
+            return res;
+        }
+
+        // 既存 DB シリーズによる購読
+        if (body.SeriesId != Guid.Empty)
+        {
+            var useCase = ctx.InstanceServices.GetRequiredService<AddSubscriptionUseCase>();
+            var result = await useCase.ExecuteAsync(user.UserId, body.SeriesId, ct);
+            if (result.IsFailure) return await req.ToProblemAsync(result.Error);
+
+            var res = req.CreateResponse(HttpStatusCode.Created);
+            await res.WriteAsJsonAsync(result.Value, ct);
+            return res;
+        }
+
+        var badRes = req.CreateResponse(HttpStatusCode.BadRequest);
+        await badRes.WriteAsJsonAsync(new
+        {
+            type = "https://comical.example.jp/errors/validation",
+            title = "seriesId または rakutenIsbn が必要です。",
+            status = 400
+        }, "application/problem+json", ct);
+        return badRes;
     }
 
     [Function("RemoveSubscription")]
@@ -75,5 +100,5 @@ public static class SubscriptionsFunctions
         return req.CreateResponse(HttpStatusCode.NoContent);
     }
 
-    private sealed record AddSubscriptionBody(Guid SeriesId);
+    private sealed record AddSubscriptionBody(Guid SeriesId, string? RakutenIsbn);
 }

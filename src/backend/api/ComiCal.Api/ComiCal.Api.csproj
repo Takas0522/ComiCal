@@ -9,6 +9,7 @@
     <ProjectReference Include="../../application/ComiCal.Application/ComiCal.Application.csproj" />
     <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Sql/ComiCal.Infrastructure.Sql.csproj" />
     <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Blob/ComiCal.Infrastructure.Blob.csproj" />
+    <ProjectReference Include="../../infrastructure/ComiCal.Infrastructure.Rakuten/ComiCal.Infrastructure.Rakuten.csproj" />
     <ProjectReference Include="../../shared/ComiCal.Shared/ComiCal.Shared.csproj" />
   </ItemGroup>
   <ItemGroup>
