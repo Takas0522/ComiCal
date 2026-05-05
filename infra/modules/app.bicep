@@ -191,6 +191,10 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
           value: 'https://${storageAccountName}.blob.core.windows.net/covers'
         }
         {
+          name: 'RakutenApplicationId'
+          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAppId/)'
+        }
+        {
           name: 'AppConfiguration__Endpoint'
           value: 'https://${appConfigName}.azconfig.io'
         }
