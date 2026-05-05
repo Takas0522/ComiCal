@@ -184,20 +184,18 @@ export class SearchPage {
     }
     this.isLoading.set(true);
     this.subscribeError.set(null);
-    this.http
-      .get<SearchResponse>(`/api/v1/series?q=${encodeURIComponent(trimmed)}`)
-      .subscribe({
-        next: (r) => {
-          this.results.set(r.items);
-          this.rakutenCandidates.set(r.rakutenCandidates ?? []);
-          this.isLoading.set(false);
-        },
-        error: () => {
-          this.results.set([]);
-          this.rakutenCandidates.set([]);
-          this.isLoading.set(false);
-        },
-      });
+    this.http.get<SearchResponse>(`/api/v1/series?q=${encodeURIComponent(trimmed)}`).subscribe({
+      next: (r) => {
+        this.results.set(r.items);
+        this.rakutenCandidates.set(r.rakutenCandidates ?? []);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.results.set([]);
+        this.rakutenCandidates.set([]);
+        this.isLoading.set(false);
+      },
+    });
   }
 
   toggleSubscription(series: SeriesResult) {
@@ -213,30 +211,26 @@ export class SearchPage {
 
     this.subscribingIsbn.set(candidate.isbn);
     this.subscribeError.set(null);
-    this.subscriptionsStore
-      .subscribeFromRakuten(candidate.isbn)
-      .subscribe({
-        next: () => {
-          this.subscribingIsbn.set(null);
-          // 購読済みになった候補をリストから除外
-          this.rakutenCandidates.update((list) =>
-            list.filter((c) => c.isbn !== candidate.isbn),
-          );
-        },
-        error: (err) => {
-          this.subscribingIsbn.set(null);
-          const status = err?.status;
-          if (status === 404) {
-            this.subscribeError.set('楽天 Books で該当タイトルが見つかりませんでした。');
-          } else if (status === 429) {
-            this.subscribeError.set('リクエストが多すぎます。しばらくしてから再試行してください。');
-          } else if (status === 409) {
-            this.subscribeError.set('すでに購読済みです。');
-          } else {
-            this.subscribeError.set('購読登録に失敗しました。');
-          }
-        },
-      });
+    this.subscriptionsStore.subscribeFromRakuten(candidate.isbn).subscribe({
+      next: () => {
+        this.subscribingIsbn.set(null);
+        // 購読済みになった候補をリストから除外
+        this.rakutenCandidates.update((list) => list.filter((c) => c.isbn !== candidate.isbn));
+      },
+      error: (err) => {
+        this.subscribingIsbn.set(null);
+        const status = err?.status;
+        if (status === 404) {
+          this.subscribeError.set('楽天 Books で該当タイトルが見つかりませんでした。');
+        } else if (status === 429) {
+          this.subscribeError.set('リクエストが多すぎます。しばらくしてから再試行してください。');
+        } else if (status === 409) {
+          this.subscribeError.set('すでに購読済みです。');
+        } else {
+          this.subscribeError.set('購読登録に失敗しました。');
+        }
+      },
+    });
   }
 
   isSubscribed(seriesId: string): boolean {
