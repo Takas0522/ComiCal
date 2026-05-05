@@ -92,8 +92,9 @@ public sealed partial class SearchSeriesUseCase(
 
     private static string NormalizeSafe(string title)
     {
+        if (string.IsNullOrWhiteSpace(title)) return string.Empty;
         try { return SeriesAggregator.ComputeNormalizedTitle(title); }
-        catch { return title.Trim().ToLowerInvariant(); }
+        catch (ArgumentException) { return title.Trim().ToLowerInvariant(); }
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Rakuten Books keyword search timed out for query: {Query}")]

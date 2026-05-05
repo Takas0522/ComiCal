@@ -45,12 +45,9 @@ var host = new HostBuilder()
             ?? throw new InvalidOperationException("StorageAccountUri is required");
         services.AddBlobInfrastructure(storageUri);
 
-        // 楽天 Books API（検索フォールバック用）
-        var rakutenAppId = ctx.Configuration["RakutenApplicationId"] ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(rakutenAppId))
-            services.AddRakutenInfrastructure(rakutenAppId);
-        else
-            services.AddRakutenInfrastructure(string.Empty); // NullObject 相当（API キー未設定でも起動できるよう）
+        // 楽天 Books API（検索フォールバック用）。API キー未設定時は no-op 実装が登録される。
+        var rakutenAppId = ctx.Configuration["RakutenApplicationId"];
+        services.AddRakutenInfrastructure(rakutenAppId);
 
         services.AddSingleton<RateLimitMiddleware.Limiter>();
 

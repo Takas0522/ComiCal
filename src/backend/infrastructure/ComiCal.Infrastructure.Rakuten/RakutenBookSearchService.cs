@@ -12,6 +12,9 @@ public sealed class RakutenBookSearchService(RakutenBooksApiClient client) : IRa
     private readonly ConcurrentDictionary<string, (DateTime ExpiresAt, IReadOnlyList<RakutenBookSearchItem> Items)> _cache = new();
     private static readonly TimeSpan CacheTtl = TimeSpan.FromMinutes(10);
 
+    /// キャッシュエントリ数がこの上限を超えたら期限切れエントリを除去する。
+    private const int CacheEvictionThreshold = 500;
+
     public async Task<IReadOnlyList<RakutenBookSearchItem>> SearchByKeywordAsync(
         string keyword, CancellationToken ct = default)
     {
@@ -21,7 +24,7 @@ public sealed class RakutenBookSearchService(RakutenBooksApiClient client) : IRa
 
         var result = await client.SearchByKeywordAsync(keyword, page: 1, ct);
         var items = result.Items.Select(ToModel).ToList();
-        SetCache(cacheKey, items);
+        AddToCache(cacheKey, items);
         return items;
     }
 
@@ -34,7 +37,7 @@ public sealed class RakutenBookSearchService(RakutenBooksApiClient client) : IRa
 
         var result = await client.SearchByIsbnAsync(isbn13, ct);
         var items = result.Items.Select(ToModel).ToList();
-        SetCache(cacheKey, items);
+        AddToCache(cacheKey, items);
         return items.Count > 0 ? items[0] : null;
     }
 
@@ -49,8 +52,21 @@ public sealed class RakutenBookSearchService(RakutenBooksApiClient client) : IRa
         return false;
     }
 
-    private void SetCache(string key, IReadOnlyList<RakutenBookSearchItem> items)
-        => _cache[key] = (DateTime.UtcNow.Add(CacheTtl), items);
+    private void AddToCache(string key, IReadOnlyList<RakutenBookSearchItem> items)
+    {
+        _cache[key] = (DateTime.UtcNow.Add(CacheTtl), items);
+
+        // キャッシュエントリ数が上限を超えたら期限切れエントリを除去する
+        if (_cache.Count > CacheEvictionThreshold)
+        {
+            var now = DateTime.UtcNow;
+            foreach (var k in _cache.Keys.ToList())
+            {
+                if (_cache.TryGetValue(k, out var e) && e.ExpiresAt <= now)
+                    _cache.TryRemove(k, out _);
+            }
+        }
+    }
 
     private static RakutenBookSearchItem ToModel(RakutenBookItem item)
         => new(
@@ -61,4 +77,16 @@ public sealed class RakutenBookSearchService(RakutenBooksApiClient client) : IRa
             string.IsNullOrWhiteSpace(item.SalesDate) ? null : item.SalesDate,
             string.IsNullOrWhiteSpace(item.LargeImageUrl) ? null : item.LargeImageUrl,
             string.IsNullOrWhiteSpace(item.ItemUrl) ? null : item.ItemUrl);
+}
+
+/// <summary>
+/// 楽天 ApplicationId が未設定の場合に使用する no-op 実装。常に空リストを返す。
+/// </summary>
+internal sealed class NullRakutenBookSearchService : IRakutenBookSearchService
+{
+    public Task<IReadOnlyList<RakutenBookSearchItem>> SearchByKeywordAsync(string keyword, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<RakutenBookSearchItem>>([]);
+
+    public Task<RakutenBookSearchItem?> SearchByIsbnAsync(string isbn13, CancellationToken ct = default)
+        => Task.FromResult<RakutenBookSearchItem?>(null);
 }

@@ -77,14 +77,15 @@ public sealed class SearchSeriesUseCaseTests
     [Fact]
     public async Task ExecuteAsync_WithKeyword_WhenRakutenItemMatchesDb_ExcludesFromCandidates()
     {
-        // Arrange: DB に "既存漫画" があり、楽天にも "既存漫画" がある → 候補に含めない
+        // Arrange: DB に "既存漫画" があり、楽天にも同じ正規化タイトルになる "既存漫画 第1巻" がある → 候補に含めない
+        // "既存漫画 第1巻" は StripVolumeNumber で " 第1巻" が取り除かれ "既存漫画" になる
         var series = new List<Series> { Series.Create("既存漫画", "既存漫画", null) };
         _seriesRepo.SearchAsync(Arg.Any<SeriesSearchQuery>(), Arg.Any<CancellationToken>())
             .Returns((series.AsReadOnly(), (string?)null));
 
         var rakutenItems = new List<RakutenBookSearchItem>
         {
-            new("9784000000001", "既存漫画 1巻", "著者A", "出版社A", null, null, null),
+            new("9784000000001", "既存漫画 第1巻", "著者A", "出版社A", null, null, null),
             new("9784000000002", "全然違う漫画", "著者B", "出版社B", null, null, null),
         };
         _rakutenSearch.SearchByKeywordAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
@@ -97,7 +98,7 @@ public sealed class SearchSeriesUseCaseTests
 
         // Assert
         Assert.True(result.IsSuccess);
-        // "既存漫画 1巻" の正規化タイトルが DB の "既存漫画" と一致するので除外される
+        // "既存漫画 第1巻" の正規化タイトルが DB の "既存漫画" と一致するので除外される
         Assert.Single(result.Value.RakutenCandidates);
         Assert.Equal("全然違う漫画", result.Value.RakutenCandidates[0].Title);
     }
@@ -111,7 +112,7 @@ public sealed class SearchSeriesUseCaseTests
             .Returns((series.AsReadOnly(), (string?)null));
 
         _rakutenSearch.SearchByKeywordAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
-            .ThrowsAsync(new HttpRequestException("API error"));
+            .Returns(Task.FromException<IReadOnlyList<RakutenBookSearchItem>>(new HttpRequestException("API error")));
 
         var query = new SeriesSearchQuery("テスト", null, null, null, 20);
 

@@ -134,17 +134,13 @@ interface SearchResponse {
                       data-testid="subscribe-rakuten-button"
                       class="shrink-0 px-4 py-1.5 text-sm font-semibold rounded-full transition-all"
                       [disabled]="subscribingIsbn() === candidate.isbn"
-                      [style]="
-                        isSubscribedByIsbn(candidate.isbn)
-                          ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
-                          : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'
-                      "
+                      style="background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)"
                       (click)="subscribeFromRakuten(candidate)"
                     >
                       @if (subscribingIsbn() === candidate.isbn) {
                         <span aria-label="処理中">...</span>
                       } @else {
-                        {{ isSubscribedByIsbn(candidate.isbn) ? '購読中' : '購読する' }}
+                        購読する
                       }
                     </button>
                   </li>
@@ -213,16 +209,16 @@ export class SearchPage {
   }
 
   subscribeFromRakuten(candidate: RakutenCandidate) {
-    if (this.isSubscribedByIsbn(candidate.isbn) || this.subscribingIsbn() === candidate.isbn) return;
+    if (this.subscribingIsbn() === candidate.isbn) return;
 
     this.subscribingIsbn.set(candidate.isbn);
     this.subscribeError.set(null);
     this.subscriptionsStore
-      .subscribeFromRakuten(candidate.isbn, candidate.title)
+      .subscribeFromRakuten(candidate.isbn)
       .subscribe({
-        next: (sub) => {
+        next: () => {
           this.subscribingIsbn.set(null);
-          // 購読済みになった候補の seriesId を記録し表示を更新
+          // 購読済みになった候補をリストから除外
           this.rakutenCandidates.update((list) =>
             list.filter((c) => c.isbn !== candidate.isbn),
           );
@@ -245,11 +241,5 @@ export class SearchPage {
 
   isSubscribed(seriesId: string): boolean {
     return this.subscriptionsStore.subscribedSeriesIds().has(seriesId);
-  }
-
-  isSubscribedByIsbn(_isbn: string): boolean {
-    // ISBN から seriesId への逆引きは現時点では不可能なため常に false を返す
-    // 購読完了後に候補リストから除外することで「購読中」状態を表示しない
-    return false;
   }
 }

@@ -61,7 +61,7 @@ export class SubscriptionsStore {
    * 楽天候補（DB未登録）を ISBN で購読登録します。
    * バックエンドが Series を UPSERT してから購読を作成します。
    */
-  subscribeFromRakuten(rakutenIsbn: string, _seriesTitle = ''): Observable<Subscription> {
+  subscribeFromRakuten(rakutenIsbn: string): Observable<Subscription> {
     if (!this.auth.isLoggedIn()) {
       // 匿名ユーザーには ISBN ベースの購読は未サポート（ログインを促す）
       return new Observable((obs) => {

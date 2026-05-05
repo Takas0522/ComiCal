@@ -88,7 +88,7 @@ public sealed class SeriesUpsertService(
             var name = rawName.Length > 128 ? rawName[..128] : rawName;
             string normalized;
             try { normalized = TitleNormalizer.Normalize(name); }
-            catch { continue; }
+            catch (ArgumentException) { continue; }
             if (string.IsNullOrWhiteSpace(normalized)) continue;
 
             var existing = await authorRepo.FindByNormalizedNameAsync(normalized, ct);
