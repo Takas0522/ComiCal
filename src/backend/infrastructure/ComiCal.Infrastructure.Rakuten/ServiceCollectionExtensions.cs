@@ -1,3 +1,4 @@
+using ComiCal.Application.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using System.Threading.RateLimiting;
@@ -31,6 +32,9 @@ public static class ServiceCollectionExtensions
             options.Retry.MaxRetryAttempts = 5;
             options.Retry.Delay = TimeSpan.FromSeconds(2);
         });
+
+        // シングルトンで登録（キャッシュを保持するため）
+        services.AddSingleton<IRakutenBookSearchService, RakutenBookSearchService>();
 
         return services;
     }

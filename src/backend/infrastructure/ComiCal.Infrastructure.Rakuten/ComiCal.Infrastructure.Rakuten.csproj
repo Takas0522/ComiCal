@@ -4,6 +4,7 @@
     <RootNamespace>ComiCal.Infrastructure.Rakuten</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../../application/ComiCal.Application/ComiCal.Application.csproj" />
     <ProjectReference Include="../../domain/ComiCal.Domain/ComiCal.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>

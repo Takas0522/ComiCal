@@ -15,6 +15,21 @@ interface SeriesResult {
   isSubscribed?: boolean;
 }
 
+interface RakutenCandidate {
+  isbn: string;
+  title: string;
+  author: string | null;
+  publisherName: string | null;
+  thumbnailUrl: string | null;
+  itemUrl: string | null;
+}
+
+interface SearchResponse {
+  items: SeriesResult[];
+  nextCursor: string | null;
+  rakutenCandidates: RakutenCandidate[];
+}
+
 @Component({
   selector: 'app-search-page',
   standalone: true,
@@ -32,7 +47,7 @@ interface SeriesResult {
         />
         @if (isLoading()) {
           <div class="flex justify-center py-16"><app-spinner /></div>
-        } @else if (query() && results().length === 0) {
+        } @else if (query() && results().length === 0 && rakutenCandidates().length === 0) {
           <div class="text-center py-16">
             <p class="text-3xl mb-3" aria-hidden="true">🔍</p>
             <p style="color: var(--color-text-secondary)">
@@ -45,43 +60,108 @@ interface SeriesResult {
             <p style="color: var(--color-text-secondary)">キーワードを入力して検索してください。</p>
           </div>
         } @else {
-          <ul class="flex flex-col gap-2">
-            @for (series of results(); track series.seriesId) {
-              <li
-                class="flex items-center justify-between gap-4 p-4 rounded-xl"
-                style="background: var(--color-surface); box-shadow: var(--shadow-card)"
-              >
-                <a [routerLink]="['/series', series.seriesId]" class="flex-1 min-w-0">
-                  <p class="font-semibold truncate" style="color: var(--color-text-primary)">
-                    {{ series.title }}
-                  </p>
-                  <p class="text-sm truncate mt-0.5" style="color: var(--color-text-secondary)">
-                    {{ series.authors?.[0]?.name ?? '著者不明' }} &nbsp;/&nbsp;
-                    {{ series.publisher?.name ?? '出版社不明' }}
-                    @if (series.isCompleted) {
-                      <span
-                        class="ml-2 text-xs px-1.5 py-0.5 rounded-full"
-                        style="background: var(--color-surface-elevated); color: var(--color-text-tertiary)"
-                        >完結</span
-                      >
-                    }
-                  </p>
-                </a>
-                <button
-                  type="button"
-                  class="shrink-0 px-4 py-1.5 text-sm font-semibold rounded-full transition-all"
-                  [style]="
-                    isSubscribed(series.seriesId)
-                      ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
-                      : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'
-                  "
-                  (click)="toggleSubscription(series)"
+          @if (results().length > 0) {
+            <ul class="flex flex-col gap-2">
+              @for (series of results(); track series.seriesId) {
+                <li
+                  class="flex items-center justify-between gap-4 p-4 rounded-xl"
+                  style="background: var(--color-surface); box-shadow: var(--shadow-card)"
                 >
-                  {{ isSubscribed(series.seriesId) ? '購読中' : '購読する' }}
-                </button>
-              </li>
-            }
-          </ul>
+                  <a [routerLink]="['/series', series.seriesId]" class="flex-1 min-w-0">
+                    <p class="font-semibold truncate" style="color: var(--color-text-primary)">
+                      {{ series.title }}
+                    </p>
+                    <p class="text-sm truncate mt-0.5" style="color: var(--color-text-secondary)">
+                      {{ series.authors?.[0]?.name ?? '著者不明' }} &nbsp;/&nbsp;
+                      {{ series.publisher?.name ?? '出版社不明' }}
+                      @if (series.isCompleted) {
+                        <span
+                          class="ml-2 text-xs px-1.5 py-0.5 rounded-full"
+                          style="background: var(--color-surface-elevated); color: var(--color-text-tertiary)"
+                          >完結</span
+                        >
+                      }
+                    </p>
+                  </a>
+                  <button
+                    type="button"
+                    data-testid="subscribe-button"
+                    class="shrink-0 px-4 py-1.5 text-sm font-semibold rounded-full transition-all"
+                    [style]="
+                      isSubscribed(series.seriesId)
+                        ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
+                        : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'
+                    "
+                    (click)="toggleSubscription(series)"
+                  >
+                    {{ isSubscribed(series.seriesId) ? '購読中' : '購読する' }}
+                  </button>
+                </li>
+              }
+            </ul>
+          }
+
+          @if (rakutenCandidates().length > 0) {
+            <div class="mt-6">
+              <p class="text-sm font-semibold mb-2" style="color: var(--color-text-secondary)">
+                楽天 Books の候補（未登録）
+              </p>
+              <ul class="flex flex-col gap-2">
+                @for (candidate of rakutenCandidates(); track candidate.isbn) {
+                  <li
+                    class="flex items-center justify-between gap-4 p-4 rounded-xl"
+                    style="background: var(--color-surface); box-shadow: var(--shadow-card)"
+                  >
+                    <div class="flex-1 min-w-0">
+                      <div class="flex items-center gap-2">
+                        <p class="font-semibold truncate" style="color: var(--color-text-primary)">
+                          {{ candidate.title }}
+                        </p>
+                        <span
+                          class="shrink-0 text-xs px-1.5 py-0.5 rounded-full"
+                          style="background: #fff3e0; color: #e65100"
+                          aria-label="楽天候補"
+                          >楽天</span
+                        >
+                      </div>
+                      <p class="text-sm truncate mt-0.5" style="color: var(--color-text-secondary)">
+                        {{ candidate.author ?? '著者不明' }} &nbsp;/&nbsp;
+                        {{ candidate.publisherName ?? '出版社不明' }}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      data-testid="subscribe-rakuten-button"
+                      class="shrink-0 px-4 py-1.5 text-sm font-semibold rounded-full transition-all"
+                      [disabled]="subscribingIsbn() === candidate.isbn"
+                      [style]="
+                        isSubscribedByIsbn(candidate.isbn)
+                          ? 'background: var(--color-surface-elevated); color: var(--color-text-secondary); border: 1px solid var(--color-border)'
+                          : 'background: linear-gradient(135deg, #e8002d 0%, #ff3b5c 100%); color: white; box-shadow: 0 2px 8px rgba(232,0,45,0.3)'
+                      "
+                      (click)="subscribeFromRakuten(candidate)"
+                    >
+                      @if (subscribingIsbn() === candidate.isbn) {
+                        <span aria-label="処理中">...</span>
+                      } @else {
+                        {{ isSubscribedByIsbn(candidate.isbn) ? '購読中' : '購読する' }}
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            </div>
+          }
+        }
+
+        @if (subscribeError()) {
+          <div
+            role="alert"
+            class="mt-4 p-3 rounded-lg text-sm"
+            style="background: #ffeaea; color: #c62828"
+          >
+            {{ subscribeError() }}
+          </div>
         }
       </div>
     </app-page-layout>
@@ -94,24 +174,31 @@ export class SearchPage {
   protected readonly query = signal('');
   protected readonly isLoading = signal(false);
   protected readonly results = signal<SeriesResult[]>([]);
+  protected readonly rakutenCandidates = signal<RakutenCandidate[]>([]);
+  protected readonly subscribingIsbn = signal<string | null>(null);
+  protected readonly subscribeError = signal<string | null>(null);
 
   onSearch(q: string) {
     const trimmed = q.trim();
     this.query.set(trimmed);
     if (!trimmed) {
       this.results.set([]);
+      this.rakutenCandidates.set([]);
       return;
     }
     this.isLoading.set(true);
+    this.subscribeError.set(null);
     this.http
-      .get<{ items: SeriesResult[] }>(`/api/v1/series?q=${encodeURIComponent(trimmed)}`)
+      .get<SearchResponse>(`/api/v1/series?q=${encodeURIComponent(trimmed)}`)
       .subscribe({
         next: (r) => {
           this.results.set(r.items);
+          this.rakutenCandidates.set(r.rakutenCandidates ?? []);
           this.isLoading.set(false);
         },
         error: () => {
           this.results.set([]);
+          this.rakutenCandidates.set([]);
           this.isLoading.set(false);
         },
       });
@@ -125,7 +212,44 @@ export class SearchPage {
     }
   }
 
+  subscribeFromRakuten(candidate: RakutenCandidate) {
+    if (this.isSubscribedByIsbn(candidate.isbn) || this.subscribingIsbn() === candidate.isbn) return;
+
+    this.subscribingIsbn.set(candidate.isbn);
+    this.subscribeError.set(null);
+    this.subscriptionsStore
+      .subscribeFromRakuten(candidate.isbn, candidate.title)
+      .subscribe({
+        next: (sub) => {
+          this.subscribingIsbn.set(null);
+          // 購読済みになった候補の seriesId を記録し表示を更新
+          this.rakutenCandidates.update((list) =>
+            list.filter((c) => c.isbn !== candidate.isbn),
+          );
+        },
+        error: (err) => {
+          this.subscribingIsbn.set(null);
+          const status = err?.status;
+          if (status === 404) {
+            this.subscribeError.set('楽天 Books で該当タイトルが見つかりませんでした。');
+          } else if (status === 429) {
+            this.subscribeError.set('リクエストが多すぎます。しばらくしてから再試行してください。');
+          } else if (status === 409) {
+            this.subscribeError.set('すでに購読済みです。');
+          } else {
+            this.subscribeError.set('購読登録に失敗しました。');
+          }
+        },
+      });
+  }
+
   isSubscribed(seriesId: string): boolean {
     return this.subscriptionsStore.subscribedSeriesIds().has(seriesId);
+  }
+
+  isSubscribedByIsbn(_isbn: string): boolean {
+    // ISBN から seriesId への逆引きは現時点では不可能なため常に false を返す
+    // 購読完了後に候補リストから除外することで「購読中」状態を表示しない
+    return false;
   }
 }

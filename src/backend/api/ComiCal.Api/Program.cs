@@ -1,6 +1,7 @@
 using ComiCal.Api.Middleware;
 using ComiCal.Application;
 using ComiCal.Infrastructure.Blob;
+using ComiCal.Infrastructure.Rakuten;
 using ComiCal.Infrastructure.Sql;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +44,13 @@ var host = new HostBuilder()
         var storageUri = ctx.Configuration["StorageAccountUri"]
             ?? throw new InvalidOperationException("StorageAccountUri is required");
         services.AddBlobInfrastructure(storageUri);
+
+        // 楽天 Books API（検索フォールバック用）
+        var rakutenAppId = ctx.Configuration["RakutenApplicationId"] ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(rakutenAppId))
+            services.AddRakutenInfrastructure(rakutenAppId);
+        else
+            services.AddRakutenInfrastructure(string.Empty); // NullObject 相当（API キー未設定でも起動できるよう）
 
         services.AddSingleton<RateLimitMiddleware.Limiter>();
 

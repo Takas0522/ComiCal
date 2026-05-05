@@ -57,6 +57,22 @@ export class SubscriptionsStore {
       .pipe(tap((sub) => this.items.update((list) => [...list, sub])));
   }
 
+  /**
+   * 楽天候補（DB未登録）を ISBN で購読登録します。
+   * バックエンドが Series を UPSERT してから購読を作成します。
+   */
+  subscribeFromRakuten(rakutenIsbn: string, _seriesTitle = ''): Observable<Subscription> {
+    if (!this.auth.isLoggedIn()) {
+      // 匿名ユーザーには ISBN ベースの購読は未サポート（ログインを促す）
+      return new Observable((obs) => {
+        obs.error({ status: 401 });
+      });
+    }
+    return this.http
+      .post<Subscription>('/api/v1/me/subscriptions', { rakutenIsbn })
+      .pipe(tap((sub) => this.items.update((list) => [...list, sub])));
+  }
+
   unsubscribe(seriesId: string): Observable<unknown> {
     if (!this.auth.isLoggedIn()) {
       this.anon.remove(seriesId);

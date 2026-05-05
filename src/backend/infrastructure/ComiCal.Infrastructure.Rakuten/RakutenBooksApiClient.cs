@@ -21,6 +21,12 @@ public sealed class RakutenBooksApiClient
     private static readonly Action<ILogger, int, Exception?> LogFetchingPage =
         LoggerMessage.Define<int>(LogLevel.Information, new EventId(1, "FetchingPage"), "Fetching Rakuten Books page {Page}");
 
+    private static readonly Action<ILogger, string, Exception?> LogSearchingKeyword =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(2, "SearchingKeyword"), "Searching Rakuten Books by keyword: {Keyword}");
+
+    private static readonly Action<ILogger, string, Exception?> LogSearchingIsbn =
+        LoggerMessage.Define<string>(LogLevel.Information, new EventId(3, "SearchingIsbn"), "Searching Rakuten Books by ISBN: {Isbn}");
+
     public RakutenBooksApiClient(
         HttpClient httpClient,
         RateLimiter rateLimiter,
@@ -42,9 +48,7 @@ public sealed class RakutenBooksApiClient
         var queryParams = new Dictionary<string, string>
         {
             ["booksGenreId"] = "001001",
-            ["applicationId"] = _httpClient.DefaultRequestHeaders.TryGetValues("X-Rakuten-AppId", out var vals)
-                ? vals.FirstOrDefault() ?? string.Empty
-                : string.Empty,
+            ["applicationId"] = GetApplicationId(),
             ["page"] = page.ToString(CultureInfo.InvariantCulture),
             ["hits"] = "30",
             ["sort"] = "-releaseDate",
@@ -66,6 +70,67 @@ public sealed class RakutenBooksApiClient
         return JsonSerializer.Deserialize<RakutenBooksSearchResult>(json, JsonOptions)
             ?? throw new InvalidOperationException("Failed to deserialize Rakuten Books response");
     }
+
+    /// <summary>
+    /// ジャンル無指定でキーワード検索します。楽天 Books のすべてのジャンルを対象とします。
+    /// </summary>
+    public async Task<RakutenBooksSearchResult> SearchByKeywordAsync(
+        string keyword, int page = 1, CancellationToken ct = default)
+    {
+        using var lease = await _rateLimiter.AcquireAsync(permitCount: 1, cancellationToken: ct);
+        if (!lease.IsAcquired)
+            throw new InvalidOperationException("Rate limit exceeded");
+
+        var queryParams = new Dictionary<string, string>
+        {
+            ["title"] = keyword,
+            ["applicationId"] = GetApplicationId(),
+            ["page"] = page.ToString(CultureInfo.InvariantCulture),
+            ["hits"] = "30",
+            ["formatVersion"] = "2",
+        };
+
+        var qs = string.Join("&", queryParams.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
+        var url = $"{BaseUrl}?{qs}";
+
+        LogSearchingKeyword(_logger, keyword, null);
+
+        var json = await _httpClient.GetStringAsync(url, ct);
+        return JsonSerializer.Deserialize<RakutenBooksSearchResult>(json, JsonOptions)
+            ?? throw new InvalidOperationException("Failed to deserialize Rakuten Books response");
+    }
+
+    /// <summary>
+    /// ISBN-13 で 1 冊を検索します。ジャンル無指定。
+    /// </summary>
+    public async Task<RakutenBooksSearchResult> SearchByIsbnAsync(
+        string isbn13, CancellationToken ct = default)
+    {
+        using var lease = await _rateLimiter.AcquireAsync(permitCount: 1, cancellationToken: ct);
+        if (!lease.IsAcquired)
+            throw new InvalidOperationException("Rate limit exceeded");
+
+        var queryParams = new Dictionary<string, string>
+        {
+            ["isbn"] = isbn13,
+            ["applicationId"] = GetApplicationId(),
+            ["formatVersion"] = "2",
+        };
+
+        var qs = string.Join("&", queryParams.Select(kv => $"{kv.Key}={Uri.EscapeDataString(kv.Value)}"));
+        var url = $"{BaseUrl}?{qs}";
+
+        LogSearchingIsbn(_logger, isbn13, null);
+
+        var json = await _httpClient.GetStringAsync(url, ct);
+        return JsonSerializer.Deserialize<RakutenBooksSearchResult>(json, JsonOptions)
+            ?? throw new InvalidOperationException("Failed to deserialize Rakuten Books response");
+    }
+
+    private string GetApplicationId()
+        => _httpClient.DefaultRequestHeaders.TryGetValues("X-Rakuten-AppId", out var vals)
+            ? vals.FirstOrDefault() ?? string.Empty
+            : string.Empty;
 }
 
 public record RakutenBooksSearchResult(
