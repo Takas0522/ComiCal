@@ -1,4 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&display=swap');
+@import '@fontsource/noto-sans-jp/japanese-400.css';
+@import '@fontsource/noto-sans-jp/japanese-500.css';
+@import '@fontsource/noto-sans-jp/japanese-600.css';
+@import '@fontsource/noto-sans-jp/japanese-700.css';
 @import 'tailwindcss';
 
 @theme {

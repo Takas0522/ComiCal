@@ -70,6 +70,9 @@ importers:
       '@angular/ssr':
         specifier: ^21.2.9
         version: 21.2.9(97215b2743db4391e492bdcfebf30ae8)
+      '@fontsource/noto-sans-jp':
+        specifier: ^5.2.9
+        version: 5.2.9
       express:
         specifier: ^5.1.0
         version: 5.2.1
@@ -1491,6 +1494,9 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
+
+  '@fontsource/noto-sans-jp@5.2.9':
+    resolution: {integrity: sha512-6yVGiofnrnbiJjU8ch4JGSs2HqyozxMvsVyVmFwOnDH3u//qQKLqmKM4n0lqN0637uaJNzUW9nIJqbbMgHVQzw==}
 
   '@gar/promise-retry@1.0.3':
     resolution: {integrity: sha512-GmzA9ckNokPypTg10pgpeHNQe7ph+iIKKmhKu3Ob9ANkswreCx7R3cKmY781K8QK3AqVL3xVh9A42JvIAbkkSA==}
@@ -7908,6 +7914,8 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
+
+  '@fontsource/noto-sans-jp@5.2.9': {}
 
   '@gar/promise-retry@1.0.3': {}
 
