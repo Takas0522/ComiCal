@@ -49,7 +49,9 @@ describe('retryInterceptor', () => {
     http.get('/api/test').subscribe({ next: (r) => (result = r) });
 
     // 初回失敗
-    httpMock.expectOne('/api/test').flush('err', { status: 503, statusText: 'Service Unavailable' });
+    httpMock
+      .expectOne('/api/test')
+      .flush('err', { status: 503, statusText: 'Service Unavailable' });
     tick(1000);
     // リトライ成功
     httpMock.expectOne('/api/test').flush({ items: [] });
@@ -83,7 +85,9 @@ describe('retryInterceptor', () => {
     let errorCaught = false;
     http.get('/api/test').subscribe({ error: () => (errorCaught = true) });
 
-    httpMock.expectOne('/api/test').flush('err', { status: 503, statusText: 'Service Unavailable' });
+    httpMock
+      .expectOne('/api/test')
+      .flush('err', { status: 503, statusText: 'Service Unavailable' });
 
     expect(errorCaught).toBe(true);
   }));

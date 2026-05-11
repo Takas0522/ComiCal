@@ -16,7 +16,12 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor, errorInterceptor, retryInterceptor, transferStateInterceptor]),
+      withInterceptors([
+        authInterceptor,
+        errorInterceptor,
+        retryInterceptor,
+        transferStateInterceptor,
+      ]),
     ),
     provideApiClient(),
   ],
