@@ -1,5 +1,6 @@
 using ComiCal.Domain.Repositories;
 using ComiCal.Infrastructure.Sql.Repositories;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -10,8 +11,12 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddSqlInfrastructure(
         this IServiceCollection services, string connectionString)
     {
+        // Azure SQL Serverless の自動一時停止からの復旧に備え ConnectTimeout を延長する。
+        // デフォルト 30 秒では auto-resume が間に合わず post-login タイムアウトが発生するため 90 秒に設定。
+        var csb = new SqlConnectionStringBuilder(connectionString) { ConnectTimeout = 90 };
+
         services.AddDbContext<ComiCalDbContext>(options =>
-            options.UseSqlServer(connectionString, sqlOptions =>
+            options.UseSqlServer(csb.ConnectionString, sqlOptions =>
             {
                 sqlOptions.EnableRetryOnFailure(3);
                 sqlOptions.CommandTimeout(30);
