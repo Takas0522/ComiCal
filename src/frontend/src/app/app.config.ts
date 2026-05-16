@@ -5,6 +5,7 @@ import { provideHttpClient, withFetch, withInterceptors } from '@angular/common/
 import { routes } from './app.routes';
 import { authInterceptor } from './core/auth/auth.interceptor';
 import { errorInterceptor } from './core/http/error.interceptor';
+import { retryInterceptor } from './core/http/retry.interceptor';
 import { transferStateInterceptor } from './core/http/transfer-state.interceptor';
 import { provideApiClient } from './core/api';
 
@@ -15,7 +16,12 @@ export const appConfig: ApplicationConfig = {
     provideClientHydration(withEventReplay()),
     provideHttpClient(
       withFetch(),
-      withInterceptors([authInterceptor, errorInterceptor, transferStateInterceptor]),
+      withInterceptors([
+        authInterceptor,
+        errorInterceptor,
+        retryInterceptor,
+        transferStateInterceptor,
+      ]),
     ),
     provideApiClient(),
   ],
