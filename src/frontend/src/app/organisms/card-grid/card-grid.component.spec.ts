@@ -28,25 +28,25 @@ describe('CardGridComponent', () => {
     fixture = TestBed.createComponent(CardGridComponent);
   });
 
-  it('uses expanded responsive columns while loading', () => {
+  it('uses increased responsive columns while loading', () => {
     fixture.componentRef.setInput('loading', true);
     fixture.detectChanges();
 
     const grid: HTMLElement = fixture.debugElement.query(By.css('.grid')).nativeElement;
-    expect(grid.className).toContain('grid-cols-4');
-    expect(grid.className).toContain('sm:grid-cols-6');
-    expect(grid.className).toContain('md:grid-cols-8');
-    expect(grid.className).toContain('lg:grid-cols-10');
+    expect(grid.className).toContain('grid-cols-2');
+    expect(grid.className).toContain('sm:grid-cols-4');
+    expect(grid.className).toContain('md:grid-cols-6');
+    expect(grid.className).toContain('lg:grid-cols-8');
   });
 
-  it('uses expanded responsive columns while rendering volumes', () => {
+  it('uses increased responsive columns while rendering volumes', () => {
     fixture.componentRef.setInput('volumes', [mockVolume]);
     fixture.detectChanges();
 
     const grid: HTMLElement = fixture.debugElement.query(By.css('.grid')).nativeElement;
-    expect(grid.className).toContain('grid-cols-4');
-    expect(grid.className).toContain('sm:grid-cols-6');
-    expect(grid.className).toContain('md:grid-cols-8');
-    expect(grid.className).toContain('lg:grid-cols-10');
+    expect(grid.className).toContain('grid-cols-2');
+    expect(grid.className).toContain('sm:grid-cols-4');
+    expect(grid.className).toContain('md:grid-cols-6');
+    expect(grid.className).toContain('lg:grid-cols-8');
   });
 });

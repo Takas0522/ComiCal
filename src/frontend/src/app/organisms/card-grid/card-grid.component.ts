@@ -10,7 +10,7 @@ import { SkeletonComponent } from '../../atoms/skeleton/skeleton.component';
   template: `
     <section data-testid="card-grid" aria-live="polite" aria-busy="{{ loading() }}">
       @if (loading()) {
-        <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
           @for (i of skeletonItems; track $index) {
             <div class="rounded-[--radius-card] border border-[--color-border] overflow-hidden p-3">
               <div class="aspect-[2/3] bg-[--color-border] rounded animate-pulse mb-3"></div>
@@ -21,7 +21,7 @@ import { SkeletonComponent } from '../../atoms/skeleton/skeleton.component';
       } @else if (volumes().length === 0) {
         <p class="text-center text-[--color-text-secondary] py-16">表示できる巻がありません。</p>
       } @else {
-        <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-4">
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
           @for (volume of volumes(); track volume.id) {
             <app-volume-card [volume]="volume" />
           }
