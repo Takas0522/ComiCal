@@ -18,7 +18,7 @@
   <ItemGroup Label="EF Core">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.7" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.7" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8" />
   </ItemGroup>
   <ItemGroup Label="Azure SDK">
     <PackageVersion Include="Azure.Storage.Blobs" Version="12.27.0" />
