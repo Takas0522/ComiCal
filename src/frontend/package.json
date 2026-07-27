@@ -28,7 +28,7 @@
     "@angular/ssr": "^21.2.9",
     "@fontsource/noto-sans-jp": "^5.2.9",
     "express": "^5.1.0",
-    "idb-keyval": "^6.2.1",
+    "idb-keyval": "^6.3.0",
     "openapi-fetch": "^0.17.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0",
