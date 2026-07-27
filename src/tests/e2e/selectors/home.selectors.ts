@@ -6,4 +6,8 @@ export const HOME_SELECTORS = {
   btnLogin: 'btn-login',
   btnLogout: 'btn-logout',
   bottomNav: 'bottom-nav',
+  subscribedOnlyFilter: 'filter-subscribed-only',
+  activeKeywords: 'home-active-keywords',
+  activeKeywordChip: 'home-active-keyword-chip',
+  keywordEmptyState: 'home-keyword-empty-state',
 } as const;

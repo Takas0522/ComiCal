@@ -5,6 +5,8 @@ public sealed class Author
     public Guid AuthorId { get; private set; }
     public string Name { get; private set; }
     public string NormalizedName { get; private set; }
+    public bool IsDeleted { get; private set; }
+    public DateTime? DeletedAt { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 

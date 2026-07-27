@@ -6,4 +6,5 @@ public sealed record CalendarQuery(
     int? Week = null,
     IReadOnlyList<Guid>? FilterBySeriesIds = null,
     DateTime? FromDate = null,
-    DateTime? ToDate = null);
+    DateTime? ToDate = null,
+    IReadOnlyList<string>? Keywords = null);

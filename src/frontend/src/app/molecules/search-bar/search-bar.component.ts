@@ -19,6 +19,7 @@ import { FormsModule } from '@angular/forms';
       />
       <button
         type="submit"
+        data-testid="search-submit"
         class="px-4 py-2 bg-[--color-primary] text-white rounded-lg hover:bg-[--color-primary-hover] transition-colors"
         aria-label="検索"
       >
@@ -32,7 +33,7 @@ export class SearchBarComponent {
   readonly value = input('');
   readonly search = output<string>();
 
-  private currentValue = '';
+  private currentValue: string | undefined;
 
   onInput(event: Event) {
     this.currentValue = (event.target as HTMLInputElement).value;
@@ -40,6 +41,6 @@ export class SearchBarComponent {
 
   onSubmit(event: Event) {
     event.preventDefault();
-    this.search.emit(this.currentValue || this.value());
+    this.search.emit(this.currentValue ?? this.value());
   }
 }

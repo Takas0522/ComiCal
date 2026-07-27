@@ -29,6 +29,14 @@ export const routes: Routes = [
     title: 'シリーズ詳細 | まんがリマインダー',
   },
   {
+    path: 'settings/keywords',
+    loadComponent: () =>
+      import('./pages/keywords-settings/keywords-settings.page').then(
+        (m) => m.KeywordsSettingsPage,
+      ),
+    title: '絞り込みキーワード | まんがリマインダー',
+  },
+  {
     path: 'settings',
     loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),
     title: '設定 | まんがリマインダー',

@@ -1,4 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { SettingsStore, Theme } from '../../features/settings.store';
 import { ToggleComponent } from '../../molecules/toggle/toggle.component';
 import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
@@ -6,7 +7,7 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
 @Component({
   selector: 'app-settings-page',
   standalone: true,
-  imports: [ToggleComponent, PageLayoutComponent],
+  imports: [RouterLink, ToggleComponent, PageLayoutComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-page-layout>
@@ -32,6 +33,7 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
                 "
               >
                 <input
+                  data-testid="settings-theme-option"
                   type="radio"
                   name="theme"
                   [value]="option.value"
@@ -43,6 +45,26 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
               </label>
             }
           </fieldset>
+        </section>
+
+        <section
+          class="mb-4 p-4 rounded-xl"
+          style="background: var(--color-surface); box-shadow: var(--shadow-card)"
+        >
+          <h2 class="text-sm font-semibold mb-2" style="color: var(--color-text-secondary)" i18n>
+            絞り込み
+          </h2>
+          <p class="mb-3 text-sm" style="color: var(--color-text-secondary)" i18n>
+            ホームとカレンダーに適用するキーワードを管理します。
+          </p>
+          <a
+            routerLink="/settings/keywords"
+            data-testid="settings-keywords-link"
+            class="inline-flex rounded-lg px-4 py-2 text-sm font-semibold text-white btn-primary"
+            i18n
+          >
+            絞り込みキーワードを管理
+          </a>
         </section>
 
         <section

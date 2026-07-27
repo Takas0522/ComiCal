@@ -6,6 +6,7 @@ export const serverRoutes: ServerRoute[] = [
   { path: 'search', renderMode: RenderMode.Server },
   { path: 'subscriptions', renderMode: RenderMode.Server },
   { path: 'series/:id', renderMode: RenderMode.Server },
+  { path: 'settings/keywords', renderMode: RenderMode.Client },
   { path: 'settings', renderMode: RenderMode.Client },
   { path: 'login', renderMode: RenderMode.Server },
   { path: 'legal/oss', renderMode: RenderMode.Prerender },
