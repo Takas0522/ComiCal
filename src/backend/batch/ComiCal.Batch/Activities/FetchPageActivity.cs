@@ -12,6 +12,12 @@ public partial class FetchPageActivity(
     [Function("FetchPageActivity")]
     public async Task<FetchPageOutput> Run([ActivityTrigger] FetchPageInput input)
     {
+        using var scope = logger.BeginScope(new Dictionary<string, object?>
+        {
+            ["BatchRunId"] = input.BatchRunId,
+            ["Page"] = input.Page,
+        });
+
         var result = await rakutenClient.SearchComicsAsync(
             input.Page, input.ReleaseDateFrom, input.ReleaseDateTo);
 

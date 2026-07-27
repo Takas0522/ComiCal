@@ -26,37 +26,48 @@ public static class DailyFetchOrchestrator
         var releaseDateFrom = DateOnly.FromDateTime(today.AddMonths(-6));
         var releaseDateTo = DateOnly.FromDateTime(today.AddMonths(6));
 
-        // 2. Fetch all pages via sub-orchestrator (chaining with ContinueAsNew)
-        var fetchResult = await context.CallSubOrchestratorAsync<FetchSummary>(
-            "FetchOrchestrator",
-            new FetchInput(batchRunId, 1, releaseDateFrom, releaseDateTo, 0, 0, []));
-
-        // 3. Thumbnail fan-out/fan-in
-        var (downloadedCount, skippedCount, thumbFailedCount) = (0, 0, 0);
-        if (fetchResult.ThumbnailPending.Count > 0)
+        try
         {
-            var thumbResult = await context.CallSubOrchestratorAsync<ThumbnailSummary>(
-                "ThumbnailOrchestrator",
-                new ThumbnailInput(batchRunId, fetchResult.ThumbnailPending));
-            downloadedCount = thumbResult.DownloadedCount;
-            skippedCount = thumbResult.SkippedCount;
-            thumbFailedCount = thumbResult.FailedCount;
+            // 2. Fetch all pages via sub-orchestrator (chaining with ContinueAsNew)
+            var fetchResult = await context.CallSubOrchestratorAsync<FetchSummary>(
+                "FetchOrchestrator",
+                new FetchInput(batchRunId, 1, releaseDateFrom, releaseDateTo, 0, 0, []));
+
+            // 3. Thumbnail fan-out/fan-in
+            var (downloadedCount, skippedCount, thumbFailedCount) = (0, 0, 0);
+            if (fetchResult.ThumbnailPending.Count > 0)
+            {
+                var thumbResult = await context.CallSubOrchestratorAsync<ThumbnailSummary>(
+                    "ThumbnailOrchestrator",
+                    new ThumbnailInput(batchRunId, fetchResult.ThumbnailPending));
+                downloadedCount = thumbResult.DownloadedCount;
+                skippedCount = thumbResult.SkippedCount;
+                thumbFailedCount = thumbResult.FailedCount;
+            }
+
+            // 4. Finalize
+            await context.CallActivityAsync<bool>(
+                "FinalizeBatchRunActivity",
+                new FinalizeBatchRunInput(
+                    batchRunId,
+                    fetchResult.FetchedCount,
+                    fetchResult.UpsertedCount,
+                    downloadedCount,
+                    skippedCount,
+                    fetchResult.FailedCount + thumbFailedCount,
+                    true),
+                retryOptions);
+
+            return batchRunId.ToString();
         }
-
-        // 4. Finalize
-        await context.CallActivityAsync<bool>(
-            "FinalizeBatchRunActivity",
-            new FinalizeBatchRunInput(
-                batchRunId,
-                fetchResult.FetchedCount,
-                fetchResult.UpsertedCount,
-                downloadedCount,
-                skippedCount,
-                fetchResult.FailedCount + thumbFailedCount,
-                true),
-            retryOptions);
-
-        return batchRunId.ToString();
+        catch
+        {
+            await context.CallActivityAsync<bool>(
+                "FinalizeBatchRunActivity",
+                new FinalizeBatchRunInput(batchRunId, 0, 0, 0, 0, 1, false),
+                retryOptions);
+            throw;
+        }
     }
 }
 
