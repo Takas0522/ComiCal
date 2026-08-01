@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <AssemblyName>ComiCal.Shared</AssemblyName>
     <RootNamespace>ComiCal.Shared</RootNamespace>
     <!-- CA1716: 'Shared' is a reserved keyword in VB; suppressed intentionally for project architecture -->

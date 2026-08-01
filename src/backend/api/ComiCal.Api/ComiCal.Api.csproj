@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <AssemblyName>ComiCal.Api</AssemblyName>
     <RootNamespace>ComiCal.Api</RootNamespace>
     <OutputType>Exe</OutputType>

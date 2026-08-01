@@ -134,7 +134,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Restore
-        run: dotnet restore src/backend/ComiCal.slnx
+        run: dotnet restore src/backend/ComiCal.slnx --locked-mode
       - name: Format check
         run: dotnet format src/backend/ComiCal.slnx --verify-no-changes
 
@@ -153,7 +153,7 @@ jobs:
         with:
           global-json-file: global.json
       - name: Restore
-        run: dotnet restore src/backend/ComiCal.slnx
+        run: dotnet restore src/backend/ComiCal.slnx --locked-mode
       - name: Build
         run: dotnet build src/backend/ComiCal.slnx --no-restore
       - name: Test
