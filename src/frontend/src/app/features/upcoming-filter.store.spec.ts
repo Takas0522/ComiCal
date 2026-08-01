@@ -181,4 +181,156 @@ describe('UpcomingFilterStore', () => {
     expect(store.restored()).toBe(true);
     expect(getMock).not.toHaveBeenCalled();
   });
+
+  describe('legacy SEARCH_KEYWORDS migration', () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    afterEach(() => {
+      localStorage.clear();
+    });
+
+    it('migrates legacy keywords into empty IndexedDB store and removes legacy data', async () => {
+      localStorage.setItem(
+        'SEARCH_KEYWORDS',
+        JSON.stringify(['紅殻のパンドラ', '幼女戦記', '月刊少女']),
+      );
+      getMock.mockResolvedValue(undefined);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['紅殻のパンドラ', '幼女戦記', '月刊少女']);
+      expect(setMock).toHaveBeenCalledWith('upcoming-filter-keywords', [
+        '紅殻のパンドラ',
+        '幼女戦記',
+        '月刊少女',
+      ]);
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBeNull();
+    });
+
+    it('merges legacy keywords with existing IndexedDB keywords (new store first, dedup)', async () => {
+      localStorage.setItem('SEARCH_KEYWORDS', JSON.stringify(['幼女戦記', 'ベルセルク']));
+      getMock.mockResolvedValue(['紅殻のパンドラ', 'ベルセルク']);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['紅殻のパンドラ', 'ベルセルク', '幼女戦記']);
+      expect(setMock).toHaveBeenCalledWith('upcoming-filter-keywords', [
+        '紅殻のパンドラ',
+        'ベルセルク',
+        '幼女戦記',
+      ]);
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBeNull();
+    });
+
+    it('discards malformed JSON and removes the legacy key', async () => {
+      localStorage.setItem('SEARCH_KEYWORDS', '{not-json');
+      getMock.mockResolvedValue(['既存']);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['既存']);
+      expect(setMock).not.toHaveBeenCalled();
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBeNull();
+    });
+
+    it('discards non-array legacy payloads and removes the legacy key', async () => {
+      localStorage.setItem('SEARCH_KEYWORDS', JSON.stringify({ keywords: ['x'] }));
+      getMock.mockResolvedValue(['既存']);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['既存']);
+      expect(setMock).not.toHaveBeenCalled();
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBeNull();
+    });
+
+    it('does nothing when the legacy key is absent', async () => {
+      getMock.mockResolvedValue(['既存']);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['既存']);
+      expect(setMock).not.toHaveBeenCalled();
+    });
+
+    it('caps merged keywords at MAX_KEYWORDS (16), new-store first', async () => {
+      const existing = Array.from({ length: 14 }, (_, i) => `既存${i}`);
+      const legacy = Array.from({ length: 5 }, (_, i) => `旧${i}`);
+      localStorage.setItem('SEARCH_KEYWORDS', JSON.stringify(legacy));
+      getMock.mockResolvedValue(existing);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual([...existing, '旧0', '旧1']);
+      expect(store.keywords()).toHaveLength(16);
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBeNull();
+    });
+
+    it('caps merged keywords at MAX_KEYWORD_CHARACTERS (512)', async () => {
+      const existing = ['a'.repeat(500)];
+      const legacy = ['b'.repeat(20), 'c'.repeat(5)];
+      localStorage.setItem('SEARCH_KEYWORDS', JSON.stringify(legacy));
+      getMock.mockResolvedValue(existing);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual([existing[0], 'c'.repeat(5)]);
+    });
+
+    it('skips migration during SSR (no localStorage access)', async () => {
+      localStorage.setItem('SEARCH_KEYWORDS', JSON.stringify(['幼女戦記']));
+
+      TestBed.resetTestingModule();
+      TestBed.configureTestingModule({
+        providers: [{ provide: PLATFORM_ID, useValue: 'server' }],
+      });
+      store = TestBed.inject(UpcomingFilterStore);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual([]);
+      expect(setMock).not.toHaveBeenCalled();
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBe(JSON.stringify(['幼女戦記']));
+    });
+
+    it('recovers when localStorage.getItem throws', async () => {
+      const spy = jest.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+        throw new DOMException('denied', 'SecurityError');
+      });
+      getMock.mockResolvedValue(['既存']);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['既存']);
+      expect(setMock).not.toHaveBeenCalled();
+      spy.mockRestore();
+    });
+
+    it('normalizes and dedups legacy keywords via NFKC/trim', async () => {
+      localStorage.setItem(
+        'SEARCH_KEYWORDS',
+        JSON.stringify([' 幼女戦記 ', 'ＡＢＣ', 'ABC', '', 42]),
+      );
+      getMock.mockResolvedValue(undefined);
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['幼女戦記', 'ABC']);
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBeNull();
+    });
+
+    it('retains the legacy key when IndexedDB set() fails so migration retries next boot', async () => {
+      const legacy = JSON.stringify(['幼女戦記', 'ベルセルク']);
+      localStorage.setItem('SEARCH_KEYWORDS', legacy);
+      getMock.mockResolvedValue(undefined);
+      setMock.mockRejectedValueOnce(new Error('idb write failed'));
+
+      await store.restore();
+
+      expect(store.keywords()).toEqual(['幼女戦記', 'ベルセルク']);
+      expect(localStorage.getItem('SEARCH_KEYWORDS')).toBe(legacy);
+    });
+  });
 });
