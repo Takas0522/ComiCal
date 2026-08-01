@@ -1,4 +1,11 @@
-import { Component, inject, afterNextRender, effect, PLATFORM_ID } from '@angular/core';
+import {
+  Component,
+  inject,
+  afterNextRender,
+  effect,
+  PLATFORM_ID,
+  ChangeDetectionStrategy,
+} from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { AuthStore } from './features/auth.store';
@@ -9,6 +16,7 @@ import { SubscriptionsStore } from './features/subscriptions.store';
   selector: 'app-root',
   standalone: true,
   imports: [RouterOutlet],
+  changeDetection: ChangeDetectionStrategy.Eager,
   template: `<router-outlet />`,
 })
 export class App {
