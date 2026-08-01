@@ -17,8 +17,8 @@ importers:
         specifier: ^19.0.0
         version: 19.8.1(@typescript-eslint/utils@8.59.1(eslint@9.39.4(jiti@2.6.1)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3))(eslint@9.39.4(jiti@2.6.1)(supports-color@10.2.2))(typescript@6.0.3)
       '@cyclonedx/cyclonedx-npm':
-        specifier: ^4.2.1
-        version: 4.2.1
+        specifier: ^5.0.0
+        version: 5.0.0
       '@eslint/js':
         specifier: ^9.0.0
         version: 9.39.4
@@ -1214,8 +1214,8 @@ packages:
       xmlbuilder2:
         optional: true
 
-  '@cyclonedx/cyclonedx-npm@4.2.1':
-    resolution: {integrity: sha512-SOA/96sf0wsgUYCRtFkLFm6WoFhG+q1BxdC84hPSn9J3xWlH1e7OnTPJT+WNUzTqzX1nSm5JhjRX4krozu2X+g==}
+  '@cyclonedx/cyclonedx-npm@5.0.0':
+    resolution: {integrity: sha512-pEz/pqYJHQ0ZvY5xFJa+GQ5AjNL7JOEJCXCHymvKo2N1VnzKE1ROpkumduJt8a0DukQjQfBGRXouGQ9xqJtJaQ==}
     engines: {node: '>=20.18.0', npm: '>=9'}
     hasBin: true
 
@@ -7915,7 +7915,7 @@ snapshots:
       spdx-expression-parse: 4.0.0
       xmlbuilder2: 3.1.1
 
-  '@cyclonedx/cyclonedx-npm@4.2.1':
+  '@cyclonedx/cyclonedx-npm@5.0.0':
     dependencies:
       '@cyclonedx/cyclonedx-library': 10.0.0(ajv-formats-draft2019@1.6.1(ajv@8.20.0))(ajv-formats@3.0.1(ajv@8.20.0))(ajv@8.20.0)(packageurl-js@2.0.1)(spdx-expression-parse@4.0.0)(xmlbuilder2@3.1.1)
       commander: 14.0.3
@@ -8797,7 +8797,7 @@ snapshots:
 
   '@npmcli/fs@5.0.0':
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   '@npmcli/git@7.0.2':
     dependencies:
@@ -11814,7 +11814,7 @@ snapshots:
 
   make-dir@4.0.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   make-error@1.3.6: {}
 
@@ -12034,7 +12034,7 @@ snapshots:
       graceful-fs: 4.2.11
       nopt: 9.0.0
       proc-log: 6.1.0
-      semver: 7.7.4
+      semver: 7.8.5
       tar: 7.5.13
       tinyglobby: 0.2.16
       undici: 6.25.0
@@ -12051,7 +12051,7 @@ snapshots:
   normalize-package-data@7.0.1:
     dependencies:
       hosted-git-info: 8.1.0
-      semver: 7.7.4
+      semver: 7.8.5
       validate-npm-package-license: 3.0.4
 
   normalize-path@3.0.0: {}
@@ -12062,7 +12062,7 @@ snapshots:
 
   npm-install-checks@8.0.0:
     dependencies:
-      semver: 7.7.4
+      semver: 7.8.5
 
   npm-normalize-package-bin@5.0.0: {}
 
