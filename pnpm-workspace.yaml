@@ -1,6 +1,14 @@
 packages:
   - "src/frontend"
   - "src/tests/e2e"
+# サプライチェーン攻撃対策: 公開直後（乗っ取り・不正パッケージが出回りやすい期間）の
+# バージョンは pnpm install/add 実行時点でインストールをブロックする。
+# Dependabot の cooldown（.github/dependabot.yml）は自動PR作成のみを制御するため、
+# 開発者や AI エージェントによる手動の `pnpm add`/`pnpm install` を保護できない。
+# minimumReleaseAge はその隙間を埋め、CLI 実行そのものを制御する（単位: 分）。
+minimumReleaseAge: 10080 # 7日 = 60*24*7
+minimumReleaseAgeStrict: true
+minimumReleaseAgeIgnoreMissingTime: true
 allowBuilds:
   '@parcel/watcher': true
   esbuild: true

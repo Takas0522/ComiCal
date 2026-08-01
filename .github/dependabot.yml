@@ -1,6 +1,10 @@
 version: 2
 updates:
   # npm (フロントエンド + E2E)
+  # cooldown: サプライチェーン攻撃対策として、公開直後（乗っ取り・不正パッケージが
+  # 出回りやすい期間）のバージョンへは自動更新PRを出さず、公開から一定日数
+  # 経過したバージョンのみを対象とする。脆弱性対応PR（Security Update）には
+  # cooldown は適用されず、従来通り即時にPRが作成される。
   - package-ecosystem: "npm"
     directory: "/src/frontend"
     schedule:
@@ -14,6 +18,11 @@ updates:
       - "frontend"
     commit-message:
       prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
 
   - package-ecosystem: "npm"
     directory: "/src/tests/e2e"
@@ -26,6 +35,11 @@ updates:
       - "e2e"
     commit-message:
       prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
 
   # NuGet (.NET バックエンド)
   - package-ecosystem: "nuget"
@@ -39,8 +53,15 @@ updates:
       - "backend"
     commit-message:
       prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
 
   # GitHub Actions ワークフロー
+  # GitHub Actions は SemVer 準拠が保証されないため semver-*-days は使わず、
+  # default-days のみで一律 7 日の cooldown をかける。
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -52,3 +73,5 @@ updates:
       - "ci"
     commit-message:
       prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
