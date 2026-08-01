@@ -1,4 +1,10 @@
 version: 2
+# NOTE:
+# バージョン更新PR（Version updates）は停止中。
+# 各 update に `open-pull-requests-limit: 0` を設定することで、Dependabot が
+# 定期的なバージョンアップPRを作成しなくなる。
+# ただし脆弱性対応PR（Security updates）はこの設定の影響を受けず、
+# GitHub Security Advisory / Dependabot alerts に基づき従来どおり自動作成される。
 updates:
   # npm (ルート開発ツール)
   - package-ecosystem: "npm"
@@ -8,7 +14,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "root"
@@ -32,7 +38,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "frontend"
@@ -49,7 +55,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "e2e"
@@ -67,7 +73,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "backend"
@@ -87,7 +93,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "backend-test"
@@ -107,7 +113,7 @@ updates:
       day: "monday"
       time: "09:00"
       timezone: "Asia/Tokyo"
-    open-pull-requests-limit: 3
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "docker"
@@ -124,7 +130,7 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "ci"
