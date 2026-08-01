@@ -1,5 +1,7 @@
 # セキュリティポリシー
 
+Last updated: 2026-08-01
+
 ## サポートバージョン
 
 | バージョン | サポート状況 |
@@ -10,8 +12,10 @@
 
 脆弱性を発見した場合は、**公開 Issue を作成せず**、以下のいずれかの方法でご連絡ください。
 
-1. **GitHub Security Advisory**: このリポジトリの Security タブ → "Report a vulnerability" から報告してください。
+1. **GitHub Security Advisory**: [Report a vulnerability](https://github.com/Takas0522/ComiCal/security/advisories/new) から非公開で報告してください。
 2. **メール**: リポジトリオーナーに直接ご連絡ください。
+
+> **Note**: GitHub の Private vulnerability reporting はリポジトリ Settings で有効化済みです。報告内容は修正と公開開示の準備が整うまで非公開で取り扱います。
 
 ## 対応ポリシー
 
