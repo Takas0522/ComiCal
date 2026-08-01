@@ -95,6 +95,10 @@ az deployment sub what-if -l japaneast -f infra/main.bicep -p infra/params/dev.b
 - **テナンシー**: シングルテナント、`UserId` 列で論理分離
 - **リソース命名**: CAF 推奨 `{prefix}-{env}-{region}-{resource}`
 - **WCAG 2.1 AA 遵拠**
+- **依存パッケージの更新は「公開から 7 日以上経過したバージョン」を原則とする**（`.github/dependabot.yml` の `cooldown` 設定を参照）。サプライチェーン攻撃（乗っ取られたパッケージが公開直後に配布され、数時間〜数日で発覚・撤回されるケースが大半）への対策。
+  - ⚠️ **AI エージェント（Copilot coding agent / Copilot CLI 等）向け注意**: 依存パッケージのバージョンを手動で `@latest` 相当に上げる、あるいは npm/NuGet で新規パッケージをインストールする作業を行う際は、そのバージョンの公開日を確認し、**公開から 7 日未満のバージョンには極力更新しない**こと。Dependabot の `cooldown` は Dependabot 自身が作成する PR にしか効かず、エージェントが `npm install pkg@latest` 等で直接手動更新する操作は保護対象外のため、エージェント自身がこのルールを尊重する必要がある。
+  - ただし、既知の CVE（GitHub Security Advisory / Dependabot Alert で特定されたもの）を修正するための緊急パッチ適用はこの限りではなく、cooldown を待たず速やかに対応する。
+  - AI が生成したパッケージ名をそのままインストールしない（"slopsquatting" 対策）。パッケージ名は公式レジストリ（npmjs.com / nuget.org）で実在と提供元を必ず確認する。
 
 ## Pre-checkin Validation Steps
 
