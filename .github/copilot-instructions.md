@@ -95,6 +95,16 @@ az deployment sub what-if -l japaneast -f infra/main.bicep -p infra/params/dev.b
 - **テナンシー**: シングルテナント、`UserId` 列で論理分離
 - **リソース命名**: CAF 推奨 `{prefix}-{env}-{region}-{resource}`
 - **WCAG 2.1 AA 遵拠**
+- **依存パッケージの更新は「公開から 7 日以上経過したバージョン」を原則とする**。サプライチェーン攻撃（乗っ取られたパッケージが公開直後に配布され、数時間〜数日で発覚・撤回されるケースが大半）への対策で、以下の設定で多重に担保している。
+  - `.github/dependabot.yml` の `cooldown`: Dependabot が作成するバージョン更新 PR に 7 日（メジャーは 14 日）の cooldown を適用（脆弱性対応PRは対象外、常に即時）。
+  - `pnpm-workspace.yaml` の `minimumReleaseAge: 10080`（分単位 = 7日）: pnpm CLI（≥10.16、本リポジトリの要求は `>=10.0.0`）が **`pnpm install`/`pnpm add` を実行する時点**でブロックする。開発者・CI・AI エージェントによる手動実行にも及ぶため、Dependabot の cooldown が保護できない「手動インストール」の穴を埋める。
+  - `.npmrc` の `min-release-age=7`: npm CLI（≥11.10.0）で `npm`/`npx` を直接使う場合の保険。
+  - **NuGet（.NET）にはこの種のネイティブ機能が現時点で存在しない**（[NuGet/Home#14657](https://github.com/NuGet/Home/issues/14657) で議論中・未実装）。そのため NuGet パッケージの追加・更新は下記のエージェント向け注意に従い、手動でのバージョン確認を徹底すること。
+  - ⚠️ **AI エージェント（Copilot coding agent / Copilot CLI 等）向け注意**:
+    - npm/pnpm パッケージについては上記の `minimumReleaseAge`/`min-release-age` 設定が `pnpm add`/`npm install` 実行時に自動的に古すぎないバージョンを拒否するため、通常操作でこれらのコマンドがエラーになった場合はバージョンを固定して待つか `pnpm add pkg@<7日以上前のバージョン>` のように明示指定し、**設定を緩めたり `minimumReleaseAgeExclude`/`min-release-age-exclude` で不用意に除外しない**こと。
+    - **NuGet パッケージは自動保護がないため要注意**: `dotnet add package` でバージョンを追加・更新する際は、公開日を nuget.org で確認し、公開から 7 日未満のバージョンには極力更新しないこと。
+    - 既知の CVE（GitHub Security Advisory / Dependabot Alert で特定されたもの）を修正するための緊急パッチ適用はこの限りではなく、cooldown を待たず速やかに対応する（必要なら `--min-release-age=0` 等で明示的にオーバーライドしてよい）。
+    - AI が生成したパッケージ名をそのままインストールしない（"slopsquatting" 対策）。パッケージ名は公式レジストリ（npmjs.com / nuget.org）で実在と提供元を必ず確認する。
 
 ## Pre-checkin Validation Steps
 
