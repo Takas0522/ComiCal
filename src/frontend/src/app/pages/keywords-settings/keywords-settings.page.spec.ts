@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withXhr } from '@angular/common/http';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
@@ -26,7 +26,7 @@ describe('KeywordsSettingsPage', () => {
     await TestBed.configureTestingModule({
       imports: [KeywordsSettingsPage],
       providers: [
-        provideHttpClient(),
+        provideHttpClient(withXhr()),
         provideRouter([]),
         { provide: UpcomingFilterStore, useValue: store },
       ],

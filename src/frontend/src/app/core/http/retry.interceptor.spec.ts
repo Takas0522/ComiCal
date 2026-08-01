@@ -1,5 +1,5 @@
 import { TestBed, fakeAsync, tick } from '@angular/core/testing';
-import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideHttpClient, withInterceptors, withXhr } from '@angular/common/http';
 import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
 import { HttpClient } from '@angular/common/http';
 import { PLATFORM_ID } from '@angular/core';
@@ -12,7 +12,7 @@ describe('retryInterceptor', () => {
   function setup(platformId = 'browser') {
     TestBed.configureTestingModule({
       providers: [
-        provideHttpClient(withInterceptors([retryInterceptor])),
+        provideHttpClient(withXhr(), withInterceptors([retryInterceptor])),
         provideHttpClientTesting(),
         { provide: PLATFORM_ID, useValue: platformId },
       ],
