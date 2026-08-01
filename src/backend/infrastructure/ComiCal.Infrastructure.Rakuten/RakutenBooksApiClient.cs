@@ -12,7 +12,8 @@ public sealed partial class RakutenBooksApiClient
     private readonly HttpClient _httpClient;
     private readonly RateLimiter _rateLimiter;
     private readonly ILogger<RakutenBooksApiClient> _logger;
-    private const string BaseUrl = "https://app.rakuten.co.jp/services/api/BooksBook/Search/20170404";
+    private readonly RakutenAuthCredentials _credentials;
+    private const string BaseUrl = "https://openapi.rakuten.co.jp/services/api/BooksBook/Search/20170404";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -31,11 +32,13 @@ public sealed partial class RakutenBooksApiClient
     public RakutenBooksApiClient(
         HttpClient httpClient,
         RateLimiter rateLimiter,
-        ILogger<RakutenBooksApiClient> logger)
+        ILogger<RakutenBooksApiClient> logger,
+        RakutenAuthCredentials credentials)
     {
         _httpClient = httpClient;
         _rateLimiter = rateLimiter;
         _logger = logger;
+        _credentials = credentials;
     }
 
     public async Task<RakutenBooksSearchResult> SearchComicsAsync(
@@ -49,7 +52,9 @@ public sealed partial class RakutenBooksApiClient
         var queryParams = new Dictionary<string, string>
         {
             ["booksGenreId"] = "001001",
-            ["applicationId"] = GetApplicationId(),
+            ["applicationId"] = _credentials.ApplicationId,
+            ["accessKey"] = _credentials.AccessKey,
+            ["affiliateId"] = _credentials.AffiliateId,
             ["page"] = page.ToString(CultureInfo.InvariantCulture),
             ["hits"] = "30",
             ["sort"] = "-releaseDate",
@@ -85,7 +90,9 @@ public sealed partial class RakutenBooksApiClient
         var queryParams = new Dictionary<string, string>
         {
             ["title"] = keyword,
-            ["applicationId"] = GetApplicationId(),
+            ["applicationId"] = _credentials.ApplicationId,
+            ["accessKey"] = _credentials.AccessKey,
+            ["affiliateId"] = _credentials.AffiliateId,
             ["page"] = page.ToString(CultureInfo.InvariantCulture),
             ["hits"] = "30",
             ["formatVersion"] = "2",
@@ -114,7 +121,9 @@ public sealed partial class RakutenBooksApiClient
         var queryParams = new Dictionary<string, string>
         {
             ["isbn"] = isbn13,
-            ["applicationId"] = GetApplicationId(),
+            ["applicationId"] = _credentials.ApplicationId,
+            ["accessKey"] = _credentials.AccessKey,
+            ["affiliateId"] = _credentials.AffiliateId,
             ["formatVersion"] = "2",
         };
 

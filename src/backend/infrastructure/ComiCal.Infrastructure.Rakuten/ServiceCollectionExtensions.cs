@@ -8,7 +8,7 @@ namespace ComiCal.Infrastructure.Rakuten;
 public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddRakutenInfrastructure(
-        this IServiceCollection services, string? applicationId)
+        this IServiceCollection services, string? applicationId, string? accessKey = null, string? affiliateId = null)
     {
         if (string.IsNullOrWhiteSpace(applicationId))
         {
@@ -31,14 +31,16 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpClient<RakutenBooksApiClient>(client =>
         {
-            client.DefaultRequestHeaders.Add("X-Rakuten-AppId", applicationId);
             client.Timeout = TimeSpan.FromSeconds(30);
-        })
-        .AddStandardResilienceHandler(options =>
-        {
-            options.Retry.MaxRetryAttempts = 5;
-            options.Retry.Delay = TimeSpan.FromSeconds(2);
         });
+        // NOTE: We do NOT use AddStandardResilienceHandler here because:
+        // 1. We enforce a SlidingWindowRateLimiter (1 req/sec) at the SearchComicsAsync level
+        // 2. Adding automatic retries would bypass the rate limiter and cause 429 Too Many Requests
+        // 3. The rate limiter is sufficient for handling transient failures gracefully
+
+        // 認証情報をシングルトンで登録（キャッシュを保持するため）
+        services.AddSingleton<RakutenAuthCredentials>(_ =>
+            new RakutenAuthCredentials(applicationId, accessKey ?? string.Empty, affiliateId ?? string.Empty));
 
         // シングルトンで登録（キャッシュを保持するため）
         services.AddSingleton<IRakutenBookSearchService, RakutenBookSearchService>();

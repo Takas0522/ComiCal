@@ -24,7 +24,8 @@ public sealed class RakutenBooksApiClientTests
         var sut = new RakutenBooksApiClient(
             client,
             rateLimiter,
-            NullLogger<RakutenBooksApiClient>.Instance);
+            NullLogger<RakutenBooksApiClient>.Instance,
+            new RakutenAuthCredentials("test-id", "test-key", "test-affiliate"));
 
         var exception = await Assert.ThrowsAsync<HttpRequestException>(
             () => sut.SearchComicsAsync(1, null, null));

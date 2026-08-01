@@ -2,10 +2,11 @@
 // docs/init.md §12.4 と §15 のディレクトリ構成に対応
 {
   "name": "ComiCal Dev",
-  "build": {
-    "dockerfile": "Dockerfile",
-    "context": ".."
-  },
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/ComiCal",
+  "runServices": ["sqlserver", "azurite"],
+  "shutdownAction": "stopCompose",
   "features": {
     // .NET 10 SDK (Functions Isolated Worker / EF Core 10 / SSDT)
     "ghcr.io/devcontainers/features/dotnet:2": {

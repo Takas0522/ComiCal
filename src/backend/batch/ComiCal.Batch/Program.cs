@@ -26,7 +26,11 @@ var host = new HostBuilder()
 
         var rakutenAppId = ctx.Configuration["RakutenApplicationId"]
             ?? throw new InvalidOperationException("RakutenApplicationId is required");
-        services.AddRakutenInfrastructure(rakutenAppId);
+        var rakutenAccessKey = ctx.Configuration["RakutenAccessKey"]
+            ?? throw new InvalidOperationException("RakutenAccessKey is required");
+        var rakutenAffiliateId = ctx.Configuration["RakutenAffiliateId"]
+            ?? throw new InvalidOperationException("RakutenAffiliateId is required");
+        services.AddRakutenInfrastructure(rakutenAppId, rakutenAccessKey, rakutenAffiliateId);
 
         // Durable Task orchestrators/activities are auto-discovered by
         // Microsoft.Azure.Functions.Worker.Extensions.DurableTask — no manual registration needed.

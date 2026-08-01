@@ -47,7 +47,9 @@ var host = new HostBuilder()
 
         // 楽天 Books API（検索フォールバック用）。API キー未設定時は no-op 実装が登録される。
         var rakutenAppId = ctx.Configuration["RakutenApplicationId"];
-        services.AddRakutenInfrastructure(rakutenAppId);
+        var rakutenAccessKey = ctx.Configuration["RakutenAccessKey"];
+        var rakutenAffiliateId = ctx.Configuration["RakutenAffiliateId"];
+        services.AddRakutenInfrastructure(rakutenAppId, rakutenAccessKey, rakutenAffiliateId);
 
         services.AddSingleton<RateLimitMiddleware.Limiter>();
 

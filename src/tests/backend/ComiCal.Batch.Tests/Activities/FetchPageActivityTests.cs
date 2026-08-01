@@ -25,7 +25,8 @@ public sealed class FetchPageActivityTests
         });
 
         var rakutenClient = new RakutenBooksApiClient(
-            httpClient, rateLimiter, Substitute.For<ILogger<RakutenBooksApiClient>>());
+            httpClient, rateLimiter, Substitute.For<ILogger<RakutenBooksApiClient>>(),
+            new RakutenAuthCredentials("test-id", "test-key", "test-affiliate"));
         return new FetchPageActivity(rakutenClient, Substitute.For<ILogger<FetchPageActivity>>());
     }
 

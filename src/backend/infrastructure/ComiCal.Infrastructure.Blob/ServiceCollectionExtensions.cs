@@ -23,6 +23,13 @@ public static class ServiceCollectionExtensions
             return new BlobServiceClient(storageAccountUri);
         }
 
+        // HTTP/HTTPS URI (Azurite, local storage)
+        if (storageAccountUri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+            storageAccountUri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            return new BlobServiceClient(new Uri(storageAccountUri));
+        }
+
         // Azure 本番: URI + DefaultAzureCredential (Managed Identity)
         return new BlobServiceClient(new Uri(storageAccountUri), new DefaultAzureCredential());
     }
