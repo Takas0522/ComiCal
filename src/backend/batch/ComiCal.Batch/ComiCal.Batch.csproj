@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <AssemblyName>ComiCal.Batch</AssemblyName>
     <RootNamespace>ComiCal.Batch</RootNamespace>
     <OutputType>Exe</OutputType>
