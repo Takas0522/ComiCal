@@ -19,6 +19,18 @@ param sqlAdminLogin string = 'sqladmin'
 @description('SQL Server administrator password — supply via CI/CD secret, not bicepparam')
 param sqlAdminPassword string
 
+@secure()
+@description('Rakuten Books API application ID — supply via CI/CD secret, not bicepparam')
+param rakutenApplicationId string
+
+@secure()
+@description('Rakuten Books API access key — supply via CI/CD secret, not bicepparam')
+param rakutenAccessKey string
+
+@secure()
+@description('Rakuten affiliate ID — supply via CI/CD secret, not bicepparam')
+param rakutenAffiliateId string
+
 @description('Log Analytics workspace retention in days (30 for dev, 90 for prod)')
 param logRetentionDays int = 30
 
@@ -80,6 +92,9 @@ module app 'modules/app.bicep' = {
     storageAccountId: data.outputs.storageAccountId
     appInsightsName: observability.outputs.appInsightsName
     enablePurgeProtection: enablePurgeProtection
+    rakutenApplicationId: rakutenApplicationId
+    rakutenAccessKey: rakutenAccessKey
+    rakutenAffiliateId: rakutenAffiliateId
   }
 }
 

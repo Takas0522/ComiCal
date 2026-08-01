@@ -13,7 +13,7 @@ info:
     **エラーレスポンス**: すべてのエラーは RFC 7807 Problem Details 形式で返されます。
 
     **Powered by Rakuten Books API**
-  version: "1.0.0"
+  version: "1.1.0"
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -131,7 +131,7 @@ paths:
     get:
       operationId: getUpcomingVolumes
       summary: 直近発売予定一覧
-      description: keyset ページネーションで直近の発売予定巻を返します。
+      description: 'keyset ページネーションで直近の発売予定巻を返します。`q` を指定するとタイトルまたは全著者ロールの名前に一致する巻へ絞り込みます。'
       tags: [volumes]
       parameters:
         - name: cursor
@@ -146,12 +146,12 @@ paths:
             minimum: 1
             maximum: 100
             default: 30
-        - name: subscribedOnly
+        - name: q
           in: query
-          description: 購読中シリーズのみに絞り込む
+          description: 'URL エンコードした JSON 文字列配列のタイトル/著者キーワード。各要素は Unicode 正規化と前後トリム後に重複を除外し、最大 16 語・合計 512 文字です。複数語は OR 条件で、各語はフレーズ先頭一致です。超過時は RFC 7807 の 400 を返します。'
           schema:
-            type: boolean
-            default: false
+            type: string
+          example: '%5B%22%E4%BD%9C%E5%93%81%E5%90%8D%22%2C%22%E8%91%97%E8%80%85%E5%90%8D%22%5D'
       responses:
         "200":
           description: 発売予定一覧
@@ -159,6 +159,8 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/VolumePagedResult"
+        "400":
+          $ref: "#/components/responses/ValidationError"
         "429":
           $ref: "#/components/responses/TooManyRequests"
 
@@ -166,17 +168,31 @@ paths:
     get:
       operationId: getCalendarVolumes
       summary: カレンダービュー
-      description: 指定した年月または週の発売予定を日付別にグループ化して返します。
+      description: '指定した日付レンジ、年月、または週の発売予定を日付別にグループ化して返します。`q` 指定時は、レンジ内の発売日確定巻に加えて一致する発売日未定巻をすべて返します。'
       tags: [volumes]
       parameters:
+        - name: from
+          in: query
+          description: '日付レンジの開始日 (ISO 8601 date)。`to` と対で指定します。'
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: '日付レンジの終了日 (ISO 8601 date)。`from` と対で指定します。'
+          schema:
+            type: string
+            format: date
         - name: year
           in: query
-          required: true
+          description: '`from` / `to` 未指定時に必須となる年 (2000-2100)。'
           schema:
             type: integer
+            minimum: 2000
+            maximum: 2100
         - name: month
           in: query
-          description: 月ビュー用 (1-12)
+          description: '`from` / `to` 未指定時の月ビュー用 (1-12、既定値 1)。'
           schema:
             type: integer
             minimum: 1
@@ -188,11 +204,12 @@ paths:
             type: integer
             minimum: 1
             maximum: 53
-        - name: subscribedOnly
+        - name: q
           in: query
+          description: 'URL エンコードした JSON 文字列配列のタイトル/著者キーワード。各要素は Unicode 正規化と前後トリム後に重複を除外し、最大 16 語・合計 512 文字です。複数語は OR 条件で、各語はフレーズ先頭一致です。超過時は RFC 7807 の 400 を返します。'
           schema:
-            type: boolean
-            default: false
+            type: string
+          example: '%5B%22%E4%BD%9C%E5%93%81%E5%90%8D%22%2C%22%E8%91%97%E8%80%85%E5%90%8D%22%5D'
       responses:
         "200":
           description: カレンダーデータ
@@ -518,8 +535,7 @@ components:
       type: object
       properties:
         nextCursor:
-          type: string
-          nullable: true
+          type: [string, "null"]
         hasMore:
           type: boolean
 
@@ -557,24 +573,20 @@ components:
           type: string
           pattern: "^[0-9]{13}$"
         volumeNumber:
-          type: integer
-          nullable: true
+          type: [integer, "null"]
         releaseDate:
-          type: string
+          type: [string, "null"]
           format: date
-          nullable: true
           description: "未定の場合 null。月のみの場合は末日を設定"
         releaseDateIsMonthOnly:
           type: boolean
           description: "true の場合、releaseDate は月末日。UI では 'YYYY年M月' と表示"
         thumbnailUrl:
-          type: string
+          type: [string, "null"]
           format: uri
-          nullable: true
         rakutenItemUrl:
-          type: string
+          type: [string, "null"]
           format: uri
-          nullable: true
         purchaseState:
           type: string
           enum: [NotPurchased, Reserved, Purchased, Read]
@@ -774,9 +786,8 @@ components:
           type: string
           format: date-time
         completedAt:
-          type: string
+          type: [string, "null"]
           format: date-time
-          nullable: true
         status:
           type: string
           enum: [Running, Succeeded, Failed, Cancelled]

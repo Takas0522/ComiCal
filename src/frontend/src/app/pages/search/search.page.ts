@@ -1,9 +1,14 @@
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { afterNextRender, ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { RouterLink } from '@angular/router';
 import { SearchBarComponent } from '../../molecules/search-bar/search-bar.component';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { SubscriptionsStore } from '../../features/subscriptions.store';
+import {
+  MAX_KEYWORDS,
+  normalizeKeyword,
+  UpcomingFilterStore,
+} from '../../features/upcoming-filter.store';
 import { PageLayoutComponent } from '../../templates/page-layout/page-layout.component';
 
 interface SeriesResult {
@@ -45,6 +50,22 @@ interface SearchResponse {
           (search)="onSearch($event)"
           class="mb-5 block"
         />
+        @if (canRegisterKeyword()) {
+          <div class="mb-5">
+            <button
+              type="button"
+              data-testid="search-register-keyword"
+              (click)="registerKeyword()"
+              class="rounded-lg border border-[--color-primary] px-4 py-2 text-sm font-semibold text-[--color-primary] transition-colors hover:bg-[--color-primary-light]"
+              i18n
+            >
+              「{{ query() }}」を絞り込みキーワードに登録
+            </button>
+          </div>
+        }
+        <p data-testid="search-keyword-status" aria-live="polite" class="sr-only">
+          {{ keywordRegistrationStatus() }}
+        </p>
         @if (isLoading()) {
           <div class="flex justify-center py-16"><app-spinner /></div>
         } @else if (query() && results().length === 0 && rakutenCandidates().length === 0) {
@@ -166,6 +187,7 @@ interface SearchResponse {
 export class SearchPage {
   private readonly http = inject(HttpClient);
   private readonly subscriptionsStore = inject(SubscriptionsStore);
+  private readonly upcomingFilterStore = inject(UpcomingFilterStore);
 
   protected readonly query = signal('');
   protected readonly isLoading = signal(false);
@@ -173,6 +195,20 @@ export class SearchPage {
   protected readonly rakutenCandidates = signal<RakutenCandidate[]>([]);
   protected readonly subscribingIsbn = signal<string | null>(null);
   protected readonly subscribeError = signal<string | null>(null);
+  protected readonly keywordRegistrationStatus = signal('');
+
+  protected canRegisterKeyword(): boolean {
+    const query = this.query();
+    const normalizedQuery = normalizeKeyword(query);
+    return (
+      normalizedQuery.length > 0 &&
+      !this.upcomingFilterStore.keywords().some((keyword) => keyword === normalizedQuery)
+    );
+  }
+
+  constructor() {
+    afterNextRender(() => void this.upcomingFilterStore.restore());
+  }
 
   onSearch(q: string) {
     const trimmed = q.trim();
@@ -182,6 +218,7 @@ export class SearchPage {
       this.rakutenCandidates.set([]);
       return;
     }
+
     this.isLoading.set(true);
     this.subscribeError.set(null);
     this.http.get<SearchResponse>(`/api/v1/series?q=${encodeURIComponent(trimmed)}`).subscribe({
@@ -196,6 +233,24 @@ export class SearchPage {
         this.isLoading.set(false);
       },
     });
+  }
+
+  async registerKeyword() {
+    const result = await this.upcomingFilterStore.addKeyword(this.query());
+    if (result.success) {
+      this.keywordRegistrationStatus.set('絞り込みキーワードに登録しました。');
+      return;
+    }
+
+    if (result.reason === 'too-long') {
+      this.keywordRegistrationStatus.set('キーワードの合計は512文字以内にしてください。');
+    } else if (result.reason === 'too-many-keywords') {
+      this.keywordRegistrationStatus.set(`キーワードは${MAX_KEYWORDS}件まで登録できます。`);
+    } else if (result.reason === 'duplicate') {
+      this.keywordRegistrationStatus.set('同じキーワードは登録できません。');
+    } else {
+      this.keywordRegistrationStatus.set('絞り込みキーワードを登録できませんでした。');
+    }
   }
 
   toggleSubscription(series: SeriesResult) {

@@ -2,6 +2,8 @@ using ComiCal.Domain.Entities;
 using ComiCal.Domain.Queries;
 using ComiCal.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
+using System.Linq.Expressions;
+using System.Text.Json;
 
 namespace ComiCal.Infrastructure.Sql.Repositories;
 
@@ -24,10 +26,13 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
         var q = db.Volumes
             .Include(v => v.ThumbnailAsset)
             .Include(v => v.Series)
-            .Where(v => !v.IsDeleted && v.ReleaseDate.HasValue && v.ReleaseDate >= now);
+            .Where(v => !v.IsDeleted && v.Series != null && !v.Series.IsDeleted &&
+                        v.ReleaseDate.HasValue && v.ReleaseDate >= now);
 
         if (query.FilterBySeriesIds?.Count > 0)
             q = q.Where(v => query.FilterBySeriesIds.Contains(v.SeriesId));
+
+        q = await ApplyKeywordFilterAsync(q, query.Keywords, ct);
 
         // Keyset pagination on (ReleaseDate, VolumeId)
         if (query.Cursor is not null)
@@ -81,11 +86,22 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
         var q = db.Volumes
             .Include(v => v.ThumbnailAsset)
             .Include(v => v.Series)
-            .Where(v => !v.IsDeleted && v.ReleaseDate.HasValue &&
-                        v.ReleaseDate >= from && v.ReleaseDate < to);
+            .Where(v => !v.IsDeleted && v.Series != null && !v.Series.IsDeleted);
 
         if (query.FilterBySeriesIds?.Count > 0)
             q = q.Where(v => query.FilterBySeriesIds.Contains(v.SeriesId));
+
+        if (query.Keywords?.Count > 0)
+        {
+            q = q.Where(v => !v.ReleaseDate.HasValue ||
+                             (v.ReleaseDate >= from && v.ReleaseDate < to));
+            q = await ApplyKeywordFilterAsync(q, query.Keywords, ct);
+        }
+        else
+        {
+            q = q.Where(v => v.ReleaseDate.HasValue &&
+                             v.ReleaseDate >= from && v.ReleaseDate < to);
+        }
 
         return await q.OrderBy(v => v.ReleaseDate).ThenBy(v => v.VolumeId).ToListAsync(ct);
     }
@@ -105,5 +121,89 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
             db.Entry(existing).CurrentValues.SetValues(volume);
         await db.SaveChangesAsync(ct);
         return volume.VolumeId;
+    }
+
+    private async Task<IQueryable<Volume>> ApplyKeywordFilterAsync(
+        IQueryable<Volume> volumes,
+        IReadOnlyList<string>? keywords,
+        CancellationToken ct)
+    {
+        if (keywords?.Count is not > 0)
+            return volumes;
+
+        var sanitizedKeywords = keywords
+            .Select(SanitizeFullTextPhrase)
+            .Where(keyword => !string.IsNullOrWhiteSpace(keyword))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        if (sanitizedKeywords.Length == 0)
+            return volumes.Where(_ => false);
+
+        // OPENJSON binds the serialized array as one parameter, so all terms are normalized in one round trip.
+        var normalizedKeywordsJson = JsonSerializer.Serialize(sanitizedKeywords);
+        var terms = (await db.Database
+            .SqlQuery<string>($"""
+                SELECT [dbo].[fnToHiragana]([value]) AS [Value]
+                FROM OPENJSON({normalizedKeywordsJson})
+                WHERE [type] = 1
+                """)
+            .ToListAsync(ct))
+            .Where(hiragana => !string.IsNullOrWhiteSpace(hiragana))
+            .Select(hiragana => $"\"{hiragana}*\"")
+            .ToArray();
+
+        if (terms.Length == 0)
+            return volumes.Where(_ => false);
+
+        Expression<Func<Series, bool>>? matchesAnyTerm = null;
+        foreach (var term in terms)
+        {
+            Expression<Func<Series, bool>> matchesTerm = series =>
+                EF.Functions.Contains(
+                    EF.Property<string>(series, "NormalizedTitleHiragana"),
+                    term) ||
+                series.SeriesAuthors.Any(seriesAuthor =>
+                    seriesAuthor.Author != null &&
+                    !seriesAuthor.Author.IsDeleted &&
+                    EF.Functions.Contains(
+                        EF.Property<string>(seriesAuthor.Author, "NormalizedNameHiragana"),
+                        term));
+
+            matchesAnyTerm = matchesAnyTerm is null
+                ? matchesTerm
+                : Or(matchesAnyTerm, matchesTerm);
+        }
+
+        var matchingSeriesIds = db.Series
+            .AsNoTracking()
+            .Where(series => !series.IsDeleted)
+            .Where(matchesAnyTerm!)
+            .Select(series => series.SeriesId);
+
+        return volumes.Where(volume => matchingSeriesIds.Contains(volume.SeriesId));
+    }
+
+    private static string SanitizeFullTextPhrase(string keyword)
+        => string.Concat(keyword.Select(character =>
+            char.IsLetterOrDigit(character) || char.IsWhiteSpace(character) ? character : ' ')).Trim();
+
+    private static Expression<Func<T, bool>> Or<T>(
+        Expression<Func<T, bool>> left,
+        Expression<Func<T, bool>> right)
+    {
+        var parameter = Expression.Parameter(typeof(T));
+        var body = Expression.OrElse(
+            new ReplaceParameterVisitor(left.Parameters[0], parameter).Visit(left.Body)!,
+            new ReplaceParameterVisitor(right.Parameters[0], parameter).Visit(right.Body)!);
+        return Expression.Lambda<Func<T, bool>>(body, parameter);
+    }
+
+    private sealed class ReplaceParameterVisitor(
+        ParameterExpression source,
+        ParameterExpression target) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node)
+            => node == source ? target : base.VisitParameter(node);
     }
 }

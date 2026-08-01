@@ -7,7 +7,7 @@ import {
   OnInit,
   effect,
 } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { ReleaseDatePipe } from '../../shared/pipes/release-date.pipe';
 import { SpinnerComponent } from '../../atoms/spinner/spinner.component';
 import { RouterLink } from '@angular/router';
@@ -15,6 +15,7 @@ import { PageLayoutComponent } from '../../templates/page-layout/page-layout.com
 import { CardGridComponent } from '../../organisms/card-grid/card-grid.component';
 import { Volume } from '../../molecules/volume-card/volume-card.component';
 import { SubscriptionsStore } from '../../features/subscriptions.store';
+import { UpcomingFilterStore } from '../../features/upcoming-filter.store';
 
 type CalendarView = 'week' | 'month';
 
@@ -76,6 +77,7 @@ interface CalendarDay {
             >
               <button
                 type="button"
+                data-testid="calendar-week-view-button"
                 (click)="view.set('week')"
                 class="px-4 py-1.5 text-sm font-medium rounded-lg transition-all"
                 [style]="
@@ -89,6 +91,7 @@ interface CalendarDay {
               </button>
               <button
                 type="button"
+                data-testid="calendar-month-view-button"
                 (click)="view.set('month')"
                 class="px-4 py-1.5 text-sm font-medium rounded-lg transition-all"
                 [style]="
@@ -104,6 +107,34 @@ interface CalendarDay {
           </div>
         </div>
 
+        @if (filterStore.restored() && filterStore.keywords().length > 0) {
+          <div
+            data-testid="calendar-active-keywords"
+            class="mb-5 flex items-center gap-2 flex-wrap"
+            aria-label="適用中の絞り込みキーワード"
+            i18n-aria-label
+          >
+            @for (keyword of filterStore.keywords(); track keyword) {
+              <span
+                data-testid="calendar-active-keyword-chip"
+                class="rounded-full px-3 py-1 text-sm"
+                style="background: var(--color-surface-elevated); color: var(--color-text-secondary)"
+              >
+                {{ keyword }}
+              </span>
+            }
+            <a
+              data-testid="calendar-keywords-settings-link"
+              routerLink="/settings/keywords"
+              class="text-sm font-semibold"
+              style="color: var(--color-primary)"
+              i18n
+            >
+              キーワードを管理
+            </a>
+          </div>
+        }
+
         @if (isLoading()) {
           <div class="flex justify-center py-16"><app-spinner /></div>
         } @else if (subscribedOnly() && subscribedCount() === 0) {
@@ -113,8 +144,21 @@ interface CalendarDay {
             <a
               routerLink="/search"
               class="inline-block mt-4 px-5 py-2 rounded-full text-sm font-semibold text-white btn-primary"
-              >検索して追加する</a
             >
+              検索して追加する</a
+            >
+          </div>
+        } @else if (
+          filterStore.restored() &&
+          filterStore.keywords().length > 0 &&
+          filteredDays().length === 0 &&
+          filteredUndated().length === 0
+        ) {
+          <div data-testid="calendar-keyword-empty-state" class="text-center py-16">
+            <p class="text-4xl mb-3" aria-hidden="true">📚</p>
+            <p style="color: var(--color-text-secondary)" i18n>
+              指定したキーワードに一致する発売予定はありません。
+            </p>
           </div>
         } @else if (filteredDays().length === 0 && filteredUndated().length === 0) {
           <p class="text-center py-16" style="color: var(--color-text-secondary)">
@@ -153,6 +197,7 @@ export class CalendarPage implements OnInit {
 
   private readonly http = inject(HttpClient);
   private readonly subscriptions = inject(SubscriptionsStore);
+  protected readonly filterStore = inject(UpcomingFilterStore);
 
   protected readonly view = signal<CalendarView>('month');
   protected readonly calendarDays = signal<CalendarDay[]>([]);
@@ -181,13 +226,15 @@ export class CalendarPage implements OnInit {
   constructor() {
     // Reload whenever the view changes (week ±2w / month ±2mo).
     effect(() => {
+      if (!this.filterStore.restored()) return;
       this.view();
+      this.filterStore.keywords();
       this.fetch();
     });
   }
 
   ngOnInit() {
-    // effect() runs initial fetch.
+    void this.filterStore.restore();
   }
 
   toggleSubscribedOnly() {
@@ -221,7 +268,11 @@ export class CalendarPage implements OnInit {
     const t = toIsoDate(to);
 
     this.isLoading.set(true);
-    this.http.get<CalendarData>(`/api/v1/volumes/calendar?from=${f}&to=${t}`).subscribe({
+    const params = new HttpParams()
+      .set('from', f)
+      .set('to', t)
+      .set('q', JSON.stringify(this.filterStore.keywords()));
+    this.http.get<CalendarData>('/api/v1/volumes/calendar', { params }).subscribe({
       next: (d) => {
         this.calendarDays.set(
           (d.days ?? []).map((day) => ({

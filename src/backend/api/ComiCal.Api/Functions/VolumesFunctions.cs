@@ -1,7 +1,9 @@
 using ComiCal.Api.Extensions;
 using ComiCal.Api.Middleware;
+using ComiCal.Api.Models;
 using ComiCal.Application.UseCases.Volumes;
 using ComiCal.Domain.Queries;
+using ComiCal.Shared;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,7 +23,14 @@ public static class VolumesFunctions
         var blobUrl = ctx.InstanceServices.GetRequiredService<BlobBaseUrl>().Value;
 
         _ = int.TryParse(req.GetQueryParam("limit"), out var limit);
-        var query = new UpcomingQuery(req.GetQueryParam("cursor"), limit > 0 ? limit : 30);
+        var keywordResult = KeywordQueryParser.Parse(req.GetQueryParam("q"));
+        if (!keywordResult.IsValid)
+            return await req.ToProblemAsync(Error.Validation(keywordResult.ErrorMessage!));
+
+        var query = new UpcomingQuery(
+            req.GetQueryParam("cursor"),
+            limit > 0 ? limit : 30,
+            Keywords: keywordResult.Keywords);
 
         var result = await useCase.ExecuteAsync(query, blobUrl, ct);
         if (result.IsFailure) return await req.ToProblemAsync(result.Error);
@@ -42,6 +51,10 @@ public static class VolumesFunctions
 
         var fromStr = req.GetQueryParam("from");
         var toStr = req.GetQueryParam("to");
+        var keywordResult = KeywordQueryParser.Parse(req.GetQueryParam("q"));
+        if (!keywordResult.IsValid)
+            return await req.ToProblemAsync(Error.Validation(keywordResult.ErrorMessage!));
+
         DateTime? fromDate = DateTime.TryParse(fromStr, System.Globalization.CultureInfo.InvariantCulture,
             System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
             out var f) ? f : null;
@@ -52,7 +65,14 @@ public static class VolumesFunctions
         CalendarQuery query;
         if (fromDate.HasValue && toDate.HasValue)
         {
-            query = new CalendarQuery(fromDate.Value.Year, fromDate.Value.Month, null, null, fromDate, toDate);
+            query = new CalendarQuery(
+                fromDate.Value.Year,
+                fromDate.Value.Month,
+                null,
+                null,
+                fromDate,
+                toDate,
+                keywordResult.Keywords);
         }
         else
         {
@@ -70,7 +90,11 @@ public static class VolumesFunctions
 
             _ = int.TryParse(req.GetQueryParam("month"), out var month);
             _ = int.TryParse(req.GetQueryParam("week"), out var week);
-            query = new CalendarQuery(year, month > 0 ? month : 1, week > 0 ? week : null);
+            query = new CalendarQuery(
+                year,
+                month > 0 ? month : 1,
+                week > 0 ? week : null,
+                Keywords: keywordResult.Keywords);
         }
 
         var result = await useCase.ExecuteAsync(query, blobUrl, ct);

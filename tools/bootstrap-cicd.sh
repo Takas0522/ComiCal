@@ -11,6 +11,9 @@ REPO="Takas0522/ComiCal"
 APP_NAME="comical-github-oidc"
 SUB_ID="$(az account show --query id -o tsv)"
 TENANT_ID="$(az account show --query tenantId -o tsv)"
+: "${RAKUTEN_APPLICATION_ID:?Set RAKUTEN_APPLICATION_ID before running this script}"
+: "${RAKUTEN_ACCESS_KEY:?Set RAKUTEN_ACCESS_KEY before running this script}"
+: "${RAKUTEN_AFFILIATE_ID:?Set RAKUTEN_AFFILIATE_ID before running this script}"
 
 echo "Subscription: $SUB_ID"
 echo "Tenant:       $TENANT_ID"
@@ -105,11 +108,17 @@ gh secret set AZURE_SUBSCRIPTION_ID --repo "$REPO" --body "$SUB_ID"
 gh secret set SQL_ADMIN_PASSWORD --repo "$REPO" --env dev  --body "$SQL_PWD_DEV"
 gh secret set AZURE_CLIENT_ID    --repo "$REPO" --env dev  --body "$APP_ID"
 gh secret set AZURE_SUBSCRIPTION_ID --repo "$REPO" --env dev --body "$SUB_ID"
+gh secret set RAKUTEN_APPLICATION_ID --repo "$REPO" --env dev --body "$RAKUTEN_APPLICATION_ID"
+gh secret set RAKUTEN_ACCESS_KEY --repo "$REPO" --env dev --body "$RAKUTEN_ACCESS_KEY"
+gh secret set RAKUTEN_AFFILIATE_ID --repo "$REPO" --env dev --body "$RAKUTEN_AFFILIATE_ID"
 
 # Environment-scoped (prod)
 gh secret set SQL_ADMIN_PASSWORD --repo "$REPO" --env prod --body "$SQL_PWD_PROD"
 gh secret set AZURE_CLIENT_ID    --repo "$REPO" --env prod --body "$APP_ID"
 gh secret set AZURE_SUBSCRIPTION_ID --repo "$REPO" --env prod --body "$SUB_ID"
+gh secret set RAKUTEN_APPLICATION_ID --repo "$REPO" --env prod --body "$RAKUTEN_APPLICATION_ID"
+gh secret set RAKUTEN_ACCESS_KEY --repo "$REPO" --env prod --body "$RAKUTEN_ACCESS_KEY"
+gh secret set RAKUTEN_AFFILIATE_ID --repo "$REPO" --env prod --body "$RAKUTEN_AFFILIATE_ID"
 
 # Placeholder SWA tokens (filled in after first IaC deploy)
 gh secret set SWA_DEPLOY_TOKEN --repo "$REPO" --env dev  --body "PLACEHOLDER_FILL_AFTER_FIRST_DEPLOY"
@@ -136,9 +145,11 @@ DONE.
     Repo: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_SUBSCRIPTION_ID,
           AZURE_STATIC_WEB_APPS_API_TOKEN_DEV (placeholder)
     dev:  SQL_ADMIN_PASSWORD, AZURE_CLIENT_ID, AZURE_SUBSCRIPTION_ID,
-          SWA_DEPLOY_TOKEN (placeholder)
+          RAKUTEN_APPLICATION_ID, RAKUTEN_ACCESS_KEY, RAKUTEN_AFFILIATE_ID,
+          SWA_DEPLOY_TOKEN (set these Rakuten secrets before the first deploy)
     prod: SQL_ADMIN_PASSWORD, AZURE_CLIENT_ID, AZURE_SUBSCRIPTION_ID,
-          SWA_DEPLOY_TOKEN (placeholder)
+          RAKUTEN_APPLICATION_ID, RAKUTEN_ACCESS_KEY, RAKUTEN_AFFILIATE_ID,
+          SWA_DEPLOY_TOKEN (set these Rakuten secrets before the first deploy)
 
   Next steps after first 'CD - Dev' run succeeds:
     SWA_TOKEN=\$(az staticwebapp secrets list -g cmcl-dev-jpe-rg -n <swa-name> --query properties.apiKey -o tsv)

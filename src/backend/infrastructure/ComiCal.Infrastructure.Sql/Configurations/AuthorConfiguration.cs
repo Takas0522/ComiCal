@@ -11,9 +11,14 @@ public sealed class AuthorConfiguration : IEntityTypeConfiguration<Author>
         builder.ToTable("Authors");
         builder.HasKey(a => a.AuthorId);
         builder.Property(a => a.AuthorId).ValueGeneratedOnAdd();
-        builder.Property(a => a.Name).HasMaxLength(128).IsRequired();
-        builder.Property(a => a.NormalizedName).HasMaxLength(128).IsRequired();
-        // NormalizedNameHiragana is a computed PERSISTED column — not mapped to entity
+        builder.Property(a => a.Name).HasMaxLength(256).IsRequired();
+        builder.Property(a => a.NormalizedName).HasMaxLength(256).IsRequired();
+        builder.Property<string>("NormalizedNameHiragana")
+            .HasMaxLength(256)
+            .HasComputedColumnSql("[dbo].[fnToHiragana]([NormalizedName])", stored: true)
+            .ValueGeneratedOnAddOrUpdate()
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+        builder.Property(a => a.IsDeleted).HasDefaultValue(false);
         builder.Property(a => a.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
         builder.Property(a => a.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
     }

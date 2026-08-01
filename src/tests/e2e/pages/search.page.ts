@@ -7,6 +7,8 @@ export class SearchPage extends BasePage {
   private readonly searchInput: Locator;
   private readonly cardGrid: Locator;
   private readonly cardVolumes: Locator;
+  private readonly registerKeywordButton: Locator;
+  private readonly keywordStatus: Locator;
 
   constructor(page: Page) {
     super(page);
@@ -14,6 +16,8 @@ export class SearchPage extends BasePage {
     this.searchInput = page.getByTestId(SEARCH_SELECTORS.inputSearch);
     this.cardGrid = page.getByTestId(SEARCH_SELECTORS.cardGrid);
     this.cardVolumes = page.getByTestId(SEARCH_SELECTORS.cardVolume);
+    this.registerKeywordButton = page.getByTestId(SEARCH_SELECTORS.registerKeyword);
+    this.keywordStatus = page.getByTestId(SEARCH_SELECTORS.keywordStatus);
   }
 
   async goto(): Promise<void> {
@@ -37,5 +41,13 @@ export class SearchPage extends BasePage {
   async isEmptyResultsShown(): Promise<void> {
     await expect(this.cardGrid).toBeVisible();
     await expect(this.cardVolumes).toHaveCount(0);
+  }
+
+  async registerSearchPhraseAsKeyword(keyword: string): Promise<void> {
+    await this.searchInput.fill(keyword);
+    await this.searchInput.press('Enter');
+    await expect(this.registerKeywordButton).toBeVisible();
+    await this.registerKeywordButton.click();
+    await expect(this.keywordStatus).toHaveText('絞り込みキーワードに登録しました。');
   }
 }

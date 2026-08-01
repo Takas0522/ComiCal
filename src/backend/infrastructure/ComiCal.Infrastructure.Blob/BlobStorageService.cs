@@ -29,6 +29,7 @@ public sealed class BlobStorageService(BlobServiceClient blobServiceClient)
         // include it here — otherwise the public URL becomes ".../covers/covers/...".
         var blobKey = blobName;
         var container = blobServiceClient.GetBlobContainerClient(CoversContainer);
+        await container.CreateIfNotExistsAsync(PublicAccessType.Blob, cancellationToken: ct);
         var blob = container.GetBlobClient(blobName);
 
         await blob.UploadAsync(
