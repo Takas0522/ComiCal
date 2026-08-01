@@ -24,19 +24,30 @@ import { UpcomingFilterStore } from '../../features/upcoming-filter.store';
       <div data-testid="page-home" class="py-5">
         <div class="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <h1 class="text-xl font-bold" style="color: var(--color-text-primary)">直近の発売予定</h1>
-          <label
-            class="inline-flex items-center gap-2 text-sm cursor-pointer select-none"
-            style="color: var(--color-text-secondary)"
-          >
-            <input
-              type="checkbox"
-              data-testid="filter-subscribed-only"
-              class="w-4 h-4 accent-current"
-              [checked]="subscribedOnly()"
-              (change)="toggleSubscribedOnly()"
-            />
-            購読中のみ
-          </label>
+          <div class="flex items-center gap-4 flex-wrap">
+            <a
+              data-testid="home-keywords-settings-link"
+              routerLink="/settings/keywords"
+              class="text-sm font-semibold"
+              style="color: var(--color-primary)"
+              i18n
+            >
+              絞り込みを設定
+            </a>
+            <label
+              class="inline-flex items-center gap-2 text-sm cursor-pointer select-none"
+              style="color: var(--color-text-secondary)"
+            >
+              <input
+                type="checkbox"
+                data-testid="filter-subscribed-only"
+                class="w-4 h-4 accent-current"
+                [checked]="subscribedOnly()"
+                (change)="toggleSubscribedOnly()"
+              />
+              購読中のみ
+            </label>
+          </div>
         </div>
         @if (filterStore.restored() && filterStore.keywords().length > 0) {
           <div
@@ -54,15 +65,6 @@ import { UpcomingFilterStore } from '../../features/upcoming-filter.store';
                 {{ keyword }}
               </span>
             }
-            <a
-              data-testid="home-keywords-settings-link"
-              routerLink="/settings/keywords"
-              class="text-sm font-semibold"
-              style="color: var(--color-primary)"
-              i18n
-            >
-              キーワードを管理
-            </a>
           </div>
         }
         @if (subscribedOnly() && subscribedCount() === 0 && !isLoading()) {

@@ -105,4 +105,20 @@ describe('HomePage', () => {
       fixture.nativeElement.querySelector('[data-testid="home-keyword-empty-state"]'),
     ).toBeNull();
   });
+
+  it('shows the keyword settings link when no keywords are configured', async () => {
+    keywords.set([]);
+    fixture.detectChanges();
+    resolveRestore?.();
+    await Promise.resolve();
+
+    httpMock.expectOne('/api/v1/volumes/upcoming?q=%5B%5D').flush({ items: [], nextCursor: null });
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement
+        .querySelector('[data-testid="home-keywords-settings-link"]')
+        ?.getAttribute('href'),
+    ).toBe('/settings/keywords');
+  });
 });

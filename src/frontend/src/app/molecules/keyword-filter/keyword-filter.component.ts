@@ -46,6 +46,9 @@ export interface KeywordUpdate {
       </div>
 
       @if (keywords().length > 0) {
+        <p class="mt-3 text-xs text-[--color-text-secondary]" i18n>
+          タグを押すと編集、✕ で削除できます。
+        </p>
         <ul
           class="mt-3 flex flex-wrap gap-2"
           aria-label="登録済み絞り込みキーワード"
@@ -53,7 +56,14 @@ export interface KeywordUpdate {
         >
           @for (keyword of keywords(); track $index; let index = $index) {
             <li
-              class="flex items-center gap-1 rounded-full bg-[--color-surface-elevated] px-3 py-1"
+              class="inline-flex items-center gap-1 rounded-full border transition-colors"
+              [class.px-1]="editingIndex() === index"
+              [class.py-1]="editingIndex() === index"
+              [style]="
+                editingIndex() === index
+                  ? 'background: var(--color-surface); border-color: var(--color-primary)'
+                  : 'background: var(--color-primary-light); border-color: transparent'
+              "
             >
               @if (editingIndex() === index) {
                 <label class="sr-only" [for]="'keyword-filter-edit-input-' + index" i18n>
@@ -67,49 +77,44 @@ export interface KeywordUpdate {
                   (ngModelChange)="editKeyword.set($event)"
                   (keydown.enter)="confirmEdit($event)"
                   (keydown.escape)="cancelEdit()"
-                  class="w-32 rounded border border-[--color-border] bg-[--color-surface] px-2 py-0.5 text-sm text-[--color-text-primary] focus:outline-2 focus:outline-[--color-primary]"
+                  class="w-32 rounded-full border-0 bg-transparent px-2 py-0.5 text-sm text-[--color-text-primary] focus:outline-2 focus:outline-[--color-primary]"
                 />
                 <button
                   type="button"
                   data-testid="keyword-filter-chip-edit-confirm"
                   (click)="confirmEdit()"
                   [attr.aria-label]="keyword + ' の編集を確定'"
-                  class="text-sm font-semibold text-[--color-primary] focus:outline-2 focus:outline-[--color-primary]"
-                  i18n
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[var(--color-primary)] text-sm font-semibold text-white hover:bg-[var(--color-primary-hover)] focus:outline-2 focus:outline-offset-1 focus:outline-[--color-primary]"
                 >
-                  確定
+                  <span aria-hidden="true">✓</span>
                 </button>
                 <button
                   type="button"
                   data-testid="keyword-filter-chip-edit-cancel"
                   (click)="cancelEdit()"
                   [attr.aria-label]="keyword + ' の編集を取り消す'"
-                  class="text-sm text-[--color-text-secondary] focus:outline-2 focus:outline-[--color-primary]"
-                  i18n
+                  class="inline-flex h-7 w-7 items-center justify-center rounded-full text-sm text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-elevated)] focus:outline-2 focus:outline-[--color-primary]"
                 >
-                  取消
+                  <span aria-hidden="true">✕</span>
                 </button>
               } @else {
-                <span class="text-sm text-[--color-text-primary]">{{ keyword }}</span>
                 <button
                   type="button"
                   data-testid="keyword-filter-chip-edit"
                   (click)="startEdit(index)"
                   [attr.aria-label]="keyword + ' を編集'"
-                  class="ml-1 text-sm font-semibold text-[--color-primary] focus:outline-2 focus:outline-[--color-primary]"
-                  i18n
+                  class="min-h-6 rounded-full py-1 pl-3 pr-1 text-sm font-medium text-[var(--color-primary-hover)] hover:underline focus:outline-2 focus:outline-[--color-primary]"
                 >
-                  編集
+                  {{ keyword }}
                 </button>
                 <button
                   type="button"
                   data-testid="keyword-filter-chip-remove"
                   (click)="remove.emit(index)"
                   [attr.aria-label]="keyword + ' を削除'"
-                  class="text-sm text-[--color-text-secondary] focus:outline-2 focus:outline-[--color-primary]"
-                  i18n
+                  class="mr-1 inline-flex h-7 w-7 items-center justify-center rounded-full text-sm text-[var(--color-primary-hover)] hover:bg-[var(--color-surface)] focus:outline-2 focus:outline-[--color-primary]"
                 >
-                  削除
+                  <span aria-hidden="true">✕</span>
                 </button>
               }
             </li>

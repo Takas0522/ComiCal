@@ -53,6 +53,16 @@ import { ToggleComponent } from '../../molecules/toggle/toggle.component';
               {{ auth.displayName() }}
             </span>
             <a
+              routerLink="/settings"
+              class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors"
+              style="color: var(--color-text-secondary); border-color: var(--color-border)"
+              data-testid="btn-settings"
+              aria-label="設定"
+              i18n-aria-label
+              i18n
+              >設定</a
+            >
+            <a
               href="/.auth/logout"
               class="text-sm px-3 py-1.5 rounded-full border transition-colors"
               style="color: var(--color-text-secondary); border-color: var(--color-border)"
@@ -60,6 +70,16 @@ import { ToggleComponent } from '../../molecules/toggle/toggle.component';
               >ログアウト</a
             >
           } @else {
+            <a
+              routerLink="/settings"
+              class="inline-flex items-center gap-1 text-sm px-3 py-1.5 rounded-full border transition-colors"
+              style="color: var(--color-text-secondary); border-color: var(--color-border)"
+              data-testid="btn-settings"
+              aria-label="設定"
+              i18n-aria-label
+              i18n
+              >設定</a
+            >
             <a
               routerLink="/login"
               class="text-sm font-semibold px-4 py-1.5 rounded-full text-white btn-primary"
