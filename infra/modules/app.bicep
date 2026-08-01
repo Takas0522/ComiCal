@@ -28,6 +28,18 @@ param appInsightsName string
 @description('Enable Key Vault purge protection (false for dev, true for prod)')
 param enablePurgeProtection bool
 
+@secure()
+@description('Rakuten Books API application ID')
+param rakutenApplicationId string
+
+@secure()
+@description('Rakuten Books API access key')
+param rakutenAccessKey string
+
+@secure()
+@description('Rakuten affiliate ID')
+param rakutenAffiliateId string
+
 var kvName = '${prefix}-${env}-jpe-kv'
 var swaName = '${prefix}-${env}-jpe-swa'
 var funcApiName = '${prefix}-${env}-jpe-func-api'
@@ -97,6 +109,30 @@ resource kvSecretAppInsights 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
   name: 'AppInsightsConnectionString'
   properties: {
     value: existingAppInsights.properties.ConnectionString
+  }
+}
+
+resource kvSecretRakutenAppId 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: kv
+  name: 'RakutenAppId'
+  properties: {
+    value: rakutenApplicationId
+  }
+}
+
+resource kvSecretRakutenAccessKey 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: kv
+  name: 'RakutenAccessKey'
+  properties: {
+    value: rakutenAccessKey
+  }
+}
+
+resource kvSecretRakutenAffiliateId 'Microsoft.KeyVault/vaults/secrets@2023-07-01' = {
+  parent: kv
+  name: 'RakutenAffiliateId'
+  properties: {
+    value: rakutenAffiliateId
   }
 }
 
@@ -195,6 +231,14 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
           value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAppId/)'
         }
         {
+          name: 'RakutenAccessKey'
+          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAccessKey/)'
+        }
+        {
+          name: 'RakutenAffiliateId'
+          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAffiliateId/)'
+        }
+        {
           name: 'AppConfiguration__Endpoint'
           value: 'https://${appConfigName}.azconfig.io'
         }
@@ -203,6 +247,9 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
   }
   dependsOn: [
     kvSecretAppInsights
+    kvSecretRakutenAppId
+    kvSecretRakutenAccessKey
+    kvSecretRakutenAffiliateId
   ]
 }
 
@@ -316,6 +363,14 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
           value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAppId/)'
         }
         {
+          name: 'RakutenAccessKey'
+          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAccessKey/)'
+        }
+        {
+          name: 'RakutenAffiliateId'
+          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAffiliateId/)'
+        }
+        {
           name: 'AppConfiguration__Endpoint'
           value: 'https://${appConfigName}.azconfig.io'
         }
@@ -324,6 +379,9 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
   }
   dependsOn: [
     kvSecretAppInsights
+    kvSecretRakutenAppId
+    kvSecretRakutenAccessKey
+    kvSecretRakutenAffiliateId
   ]
 }
 
