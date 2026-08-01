@@ -3,6 +3,7 @@ import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import { del, get, set } from 'idb-keyval';
 
 const STORAGE_KEY = 'upcoming-filter-keywords';
+const LEGACY_STORAGE_KEY = 'SEARCH_KEYWORDS';
 export const MAX_KEYWORDS = 16;
 export const MAX_KEYWORD_CHARACTERS = 512;
 
@@ -96,12 +97,64 @@ export class UpcomingFilterStore {
 
     try {
       const saved = await get<unknown>(STORAGE_KEY);
-      this.keywords.set(normalizeKeywords(saved));
+      const current = normalizeKeywords(saved);
+      const migrated = await this.migrateLegacyKeywords(current);
+      this.keywords.set(migrated);
     } catch {
       this.keywords.set([]);
     } finally {
       this.restored.set(true);
     }
+  }
+
+  private async migrateLegacyKeywords(current: readonly string[]): Promise<readonly string[]> {
+    let raw: string | null;
+    try {
+      raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+    } catch {
+      return current;
+    }
+
+    if (raw === null) return current;
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      safeRemoveLegacy();
+      return current;
+    }
+
+    if (!Array.isArray(parsed)) {
+      safeRemoveLegacy();
+      return current;
+    }
+
+    const merged: string[] = [...current];
+    for (const item of parsed) {
+      if (typeof item !== 'string') continue;
+      const keyword = normalizeKeyword(item);
+      if (!keyword || merged.includes(keyword)) continue;
+      const next = [...merged, keyword];
+      if (!isWithinKeywordLimit(next) || !isWithinCharacterLimit(next)) continue;
+      merged.push(keyword);
+    }
+
+    if (merged.length === current.length) {
+      // Nothing new to persist (all legacy entries were duplicates, invalid, or over the limit).
+      safeRemoveLegacy();
+      return merged;
+    }
+
+    try {
+      await set(STORAGE_KEY, merged);
+    } catch {
+      // Keep the legacy key so migration is retried on the next boot.
+      return merged;
+    }
+
+    safeRemoveLegacy();
+    return merged;
   }
 
   private async commit(keywords: readonly string[]): Promise<void> {
@@ -156,4 +209,12 @@ function isWithinKeywordLimit(keywords: readonly string[]): boolean {
 
 function isWithinCharacterLimit(keywords: readonly string[]): boolean {
   return keywords.reduce((total, keyword) => total + keyword.length, 0) <= MAX_KEYWORD_CHARACTERS;
+}
+
+function safeRemoveLegacy(): void {
+  try {
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch {
+    // ignore storage access errors (private mode, quota, etc.)
+  }
 }
