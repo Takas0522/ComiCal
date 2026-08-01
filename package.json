@@ -5,7 +5,7 @@
   "description": "まんがリマインダー — 漫画発売予定一元管理 Web アプリ",
   "license": "MIT",
   "engines": {
-    "node": ">=22.0.0",
+    "node": ">=22.22.3",
     "pnpm": ">=10.0.0"
   },
   "scripts": {
