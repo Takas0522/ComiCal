@@ -1,5 +1,25 @@
 version: 2
 updates:
+  # npm (ルート開発ツール)
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "root"
+    commit-message:
+      prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
+
   # npm (フロントエンド + E2E)
   # cooldown: サプライチェーン攻撃対策として、公開直後（乗っ取り・不正パッケージが
   # 出回りやすい期間）のバージョンへは自動更新PRを出さず、公開から一定日数
@@ -58,6 +78,43 @@ updates:
       semver-major-days: 14
       semver-minor-days: 7
       semver-patch-days: 7
+
+  # NuGet (.NET バックエンドテスト)
+  - package-ecosystem: "nuget"
+    directory: "/src/tests/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "backend-test"
+    commit-message:
+      prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+      semver-minor-days: 7
+      semver-patch-days: 7
+
+  # Docker イメージ
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+      timezone: "Asia/Tokyo"
+    open-pull-requests-limit: 3
+    labels:
+      - "dependencies"
+      - "docker"
+    commit-message:
+      prefix: "chore(deps)"
+    cooldown:
+      default-days: 7
 
   # GitHub Actions ワークフロー
   # GitHub Actions は SemVer 準拠が保証されないため semver-*-days は使わず、
