@@ -58,7 +58,8 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
 
 // Alert fires when the batch.failedItem custom metric total >= 5 within a 15-minute window.
 // The metric is emitted by the Batch Function App via Application Insights custom metrics.
-resource alertRule 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = {
+// Cost optimization: log alert rules are billed per rule per month, so deploy in prod only.
+resource alertRule 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = if (env == 'prod') {
   name: alertRuleName
   location: location
   properties: {

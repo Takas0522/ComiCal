@@ -490,22 +490,27 @@ resource kvRoleAssignFuncBatch 'Microsoft.Authorization/roleAssignments@2022-04-
 // Static Web App (Standard) — hosts Angular SSR via Managed Functions
 // ──────────────────────────────────────────────────────────────────────────────
 
+// Cost optimization: Standard tier only in prod. Dev uses Free tier which lacks
+// linkedBackends, SystemAssigned Identity, custom auth, and SLA — acceptable for dev.
+var swaIsStandard = env == 'prod'
+
 resource swa 'Microsoft.Web/staticSites@2024-04-01' = {
   name: swaName
   location: swaLocation
   sku: {
-    name: 'Standard'
-    tier: 'Standard'
+    name: swaIsStandard ? 'Standard' : 'Free'
+    tier: swaIsStandard ? 'Standard' : 'Free'
   }
   identity: {
-    type: 'SystemAssigned'
+    type: swaIsStandard ? 'SystemAssigned' : 'None'
   }
   properties: {}
 }
 
 // Link the API Function App to the SWA so that /api/* requests are proxied
-// with the x-ms-client-principal header injected by SWA authentication
-resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' = {
+// with the x-ms-client-principal header injected by SWA authentication.
+// linkedBackends require the Standard tier, so only deploy for prod.
+resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' = if (swaIsStandard) {
   parent: swa
   name: 'apifunc'
   properties: {
@@ -514,7 +519,8 @@ resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' 
   }
 }
 
-resource kvRoleAssignSwa 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+// SWA Managed Identity → Key Vault Secrets User (only when SystemAssigned identity is available)
+resource kvRoleAssignSwa 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (swaIsStandard) {
   scope: kv
   name: guid(kv.id, swa.id, kvSecretsUserRoleId)
   properties: {
@@ -525,14 +531,15 @@ resource kvRoleAssignSwa 'Microsoft.Authorization/roleAssignments@2022-04-01' = 
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// App Configuration (Standard) — feature flags
+// App Configuration — Standard in prod, Free in dev (cost optimization)
+// Note: Free tier is limited to 1 store per subscription; keep prod on Standard.
 // ──────────────────────────────────────────────────────────────────────────────
 
 resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
   name: appConfigName
   location: location
   sku: {
-    name: 'standard'
+    name: env == 'prod' ? 'standard' : 'free'
   }
   identity: {
     type: 'SystemAssigned'
