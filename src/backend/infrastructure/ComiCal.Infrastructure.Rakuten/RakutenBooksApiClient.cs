@@ -223,7 +223,7 @@ public sealed partial class RakutenBooksApiClient
         if (depth > 3 || element.ValueKind != JsonValueKind.Object)
             return false;
 
-        foreach (var propertyName in new[] { "error_description", "error", "message", "code" })
+        foreach (var propertyName in new[] { "error_description", "errorMessage", "error", "message", "errorCode", "code" })
         {
             if (element.TryGetProperty(propertyName, out var property) &&
                 property.ValueKind == JsonValueKind.String)

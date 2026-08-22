@@ -117,6 +117,28 @@ public sealed class RakutenBooksApiClientTests
         Assert.Contains(sink, entry => entry.Contains("Access denied by upstream firewall", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public async Task SearchComicsAsync_WhenRakutenReturnsRakutenErrorEnvelope_ExtractsErrorMessage()
+    {
+        // Actual production 403 payload observed on 2026-08-15 through 2026-08-21:
+        // {"errors":{"errorCode":403,"errorMessage":"CLIENT_IP_NOT_ALLOWED"}}
+        using var rateLimiter = CreateRateLimiter();
+        var (logger, sink) = CreateCapturingLogger();
+        using var client = new HttpClient(new StaticResponseHandler(
+            HttpStatusCode.Forbidden,
+            """{"errors":{"errorCode":403,"errorMessage":"CLIENT_IP_NOT_ALLOWED"}}"""));
+        var sut = new RakutenBooksApiClient(
+            client,
+            rateLimiter,
+            logger,
+            new RakutenAuthCredentials("test-id", "test-key", "test-affiliate"));
+
+        await Assert.ThrowsAsync<HttpRequestException>(
+            () => sut.SearchComicsAsync(1, null, null));
+
+        Assert.Contains(sink, entry => entry.Contains("CLIENT_IP_NOT_ALLOWED", StringComparison.Ordinal));
+    }
+
     private static SlidingWindowRateLimiter CreateRateLimiter()
         => new(new SlidingWindowRateLimiterOptions
         {
