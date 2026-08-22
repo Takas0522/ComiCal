@@ -40,6 +40,9 @@ param enablePurgeProtection bool = true
 @description('Webhook URL for alert notifications (Slack or Teams); leave empty to disable')
 param alertWebhookUrl string = ''
 
+@description('Email address for alert notifications; leave empty to disable email receiver')
+param alertEmailAddress string = ''
+
 @description('Reserved: enable private endpoints for future VNet integration (currently no-op)')
 #disable-next-line no-unused-params
 param privateEndpointEnabled bool = false
@@ -60,6 +63,7 @@ module observability 'modules/observability.bicep' = {
     location: location
     logRetentionDays: logRetentionDays
     alertWebhookUrl: alertWebhookUrl
+    alertEmailAddress: alertEmailAddress
   }
 }
 
