@@ -192,26 +192,77 @@ public sealed partial class RakutenBooksApiClient
         {
             using var document = JsonDocument.Parse(body);
             if (document.RootElement.ValueKind != JsonValueKind.Object)
-                return "Non-object JSON response.";
+                return BuildFallbackDiagnostic(body, response, "Non-object JSON response.");
 
-            foreach (var propertyName in new[] { "error", "error_description", "code", "message" })
+            if (TryExtractDiagnostic(document.RootElement, depth: 0, out var extracted))
             {
-                if (document.RootElement.TryGetProperty(propertyName, out var property) &&
-                    property.ValueKind == JsonValueKind.String)
-                {
-                    return property.GetString()!.ReplaceLineEndings(" ").Trim()[..Math.Min(
-                        property.GetString()!.ReplaceLineEndings(" ").Trim().Length,
-                        512)];
-                }
+                return Truncate(extracted!.ReplaceLineEndings(" ").Trim(), 512);
             }
 
-            return "JSON response without a recognized diagnostic field.";
+            // Rakuten sometimes returns 403 with an envelope that does not include the
+            // documented "error"/"error_description" fields (for example a Header/Body
+            // wrapper, or a plain rate-limit page). Fall back to a truncated raw body
+            // snapshot so the actual message reaches Application Insights.
+            return BuildFallbackDiagnostic(body, response, "JSON response without a recognized diagnostic field.");
         }
         catch (JsonException)
         {
-            return $"Non-JSON response ({response.Content.Headers.ContentType?.MediaType ?? "unknown content type"}).";
+            return BuildFallbackDiagnostic(
+                body,
+                response,
+                $"Non-JSON response ({response.Content.Headers.ContentType?.MediaType ?? "unknown content type"}).");
         }
     }
+
+    // Recursively look for common error-descriptor fields. Rakuten's non-2xx responses
+    // occasionally nest the diagnostic inside a wrapper object such as { "Header": {...},
+    // "Body": { "error": "wrong_parameter", "error_description": "..." } }.
+    private static bool TryExtractDiagnostic(JsonElement element, int depth, out string? value)
+    {
+        value = null;
+        if (depth > 3 || element.ValueKind != JsonValueKind.Object)
+            return false;
+
+        foreach (var propertyName in new[] { "error_description", "error", "message", "code" })
+        {
+            if (element.TryGetProperty(propertyName, out var property) &&
+                property.ValueKind == JsonValueKind.String)
+            {
+                var text = property.GetString();
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    value = text;
+                    return true;
+                }
+            }
+        }
+
+        foreach (var child in element.EnumerateObject())
+        {
+            if (child.Value.ValueKind == JsonValueKind.Object &&
+                TryExtractDiagnostic(child.Value, depth + 1, out value))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // Emit a short prefix of the raw response body so operators can see what the
+    // upstream actually returned. The body does not contain client credentials
+    // (those are only in the outbound URL and are never included here).
+    private static string BuildFallbackDiagnostic(string body, HttpResponseMessage response, string reason)
+    {
+        var mediaType = response.Content.Headers.ContentType?.MediaType ?? "unknown";
+        var trimmed = string.IsNullOrEmpty(body)
+            ? "(empty body)"
+            : Truncate(body.ReplaceLineEndings(" ").Trim(), 256);
+        return $"{reason} contentType={mediaType} bodyPrefix={trimmed}";
+    }
+
+    private static string Truncate(string value, int max)
+        => value.Length <= max ? value : value[..max];
 
     [LoggerMessage(
         Level = LogLevel.Warning,
