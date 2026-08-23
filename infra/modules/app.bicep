@@ -285,7 +285,7 @@ resource funcApiAuthSettings 'Microsoft.Web/sites/config@2024-04-01' = {
       azureStaticWebApps: {
         enabled: true
         registration: {
-          clientId: swa.properties.defaultHostname
+          clientId: reference(swaResourceId, '2024-04-01').defaultHostname
         }
       }
     }
@@ -494,24 +494,39 @@ resource kvRoleAssignFuncBatch 'Microsoft.Authorization/roleAssignments@2022-04-
 // linkedBackends, SystemAssigned Identity, custom auth, and SLA — acceptable for dev.
 var swaIsStandard = env == 'prod'
 
-resource swa 'Microsoft.Web/staticSites@2024-04-01' = {
+resource swaStandard 'Microsoft.Web/staticSites@2024-04-01' = if (swaIsStandard) {
   name: swaName
   location: swaLocation
   sku: {
-    name: swaIsStandard ? 'Standard' : 'Free'
-    tier: swaIsStandard ? 'Standard' : 'Free'
+    name: 'Standard'
+    tier: 'Standard'
   }
   identity: {
-    type: swaIsStandard ? 'SystemAssigned' : 'None'
+    type: 'SystemAssigned'
   }
   properties: {}
 }
+
+resource swaFree 'Microsoft.Web/staticSites@2024-04-01' = if (!swaIsStandard) {
+  name: swaName
+  location: swaLocation
+  sku: {
+    name: 'Free'
+    tier: 'Free'
+  }
+  tags: {
+    comicalFreeSwa: 'true'
+  }
+  properties: {}
+}
+
+var swaResourceId = resourceId('Microsoft.Web/staticSites', swaName)
 
 // Link the API Function App to the SWA so that /api/* requests are proxied
 // with the x-ms-client-principal header injected by SWA authentication.
 // linkedBackends require the Standard tier, so only deploy for prod.
 resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' = if (swaIsStandard) {
-  parent: swa
+  parent: swaStandard
   name: 'apifunc'
   properties: {
     backendResourceId: funcApi.id
@@ -522,10 +537,10 @@ resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' 
 // SWA Managed Identity → Key Vault Secrets User (only when SystemAssigned identity is available)
 resource kvRoleAssignSwa 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (swaIsStandard) {
   scope: kv
-  name: guid(kv.id, swa.id, kvSecretsUserRoleId)
+  name: guid(kv.id, swaResourceId, kvSecretsUserRoleId)
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsUserRoleId)
-    principalId: swa.identity.principalId
+    principalId: swaStandard!.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
@@ -540,6 +555,9 @@ resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' =
   location: location
   sku: {
     name: env == 'prod' ? 'standard' : 'free'
+  }
+  tags: env == 'prod' ? {} : {
+    comicalFreeAppConfig: 'true'
   }
   identity: {
     type: 'SystemAssigned'
@@ -586,7 +604,7 @@ resource ffEntraLoginRollout 'Microsoft.AppConfiguration/configurationStores/key
 // ──────────────────────────────────────────────────────────────────────────────
 
 @description('Static Web App default hostname')
-output swaDefaultHostname string = swa.properties.defaultHostname
+output swaDefaultHostname string = reference(swaResourceId, '2024-04-01').defaultHostname
 
 @description('Function App (API) resource name')
 output funcApiName string = funcApi.name

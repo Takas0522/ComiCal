@@ -39,7 +39,10 @@ var host = new HostBuilder()
 
         var connectionString = ctx.Configuration["SqlConnectionString"]
             ?? throw new InvalidOperationException("SqlConnectionString is required");
-        services.AddSqlInfrastructure(connectionString);
+        // API はユーザーリクエストに直接応答するため、フェイルファストな設定を使う。
+        // Azure SQL Serverless の auto-resume 中は 503 + Retry-After をフロントに返し、
+        // 再試行はブラウザ側の retry.interceptor に委譲する。
+        services.AddSqlInfrastructure(connectionString, SqlInfrastructureOptions.ApiDefaults);
 
         var storageUri = ctx.Configuration["StorageAccountUri"]
             ?? throw new InvalidOperationException("StorageAccountUri is required");

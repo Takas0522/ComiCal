@@ -44,6 +44,9 @@ jobs:
     if: github.event.action != 'closed' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.workflows == 'true')
     runs-on: ubuntu-latest
     environment: dev
+    env:
+      # Free Static Web Apps do not support preview environments.
+      SWA_PREVIEW_SUPPORTED: 'false'
     steps:
       - name: Harden Runner
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
@@ -67,7 +70,13 @@ jobs:
         run: |
           cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
           cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
+
+      - name: Skip SWA Preview deployment on Free SKU
+        if: env.SWA_PREVIEW_SUPPORTED != 'true'
+        run: echo "::notice::SWA Preview deployment skipped because the Dev Static Web App uses the Free SKU."
+
       - name: Deploy to SWA Preview
+        if: env.SWA_PREVIEW_SUPPORTED == 'true'
         uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOY_TOKEN }}
@@ -79,7 +88,7 @@ jobs:
           skip_app_build: true
 
   close-preview:
-    if: github.event.action == 'closed'
+    if: github.event.action == 'closed' && false
     name: Close Preview
     runs-on: ubuntu-latest
     environment: dev
