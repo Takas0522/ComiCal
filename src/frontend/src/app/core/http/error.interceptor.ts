@@ -21,7 +21,11 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         title: error.statusText,
         status: error.status,
       };
-      if (error.status >= 500) {
+      if (error.status === 503) {
+        // Azure SQL Serverless の auto-pause 復旧待ちなどで一時的に503が返るケース。
+        // 単なる「サーバーエラー」ではなく、待てば回復することが分かる文言にする。
+        toast.error('サーバー起動中です。しばらくお待ちください');
+      } else if (error.status >= 500) {
         toast.error(problem.title ?? 'サーバーエラーが発生しました');
       }
       return throwError(() => problem);

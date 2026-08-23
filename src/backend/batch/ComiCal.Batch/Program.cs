@@ -18,7 +18,10 @@ var host = new HostBuilder()
 
         var connectionString = ctx.Configuration["SqlConnectionString"]
             ?? throw new InvalidOperationException("SqlConnectionString is required");
-        services.AddSqlInfrastructure(connectionString);
+        // Batch はユーザーに直接見えない非同期処理のため、Serverless の auto-resume
+        // （60〜120 秒程度）を確実に吸収できるよう長めの ConnectTimeout / リトライを使う。
+        // WarmupBatchTimer による事前 resume が効いていれば通常はここまで待たない。
+        services.AddSqlInfrastructure(connectionString, SqlInfrastructureOptions.BatchDefaults);
 
         var storageUri = ctx.Configuration["StorageAccountUri"]
             ?? throw new InvalidOperationException("StorageAccountUri is required");
