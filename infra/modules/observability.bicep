@@ -74,8 +74,8 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
 // through 2026-08-22 went silent as a result.
 //
 // Cost optimization: log alert rules are billed per rule per month, so deploy
-// in prod only. AppRequests is a first-class table populated by the Functions
-// host, so this query survives even if the app never emits any custom metric.
+// in prod only. The Application Insights resource scope exposes the classic
+// `requests` table (rather than the workspace-scoped `AppRequests` table).
 resource alertRule 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = if (env == 'prod') {
   name: alertRuleName
   location: location
@@ -92,7 +92,7 @@ resource alertRule 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = if (env
     criteria: {
       allOf: [
         {
-          query: 'AppRequests | where AppRoleName == "${prefix}-${env}-jpe-func-batch" and Success == false | summarize AggregatedValue = count() by bin(TimeGenerated, 15m)'
+          query: 'requests | where cloud_RoleName == "${prefix}-${env}-jpe-func-batch" and success == false | summarize AggregatedValue = count() by bin(timestamp, 15m)'
           timeAggregation: 'Total'
           metricMeasureColumn: 'AggregatedValue'
           operator: 'GreaterThanOrEqual'
