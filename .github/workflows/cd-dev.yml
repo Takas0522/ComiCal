@@ -122,6 +122,32 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
+      - name: Remove incompatible Dev SWA identity
+        if: env.RUN_INFRA == 'true'
+        run: |
+          resource_group='cmcl-dev-jpe-rg'
+          swa_name='cmcl-dev-jpe-swa'
+          swa_json="$(az staticwebapp show \
+            --resource-group "$resource_group" \
+            --name "$swa_name" \
+            --output json 2>/dev/null || true)"
+
+          if [ -z "$swa_json" ]; then
+            echo "Dev Static Web App does not exist yet."
+            exit 0
+          fi
+
+          identity_type="$(jq -r '.identity.type // empty' <<< "$swa_json")"
+          if [ -n "$identity_type" ]; then
+            echo "Deleting existing Dev Static Web App with incompatible managed identity."
+            az staticwebapp delete \
+              --resource-group "$resource_group" \
+              --name "$swa_name" \
+              --yes
+          else
+            echo "Dev Static Web App has no managed identity; no migration is needed."
+          fi
+
       - name: Bicep What-If
         if: env.RUN_INFRA == 'true'
         env:
