@@ -514,6 +514,9 @@ resource swaFree 'Microsoft.Web/staticSites@2024-04-01' = if (!swaIsStandard) {
     name: 'Free'
     tier: 'Free'
   }
+  tags: {
+    comicalFreeSwa: 'true'
+  }
   properties: {}
 }
 

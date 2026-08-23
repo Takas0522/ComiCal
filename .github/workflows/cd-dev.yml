@@ -137,9 +137,8 @@ jobs:
             exit 0
           fi
 
-          sku_name="$(jq -r '.sku.name // empty' <<< "$swa_json")"
-          identity_type="$(jq -r '.identity.type // empty' <<< "$swa_json")"
-          if [ "$sku_name" = "Standard" ] || [ -n "$identity_type" ]; then
+          migration_marker="$(jq -r '.tags.comicalFreeSwa // empty' <<< "$swa_json")"
+          if [ "$migration_marker" != "true" ]; then
             echo "Deleting existing Dev Static Web App before Free SKU migration."
             az staticwebapp delete \
               --resource-group "$resource_group" \
