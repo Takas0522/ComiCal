@@ -285,7 +285,7 @@ resource funcApiAuthSettings 'Microsoft.Web/sites/config@2024-04-01' = {
       azureStaticWebApps: {
         enabled: true
         registration: {
-          clientId: reference(swaResourceId, '2024-04-01').properties.defaultHostname
+          clientId: reference(swaResourceId, '2024-04-01').defaultHostname
         }
       }
     }
@@ -598,7 +598,7 @@ resource ffEntraLoginRollout 'Microsoft.AppConfiguration/configurationStores/key
 // ──────────────────────────────────────────────────────────────────────────────
 
 @description('Static Web App default hostname')
-output swaDefaultHostname string = reference(swaResourceId, '2024-04-01').properties.defaultHostname
+output swaDefaultHostname string = reference(swaResourceId, '2024-04-01').defaultHostname
 
 @description('Function App (API) resource name')
 output funcApiName string = funcApi.name

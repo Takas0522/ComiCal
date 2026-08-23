@@ -137,13 +137,29 @@ jobs:
             exit 0
           fi
 
+          sku_name="$(jq -r '.sku.name // empty' <<< "$swa_json")"
           identity_type="$(jq -r '.identity.type // empty' <<< "$swa_json")"
-          if [ -n "$identity_type" ]; then
-            echo "Deleting existing Dev Static Web App with incompatible managed identity."
+          if [ "$sku_name" = "Standard" ] || [ -n "$identity_type" ]; then
+            echo "Deleting existing Dev Static Web App before Free SKU migration."
             az staticwebapp delete \
               --resource-group "$resource_group" \
               --name "$swa_name" \
               --yes
+
+            for attempt in {1..20}; do
+              if ! az staticwebapp show \
+                --resource-group "$resource_group" \
+                --name "$swa_name" \
+                --output none 2>/dev/null; then
+                echo "Dev Static Web App deletion completed."
+                exit 0
+              fi
+              echo "Waiting for Dev Static Web App deletion (attempt $attempt/20)."
+              sleep 15
+            done
+
+            echo "::error::Dev Static Web App deletion did not complete within 5 minutes."
+            exit 1
           else
             echo "Dev Static Web App has no managed identity; no migration is needed."
           fi
