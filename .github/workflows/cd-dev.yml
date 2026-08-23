@@ -115,7 +115,7 @@ jobs:
           run_install: false
 
       - name: Azure Login (OIDC)
-        if: env.RUN_INFRA == 'true' || env.RUN_DB == 'true' || env.RUN_BACKEND == 'true'
+        if: env.RUN_INFRA == 'true' || env.RUN_DB == 'true' || env.RUN_BACKEND == 'true' || env.RUN_FRONTEND == 'true'
         uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43 # v3.0.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
@@ -456,11 +456,27 @@ jobs:
           cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
           cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
 
+      - name: Get current Dev SWA deployment token
+        id: swa-token
+        if: env.RUN_FRONTEND == 'true'
+        run: |
+          token="$(az staticwebapp secrets list \
+            --resource-group cmcl-dev-jpe-rg \
+            --name cmcl-dev-jpe-swa \
+            --query properties.apiKey \
+            --output tsv)"
+          if [ -z "$token" ]; then
+            echo "::error::Azure returned an empty Dev Static Web App deployment token."
+            exit 1
+          fi
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+
       - name: Deploy Frontend to SWA
         if: env.RUN_FRONTEND == 'true'
         uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
         with:
-          azure_static_web_apps_api_token: ${{ secrets.SWA_DEPLOY_TOKEN }}
+          azure_static_web_apps_api_token: ${{ steps.swa-token.outputs.token }}
           action: upload
           app_location: src/frontend/dist/frontend/browser
           output_location: ""
