@@ -196,6 +196,16 @@ jobs:
                 echo "::error::Dev App Configuration deletion did not complete within 5 minutes."
                 exit 1
               fi
+
+              subscription_id="$(az account show --query id --output tsv)"
+              deleted_appconfig_url="https://management.azure.com/subscriptions/$subscription_id/providers/Microsoft.AppConfiguration/locations/japaneast/deletedConfigurationStores/$appconfig_name?api-version=2023-03-01"
+              if az rest --method get --url "$deleted_appconfig_url" --output none 2>/dev/null; then
+                echo "Purging soft-deleted Dev App Configuration."
+                az rest \
+                  --method post \
+                  --url "${deleted_appconfig_url}/purge" \
+                  --output none
+              fi
             else
               echo "Dev App Configuration is already migrated; no migration is needed."
             fi
