@@ -454,7 +454,7 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm --filter frontend build
           cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
-          cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
+          jq 'del(.auth)' staticwebapp.config.json > src/frontend/dist/frontend/browser/staticwebapp.config.json
 
       - name: Get current Dev SWA deployment token
         id: swa-token
