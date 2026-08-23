@@ -556,6 +556,9 @@ resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' =
   sku: {
     name: env == 'prod' ? 'standard' : 'free'
   }
+  tags: env == 'prod' ? {} : {
+    comicalFreeAppConfig: 'true'
+  }
   identity: {
     type: 'SystemAssigned'
   }

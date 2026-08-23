@@ -163,6 +163,44 @@ jobs:
             echo "Dev Static Web App has no managed identity; no migration is needed."
           fi
 
+          appconfig_name='cmcl-dev-jpe-appcfg'
+          appconfig_json="$(az appconfig show \
+            --resource-group "$resource_group" \
+            --name "$appconfig_name" \
+            --output json 2>/dev/null || true)"
+
+          if [ -z "$appconfig_json" ]; then
+            echo "Dev App Configuration does not exist yet."
+          else
+            appconfig_marker="$(jq -r '.tags.comicalFreeAppConfig // empty' <<< "$appconfig_json")"
+            if [ "$appconfig_marker" != "true" ]; then
+              echo "Deleting existing Dev App Configuration before Free SKU migration."
+              az appconfig delete \
+                --resource-group "$resource_group" \
+                --name "$appconfig_name" \
+                --yes
+
+              for attempt in {1..20}; do
+                if ! az appconfig show \
+                  --resource-group "$resource_group" \
+                  --name "$appconfig_name" \
+                  --output none 2>/dev/null; then
+                  echo "Dev App Configuration deletion completed."
+                  appconfig_deleted=true
+                  break
+                fi
+                echo "Waiting for Dev App Configuration deletion (attempt $attempt/20)."
+                sleep 15
+              done
+              if [ "${appconfig_deleted:-false}" != "true" ]; then
+                echo "::error::Dev App Configuration deletion did not complete within 5 minutes."
+                exit 1
+              fi
+            else
+              echo "Dev App Configuration is already migrated; no migration is needed."
+            fi
+          fi
+
       - name: Bicep What-If
         if: env.RUN_INFRA == 'true'
         env:
