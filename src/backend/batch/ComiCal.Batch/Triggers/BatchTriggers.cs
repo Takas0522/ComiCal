@@ -6,10 +6,13 @@ namespace ComiCal.Batch.Triggers;
 
 public partial class BatchTriggers(ILogger<BatchTriggers> logger)
 {
-    // Daily at 03:00 JST (18:00 UTC)
+    // Schedule is driven by the "DailyBatchCronExpression" app setting (NCRONTAB, UTC) so that
+    // dev/prod can run at different times (e.g. offset by a few hours to avoid both environments
+    // hitting the shared Rakuten API credentials at the same time) purely via Azure app settings,
+    // without a code change/redeploy. Default (see infra/modules/app.bicep) is 18:00 UTC = 03:00 JST.
     [Function("DailyBatchTimer")]
     public async Task RunTimerAsync(
-        [TimerTrigger("0 0 18 * * *")] TimerInfo timerInfo,
+        [TimerTrigger("%DailyBatchCronExpression%")] TimerInfo timerInfo,
         [DurableClient] DurableTaskClient client,
         CancellationToken ct)
     {
