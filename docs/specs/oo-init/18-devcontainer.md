@@ -54,7 +54,7 @@ azurite --silent                    # 10000-10002
 
 - `local.settings.json` は **gitignore**。`.sample` のみコミット。
 - Azurite / MSSQL の接続文字列は DevContainer の `.env` で管理（リポジトリに含めない）。
-- 楽天 API はローカル開発時から **楽天 WebAPI を直接呼び出す**（モックは利用しない）。`applicationId` は各開発者が個別に取得し、`local.settings.json` / DevContainer の `.env` に保存する（リポジトリにコミットしない）。レート制限（1 req/sec）はクライアント側で必ず遵守する。
+- 楽天 API はローカル開発時から **楽天 WebAPI を直接呼び出す**（モックは利用しない）。`applicationId` は各開発者が個別に取得し、`local.settings.json` / DevContainer の `.env` に保存する（リポジトリにコミットしない）。レート制限（1 req/5sec、楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味）はクライアント側で必ず遵守する。
 
 ## 18.6 シードデータ
 

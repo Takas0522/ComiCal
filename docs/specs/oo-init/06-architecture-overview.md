@@ -45,7 +45,7 @@ flowchart TB
 
     SQL[("Azure SQL DB<br/>Serverless / auto-pause")]
     Blob[("Azure Blob Storage<br/>covers / sync-tmp / DLQ")]
-    Rakuten[/"楽天 Books API<br/>1 req/sec"/]
+    Rakuten[/"楽天 Books API<br/>1 req/5sec"/]
 
     KV[/"Key Vault"/]
     AppCfg[/"App Configuration<br/>Feature Flag"/]
@@ -126,7 +126,7 @@ flowchart TB
 
 ## 6.3 データフロー
 
-1. **収集フロー（バッチ）**: Timer (03:00 JST) → Fetch Orchestrator が楽天 Books API を 1req/sec でページング → Series/Volumes を UPSERT → Thumbnail Orchestrator が新規 / 変更分のみ Blob にダウンロード（CoverHash で同一性判定）。
+1. **収集フロー（バッチ）**: Timer (03:00 JST) → Fetch Orchestrator が楽天 Books API を 1req/5sec でページング → Series/Volumes を UPSERT → Thumbnail Orchestrator が新規 / 変更分のみ Blob にダウンロード（CoverHash で同一性判定）。
 2. **閲覧フロー**: Browser → SWA SSR → SWA-linked Functions API → SQL/Blob。SSR で Transfer State にデータを埋め込み、ハイドレーション時の再取得を抑制。
 3. **書き込みフロー**: ユーザー操作 → SSR を介して Functions に POST/PUT/DELETE。匿名はローカル IndexedDB に書き込みのみ。
 

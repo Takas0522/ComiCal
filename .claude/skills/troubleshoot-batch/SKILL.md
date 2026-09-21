@@ -64,7 +64,7 @@ traces
 | 症状 | 原因 | 対処 |
 |------|------|------|
 | 取得件数が 0 | 楽天 API 仕様変更 / applicationId 失効 | Key Vault シークレット確認、API レスポンス手動再現 |
-| 大量 429 | RateLimiter 漏れ | `RakutenBooksClient` の RateLimitPolicy を確認、1 req/sec を超えていないか |
+| 大量 429 | RateLimiter 漏れ | `RakutenBooksClient` の RateLimitPolicy を確認、1 req/5sec（楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味）を超えていないか |
 | サムネイル DL 停止 | 並列度過多 / Blob throttling | 並列度を 8 以下に、Blob のスケール確認 |
 | Orchestrator が deterministic でない例外 | Orchestrator 内で `DateTime.Now` 等使用 | コードレビュー、`context.CurrentUtcDateTime` 等に置換 |
 | 同じ ISBN で失敗継続 | データ異常（複数巻数表記等） | FailedItems の payload を確認、必要に応じ手動補正 |

@@ -8,14 +8,14 @@
 | ジャンル | `booksGenreId = 001001` (コミック) に限定 |
 | 認証 | `applicationId` を **App Settings → Key Vault 参照** で注入 |
 | Managed Identity | Functions が KV からシークレットを取得 |
-| レートリミット | **1 秒 1 リクエスト以下** |
+| レートリミット | **5 秒 1 リクエスト以下**（楽天ウェブサービス側の Application 設定「Expected QPS: 5」は「5 秒に 1 回」を意味し、「1 秒に 5 回」ではない点に注意）|
 | ページサイズ | 30 件（API 上限）|
 | ソート | `releaseDate` 昇順 |
 | 取得期間 | これから **6 ヶ月先** まで（初回投入時のみ **6 ヶ月前** も含める）|
 
 ### 9.1.1 レートリミッター
 
-- .NET の `System.Threading.RateLimiting.SlidingWindowRateLimiter`（1req/sec）+ Polly のリトライ（指数バックオフ）。
+- .NET の `System.Threading.RateLimiting.SlidingWindowRateLimiter`（1req/5sec）+ Polly のリトライ（指数バックオフ）。
 - 429 / 503 受信時は `Retry-After` ヘッダ尊重 + 最大 5 回まで再試行。
 - 連続失敗 3 回でアラート（Application Insights → Slack/Teams Webhook）。
 
@@ -50,7 +50,7 @@ flowchart TB
     Daily --> CreateRun["Activity:<br/>CreateBatchRun"]
     CreateRun --> FetchOrch["SubOrchestrator:<br/>FetchOrchestrator (chaining)"]
 
-    subgraph FetchLoop["Fetch loop (1 req/sec, 直列)"]
+    subgraph FetchLoop["Fetch loop (1 req/5sec, 直列)"]
         FetchPage["Activity:<br/>FetchPage(pageNumber)"] --> Upsert["Activity:<br/>UpsertVolumes (ISBN UPSERT<br/>+ CoverHash diff)"]
         Upsert --> Continue{"次ページ<br/>あり?"}
         Continue -- yes --> ContinueAsNew["ContinueAsNew(nextPage)"]

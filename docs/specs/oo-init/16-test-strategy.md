@@ -76,7 +76,7 @@ src/tests/e2e/
 ## 16.8 テストデータ
 
 - **すべてのテストはシードを自前で投入**し、他テストに依存しない（並列実行可能）。
-- バッチ統合テストでも **楽天 WebAPI を直接呼び出す**（モック層を介さない）。CI 用 `applicationId` は GitHub Actions Secrets / Key Vault から OIDC 経由で注入する。レート制限（1 req/sec）と取得件数を最小化し、長時間 / 大量検索系のシナリオは限定したクエリのみ実行する。
+- バッチ統合テストでも **楽天 WebAPI を直接呼び出す**（モック層を介さない）。CI 用 `applicationId` は GitHub Actions Secrets / Key Vault から OIDC 経由で注入する。レート制限（1 req/5sec、楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味）と取得件数を最小化し、長時間 / 大量検索系のシナリオは限定したクエリのみ実行する。
 
 ## 16.9 Flaky 対策
 

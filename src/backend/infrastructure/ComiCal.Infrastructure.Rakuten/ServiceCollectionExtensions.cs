@@ -17,12 +17,14 @@ public static class ServiceCollectionExtensions
             return services;
         }
 
-        // 1 request/second sliding window rate limiter
+        // Rakuten Books API rate limit is 1 request per 5 seconds (per the app's registered
+        // "Expected QPS: 5" setting, which — confusingly — means "once every 5 seconds", not
+        // "5 requests per second"). Enforced as a sliding window limiter.
         var rateLimiter = new SlidingWindowRateLimiter(new SlidingWindowRateLimiterOptions
         {
             PermitLimit = 1,
-            Window = TimeSpan.FromSeconds(1),
-            SegmentsPerWindow = 2,
+            Window = TimeSpan.FromSeconds(5),
+            SegmentsPerWindow = 5,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
             QueueLimit = 10,
         });
@@ -34,7 +36,7 @@ public static class ServiceCollectionExtensions
             client.Timeout = TimeSpan.FromSeconds(30);
         });
         // NOTE: We do NOT use AddStandardResilienceHandler here because:
-        // 1. We enforce a SlidingWindowRateLimiter (1 req/sec) at the SearchComicsAsync level
+        // 1. We enforce a SlidingWindowRateLimiter (1 req/5sec) at the SearchComicsAsync level
         // 2. Adding automatic retries would bypass the rate limiter and cause 429 Too Many Requests
         // 3. The rate limiter is sufficient for handling transient failures gracefully
 
