@@ -9,7 +9,11 @@ namespace ComiCal.Batch.Triggers;
 /// Azure SQL Serverless の auto-pause からの復旧（auto-resume, 60〜120 秒程度）を
 /// 日次バッチ本体の実行前に前倒しでキックしておく Warm-up 用 Timer Function。
 ///
-/// 03:00 JST (18:00 UTC) の DailyBatchTimer より 10 分前の 02:50 JST (17:50 UTC) に実行する。
+/// スケジュールはアプリ設定 "WarmupBatchCronExpression"（NCRONTAB, UTC）で駆動しており、
+/// 常に "DailyBatchCronExpression" の 10 分前になるよう Bicep 側でペアで設定する
+/// （infra/modules/app.bicep のデフォルトは 17:50 UTC = 02:50 JST、日次バッチの 10 分前）。
+/// この方式により、dev/prod でバッチ実行時刻をずらしたい場合もコード変更・再デプロイ不要で
+/// Azure の環境変数（アプリ設定）変更のみで対応できる。
 /// SQL の auto-resume に加えて Functions のコールドスタートや Timer の past-due 遅延も
 /// 見込んだバッファとして 10 分を確保している（5 分では不足する可能性があるとのレビュー指摘を反映）。
 ///
@@ -18,10 +22,9 @@ namespace ComiCal.Batch.Triggers;
 /// </summary>
 public partial class WarmupTrigger(ComiCalDbContext dbContext, ILogger<WarmupTrigger> logger)
 {
-    // 02:50 JST = 17:50 UTC, 日次バッチ (18:00 UTC) の 10 分前
     [Function("WarmupBatchTimer")]
     public async Task RunAsync(
-        [TimerTrigger("0 50 17 * * *")] TimerInfo timerInfo,
+        [TimerTrigger("%WarmupBatchCronExpression%")] TimerInfo timerInfo,
         CancellationToken ct)
     {
         LogWarmupStarted(logger, timerInfo.IsPastDue);

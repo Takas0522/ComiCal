@@ -31,6 +31,12 @@ param batchSubnetResourceId string
 @description('Enable Key Vault purge protection (false for dev, true for prod)')
 param enablePurgeProtection bool
 
+@description('NCRONTAB expression for the daily batch orchestration trigger (UTC). Default is 18:00 UTC = 03:00 JST.')
+param dailyBatchCronExpression string = '0 0 18 * * *'
+
+@description('NCRONTAB expression for the SQL warm-up trigger (UTC), which must fire 10 minutes before dailyBatchCronExpression. Default is 17:50 UTC = 02:50 JST.')
+param warmupBatchCronExpression string = '0 50 17 * * *'
+
 @secure()
 @description('Rakuten Books API application ID')
 param rakutenApplicationId string
@@ -378,6 +384,14 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
         {
           name: 'AppConfiguration__Endpoint'
           value: 'https://${appConfigName}.azconfig.io'
+        }
+        {
+          name: 'DailyBatchCronExpression'
+          value: dailyBatchCronExpression
+        }
+        {
+          name: 'WarmupBatchCronExpression'
+          value: warmupBatchCronExpression
         }
       ]
     }

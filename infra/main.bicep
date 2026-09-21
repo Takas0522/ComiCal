@@ -37,6 +37,12 @@ param logRetentionDays int = 30
 @description('Enable Key Vault purge protection (false for dev to allow easy teardown, true for prod)')
 param enablePurgeProtection bool = true
 
+@description('NCRONTAB expression for the daily batch orchestration trigger (UTC). Offset per environment (e.g. dev vs prod) to avoid concurrent runs against the shared Rakuten API credentials.')
+param dailyBatchCronExpression string = '0 0 18 * * *'
+
+@description('NCRONTAB expression for the SQL warm-up trigger (UTC); must fire 10 minutes before dailyBatchCronExpression.')
+param warmupBatchCronExpression string = '0 50 17 * * *'
+
 @description('Webhook URL for alert notifications (Slack or Teams); leave empty to disable')
 param alertWebhookUrl string = ''
 
@@ -107,6 +113,8 @@ module app 'modules/app.bicep' = {
     appInsightsName: observability.outputs.appInsightsName
     batchSubnetResourceId: network.outputs.batchSubnetResourceId
     enablePurgeProtection: enablePurgeProtection
+    dailyBatchCronExpression: dailyBatchCronExpression
+    warmupBatchCronExpression: warmupBatchCronExpression
     rakutenApplicationId: rakutenApplicationId
     rakutenAccessKey: rakutenAccessKey
     rakutenAffiliateId: rakutenAffiliateId

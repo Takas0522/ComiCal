@@ -35,7 +35,11 @@
 
 ### 9.2.1 トリガー
 
-- **Timer Trigger**: CRON `0 0 18 * * *` (UTC = 03:00 JST)、毎日 1 回。
+- **Timer Trigger**: CRON はアプリ設定 `DailyBatchCronExpression`（NCRONTAB, UTC）で駆動（`[TimerTrigger("%DailyBatchCronExpression%")]`）。コード変更・再デプロイなしで環境ごとにスケジュールを変更できる。
+  - prod: `0 0 18 * * *`（UTC = 03:00 JST、既定値）
+  - dev: `0 0 0 * * *`（UTC = 09:00 JST、prod から +6h オフセット）
+  - dev/prod は同一の楽天 API アプリケーション資格情報（Application ID・Access Key）を共有しているため、両環境が同時に楽天 Books API を呼び出さないようスケジュールをずらしている。
+  - Warm-up Timer（`WarmupBatchCronExpression`）は常に上記の 10 分前に設定する（prod: `0 50 17 * * *` = 02:50 JST、dev: `0 50 23 * * *` = 08:50 JST）。
 - **HTTP Trigger (Admin 手動起動)**: Function Key + Entra 認証 + Admin ロール検証。
 
 ### 9.2.2 Orchestrator 構成
