@@ -67,8 +67,8 @@ flowchart TB
     KV -. "Managed Identity" .-> FuncApi
     KV -. "Managed Identity" .-> FuncBatch
     KV -. "Managed Identity" .-> SWA
-    AppCfg -. .-> FuncApi
-    AppCfg -. .-> SWA
+    AppCfg -.-> FuncApi
+    AppCfg -.-> SWA
 
     FuncApi -. telemetry .-> AppInsights
     FuncBatch -. telemetry .-> AppInsights
