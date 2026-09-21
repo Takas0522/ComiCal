@@ -1,5 +1,5 @@
 ---
-description: 'Use when implementing or reviewing Durable Functions orchestrators/activities, scheduled batch jobs, Rakuten Books API rate limiting (1 req/sec), retry policies, fan-out/fan-in patterns, or orchestrator determinism rules under src/backend/batch/.'
+description: 'Use when implementing or reviewing Durable Functions orchestrators/activities, scheduled batch jobs, Rakuten Books API rate limiting (1 req/5sec), retry policies, fan-out/fan-in patterns, or orchestrator determinism rules under src/backend/batch/.'
 applyTo: 'src/backend/batch/**'
 ---
 
@@ -77,6 +77,6 @@ public async Task RunOrchestrator([OrchestrationTrigger] TaskOrchestrationContex
 
 - ❌ Orchestrator 内で `DateTime.Now` / `Random` / 直接 I/O
 - ❌ Activity が非べき等
-- ❌ 楽天 API レートリミットを無視（1 req/sec 超過）
+- ❌ 楽天 API レートリミットを無視（1 req/5sec 超過。楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味）
 - ❌ サムネイル並列度を 8 を大きく超える設定
 - ❌ Activity 関数間で状態を共有（Orchestrator 経由でデータを渡す）

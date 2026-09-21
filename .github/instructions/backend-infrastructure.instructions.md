@@ -44,7 +44,7 @@ applyTo: 'src/backend/infrastructure/**'
 ## 楽天 Books API クライアント
 
 - 配置: `ComiCal.Infrastructure.Rakuten/`
-- **RateLimiter（1 req/sec）必須**：`System.Threading.RateLimiting.TokenBucketRateLimiter` または Polly の `RateLimitPolicy`
+- **RateLimiter（1 req/5sec）必須**：`System.Threading.RateLimiting.TokenBucketRateLimiter` または Polly の `RateLimitPolicy`（楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味であり、1 秒に 5 回ではない点に注意）
 - リトライポリシー（Polly）：5xx と HttpRequestException で指数バックオフ
 - `applicationId` は `IOptions<RakutenOptions>` 経由で注入、Key Vault 参照を App Settings に
 
