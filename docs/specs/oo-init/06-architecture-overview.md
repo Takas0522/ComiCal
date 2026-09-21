@@ -67,13 +67,62 @@ flowchart TB
     KV -. "Managed Identity" .-> FuncApi
     KV -. "Managed Identity" .-> FuncBatch
     KV -. "Managed Identity" .-> SWA
-    AppCfg -. .-> FuncApi
-    AppCfg -. .-> SWA
+    AppCfg -.-> FuncApi
+    AppCfg -.-> SWA
 
     FuncApi -. telemetry .-> AppInsights
     FuncBatch -. telemetry .-> AppInsights
     SWA -. telemetry .-> AppInsights
 ```
+
+### 6.2.1 現在の Azure 物理構成（2026-09-21 確認時点）
+
+```mermaid
+flowchart TB
+    Internet([Internet / Browser])
+    Rakuten[/"Rakuten Books API"/]
+    Entra[/"Entra External ID"/]
+
+    subgraph EastAsia["East Asia"]
+        SWA["cmcl-prod-jpe-swa<br/>Static Web Apps Standard"]
+    end
+
+    subgraph JapanEast["Japan East: cmcl-prod-jpe-rg"]
+        ApiPlan["cmcl-prod-jpe-plan-api<br/>Flex Consumption FC1"]
+        BatchPlan["cmcl-prod-jpe-plan-batch<br/>Flex Consumption FC1"]
+        Api["cmcl-prod-jpe-func-api<br/>.NET 10 Isolated"]
+        Batch["cmcl-prod-jpe-func-batch<br/>Durable Functions"]
+        SQL[("cmcl-prod-jpe-sql / cmcl-prod-jpe-sqldb<br/>General Purpose Serverless Gen5 2 vCores<br/>auto-pause: 60 minutes")]
+        Storage[("cmclprodjpest<br/>StorageV2 / Standard LRS")]
+        KV[/"cmcl-prod-jpe-kv<br/>Key Vault / RBAC"/]
+        AppCfg[/"cmcl-prod-jpe-appcfg<br/>App Configuration Standard"/]
+        AppI[/"cmcl-prod-jpe-appi<br/>Application Insights"/]
+        Log[("cmcl-prod-jpe-log<br/>Log Analytics")]
+        Alert["cmcl-prod-jpe-alert-batch-failed<br/>Scheduled query alert"]
+        ActionGroup["cmcl-prod-jpe-ag<br/>Action Group"]
+    end
+
+    Internet -->|HTTPS| SWA
+    SWA <-->|authentication| Entra
+    SWA -->|linked backend| Api
+    ApiPlan -. hosts .-> Api
+    BatchPlan -. hosts .-> Batch
+    Api --> SQL
+    Api --> Storage
+    Batch --> SQL
+    Batch --> Storage
+    Batch -->|shared App Service egress| Rakuten
+    KV -. Key Vault references / MI .-> Api
+    KV -. Key Vault references / MI .-> Batch
+    AppCfg -. configuration / feature flags .-> Api
+    AppCfg -. configuration / feature flags .-> SWA
+    Api -. telemetry .-> AppI
+    Batch -. telemetry .-> AppI
+    AppI --> Log
+    Log --> Alert --> ActionGroup
+```
+
+> `cmcl-prod-jpe-rg` は固定エグレス適用前の現行構成です。固定 IP 化 PR #369 の dev デプロイでは VNet、NAT Gateway、静的 Public IP は作成済みですが、Flex Consumption に必要なサブネット委任先の誤りにより Function App の VNet 統合は失敗しています。フォローアップで `Microsoft.App/environments` 委任へ修正し、再デプロイ後にバッチの Rakuten API 通信を NAT Gateway 経由へ切り替えます。
 
 ## 6.3 データフロー
 
