@@ -83,6 +83,16 @@ module data 'modules/data.bicep' = {
   ]
 }
 
+module network 'modules/network.bicep' = {
+  name: 'network-deployment'
+  scope: rg
+  params: {
+    prefix: prefix
+    env: env
+    location: location
+  }
+}
+
 module app 'modules/app.bicep' = {
   name: 'app-deployment'
   scope: rg
@@ -95,6 +105,7 @@ module app 'modules/app.bicep' = {
     storageAccountName: data.outputs.storageAccountName
     storageAccountId: data.outputs.storageAccountId
     appInsightsName: observability.outputs.appInsightsName
+    batchSubnetResourceId: network.outputs.batchSubnetResourceId
     enablePurgeProtection: enablePurgeProtection
     rakutenApplicationId: rakutenApplicationId
     rakutenAccessKey: rakutenAccessKey
@@ -119,6 +130,9 @@ output kvUri string = app.outputs.kvUri
 
 @description('App Configuration endpoint')
 output appConfigEndpoint string = app.outputs.appConfigEndpoint
+
+@description('Static public IPv4 address to register in the Rakuten API application IP allowlist')
+output batchEgressPublicIpAddress string = network.outputs.batchEgressPublicIpAddress
 
 @description('SQL Server fully qualified domain name')
 output sqlServerFqdn string = data.outputs.sqlServerFqdn

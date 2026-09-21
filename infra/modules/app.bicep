@@ -25,6 +25,9 @@ param storageAccountId string
 @description('Application Insights resource name (from observability module); used to obtain connection string via existing reference')
 param appInsightsName string
 
+@description('Resource ID of the subnet used for batch Function App virtual network integration')
+param batchSubnetResourceId string
+
 @description('Enable Key Vault purge protection (false for dev, true for prod)')
 param enablePurgeProtection bool
 
@@ -312,6 +315,7 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     serverFarmId: planBatch.id
     httpsOnly: true
+    virtualNetworkSubnetId: batchSubnetResourceId
     functionAppConfig: {
       deployment: {
         storage: {
@@ -333,6 +337,7 @@ resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
     }
     siteConfig: {
       minTlsVersion: '1.2'
+      vnetRouteAllEnabled: true
       appSettings: [
         {
           name: 'AzureWebJobsStorage__accountName'

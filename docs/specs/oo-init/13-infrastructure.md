@@ -71,9 +71,11 @@
 
 ## 13.6 ネットワーク
 
-- MVP では **VNet 統合を行わない**（コスト最小）。
+- 楽天 Books API の IP allowlist 要件に対応するため、バッチ Function は専用の委任サブネットに VNet 統合する。
+- サブネットに Standard NAT Gateway と静的 Standard Public IP を関連付け、バッチのインターネット送信元を固定する。
+- デプロイ出力 `batchEgressPublicIpAddress` を楽天 API アプリケーションの IP allowlist に登録する。
 - Functions → SQL は SQL の **Allow Azure Services** + Managed Identity 認証で接続。
-- 将来 Private Endpoint 化を見越し、Bicep に switch param `network.privateEndpointEnabled` を予約。
+- Private Endpoint 化は必要になった時点で別途追加する。
 
 ## 13.7 バックアップ / DR
 
