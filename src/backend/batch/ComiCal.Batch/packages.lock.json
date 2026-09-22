@@ -24,6 +24,18 @@
           "Microsoft.Azure.Functions.Worker.Grpc": "2.52.0"
         }
       },
+      "Microsoft.Azure.Functions.Worker.ApplicationInsights": {
+        "type": "Direct",
+        "requested": "[2.51.0, )",
+        "resolved": "2.51.0",
+        "contentHash": "sEuleJa7YLEO83j1+B0QKOIDhjI+R3JWCEPbvEYm9GrzzjoWnaKeF5lB3tRRuiOvcbeGgu1V+cWjelKgDOAxjQ==",
+        "dependencies": {
+          "Azure.Identity": "1.17.0",
+          "Microsoft.ApplicationInsights.PerfCounterCollector": "2.23.0",
+          "Microsoft.Azure.Functions.Worker.Core": "2.52.0",
+          "Microsoft.Bcl.AsyncInterfaces": "10.0.0"
+        }
+      },
       "Microsoft.Azure.Functions.Worker.Extensions.DurableTask": {
         "type": "Direct",
         "requested": "[1.18.0, )",
@@ -187,6 +199,16 @@
         "contentHash": "E+8N7Q6GS/AcyJ0xuYA48nVL4eQGGOSJZvNz/R7qQtMGCUwjLzQe9Ttpgh/7eQktngsUuNGaEzBhM7IUU0t4xA==",
         "dependencies": {
           "Azure.Monitor.OpenTelemetry.Exporter": "1.8.0"
+        }
+      },
+      "Microsoft.ApplicationInsights.PerfCounterCollector": {
+        "type": "Transitive",
+        "resolved": "2.23.0",
+        "contentHash": "q9ApjZfBS9O8m3aQM2oVjsGBmlE8BCFywT7UR+8aqdNuz7HpoIxw4jHy0XOBergiFX/olrJF4OyPkGxc3H5JHg==",
+        "dependencies": {
+          "Microsoft.ApplicationInsights": "2.23.0",
+          "Microsoft.Extensions.Caching.Memory": "1.0.0",
+          "System.Diagnostics.PerformanceCounter": "6.0.0"
         }
       },
       "Microsoft.Azure.DurableTask.Core": {
@@ -901,6 +923,14 @@
         "type": "Transitive",
         "resolved": "10.0.0",
         "contentHash": "uaFRda9NjtbJRkdx311eXlAA3n2em7223c1A8d1VWyl+4FL9vkG7y2lpPfBU9HYdj/9KgdRNdn1vFK8ZYCYT/A=="
+      },
+      "System.Diagnostics.PerformanceCounter": {
+        "type": "Transitive",
+        "resolved": "6.0.0",
+        "contentHash": "gbeE5tNp/oB7O8kTTLh3wPPJCxpNOphXPTWVs1BsYuFOYapFijWuh0LYw1qnDo4gwDUYPXOmpTIhvtxisGsYOQ==",
+        "dependencies": {
+          "System.Configuration.ConfigurationManager": "6.0.0"
+        }
       },
       "System.IdentityModel.Tokens.Jwt": {
         "type": "Transitive",

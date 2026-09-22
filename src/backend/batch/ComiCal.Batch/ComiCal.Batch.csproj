@@ -24,5 +24,6 @@
     <PackageReference Include="Microsoft.DurableTask.Worker.Grpc" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" />
     <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
+    <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" />
   </ItemGroup>
 </Project>
