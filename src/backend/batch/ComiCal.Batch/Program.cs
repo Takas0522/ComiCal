@@ -12,10 +12,7 @@ var host = new HostBuilder()
     {
         // Application Insights: only enable when connection string is configured
         if (!string.IsNullOrWhiteSpace(ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        {
             services.AddApplicationInsightsTelemetryWorkerService();
-            services.ConfigureFunctionsApplicationInsights();
-        }
 
         services.AddApplicationServices();
 
