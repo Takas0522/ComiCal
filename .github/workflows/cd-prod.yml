@@ -90,6 +90,7 @@ jobs:
           API_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcApiName.value" -o tsv)
           BATCH_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcBatchName.value" -o tsv)
           STORAGE_ACCOUNT=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.storageAccountName.value" -o tsv)
+          SWA_HOST=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.swaDefaultHostname.value" -o tsv)
           EGRESS_IP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.batchEgressPublicIpAddress.value" -o tsv)
           RG=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.resourceGroupName.value" -o tsv)
           echo "sqlFqdn=$SQL_FQDN" >> $GITHUB_OUTPUT
@@ -97,6 +98,7 @@ jobs:
           echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
           echo "batchApp=$BATCH_APP" >> $GITHUB_OUTPUT
           echo "storageAccount=$STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
+          echo "swaHost=$SWA_HOST" >> $GITHUB_OUTPUT
           echo "egressIp=$EGRESS_IP" >> $GITHUB_OUTPUT
           echo "rg=$RG" >> $GITHUB_OUTPUT
 
@@ -380,7 +382,11 @@ jobs:
             sleep 15
           done
 
-          API_HOST=$(az functionapp show -g "$RG" -n "$API_APP" --query defaultHostName -o tsv)
+          SWA_HOST='${{ steps.outputs.outputs.swaHost }}'
+          if [ -z "$SWA_HOST" ]; then
+            echo "::error::The production Static Web App hostname was not returned by the deployment."
+            exit 1
+          fi
           check_status() {
             local path="$1"
             local expected="$2"
@@ -389,7 +395,7 @@ jobs:
               status=$(curl --silent --show-error --output /dev/null \
                 --write-out '%{http_code}' \
                 --max-time 60 \
-                "https://$API_HOST$path" || true)
+                "https://$SWA_HOST$path" || true)
               if [ "$status" = "$expected" ]; then
                 return 0
               fi
