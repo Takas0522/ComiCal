@@ -22,7 +22,8 @@
     <PackageReference Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Microsoft.OpenApi" />
-    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" />
+    <!-- Functions Application Insights 2.x is incompatible with WorkerService 3.x. -->
+    <PackageReference Include="Microsoft.ApplicationInsights.WorkerService" VersionOverride="2.22.0" />
     <PackageReference Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" />
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
   </ItemGroup>
