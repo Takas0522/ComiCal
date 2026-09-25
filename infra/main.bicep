@@ -139,7 +139,7 @@ output kvUri string = app.outputs.kvUri
 @description('App Configuration endpoint')
 output appConfigEndpoint string = app.outputs.appConfigEndpoint
 
-@description('Static public IPv4 address to register in the Rakuten API application IP allowlist')
+@description('Shared static public IPv4 address for API and batch to register in the Rakuten API application IP allowlist')
 output batchEgressPublicIpAddress string = network.outputs.batchEgressPublicIpAddress
 
 @description('SQL Server fully qualified domain name')
