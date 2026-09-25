@@ -89,12 +89,99 @@ jobs:
           SQL_DB=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlDatabaseName.value" -o tsv)
           API_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcApiName.value" -o tsv)
           BATCH_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcBatchName.value" -o tsv)
+          STORAGE_ACCOUNT=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.storageAccountName.value" -o tsv)
+          EGRESS_IP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.batchEgressPublicIpAddress.value" -o tsv)
           RG=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.resourceGroupName.value" -o tsv)
           echo "sqlFqdn=$SQL_FQDN" >> $GITHUB_OUTPUT
           echo "sqlDb=$SQL_DB" >> $GITHUB_OUTPUT
           echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
           echo "batchApp=$BATCH_APP" >> $GITHUB_OUTPUT
+          echo "storageAccount=$STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
+          echo "egressIp=$EGRESS_IP" >> $GITHUB_OUTPUT
           echo "rg=$RG" >> $GITHUB_OUTPUT
+
+      - name: Validate production runtime prerequisites
+        run: |
+          set -euo pipefail
+          RG='${{ steps.outputs.outputs.rg }}'
+          API_APP='${{ steps.outputs.outputs.apiApp }}'
+          BATCH_APP='${{ steps.outputs.outputs.batchApp }}'
+          STORAGE_ACCOUNT='${{ steps.outputs.outputs.storageAccount }}'
+          EGRESS_IP='${{ steps.outputs.outputs.egressIp }}'
+          SUBSCRIPTION_ID=$(az account show --query id -o tsv)
+
+          API_SUBNET=$(az resource show \
+            --ids "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$API_APP" \
+            --api-version 2024-04-01 \
+            --query properties.virtualNetworkSubnetId -o tsv)
+          BATCH_SUBNET=$(az resource show \
+            --ids "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$BATCH_APP" \
+            --api-version 2024-04-01 \
+            --query properties.virtualNetworkSubnetId -o tsv)
+
+          if [ -z "$API_SUBNET" ] || [ "$API_SUBNET" != "$BATCH_SUBNET" ]; then
+            echo "::error::API and Batch must share the same NAT-backed Function subnet."
+            echo "API_SUBNET=$API_SUBNET"
+            echo "BATCH_SUBNET=$BATCH_SUBNET"
+            exit 1
+          fi
+
+          ACTUAL_EGRESS_IP=$(az network public-ip list \
+            --resource-group "$RG" \
+            --query "[?ipAddress=='$EGRESS_IP'].ipAddress | [0]" -o tsv)
+          if [ "$ACTUAL_EGRESS_IP" != "$EGRESS_IP" ]; then
+            echo "::error::The deployment egress IP does not match a provisioned static public IP."
+            exit 1
+          fi
+          echo "::notice::Rakuten allowlisted production egress IP: $EGRESS_IP"
+
+          STORAGE_ID=$(az storage account show \
+            --resource-group "$RG" \
+            --name "$STORAGE_ACCOUNT" \
+            --query id -o tsv)
+          for APP in "$API_APP" "$BATCH_APP"; do
+            PRINCIPAL_ID=$(az functionapp identity show \
+              --resource-group "$RG" \
+              --name "$APP" \
+              --query principalId -o tsv)
+            BLOB_ROLE_COUNT=$(az role assignment list \
+              --assignee-object-id "$PRINCIPAL_ID" \
+              --scope "$STORAGE_ID" \
+              --query "[?roleDefinitionName=='Storage Blob Data Owner'] | length(@)" -o tsv)
+            if [ "$BLOB_ROLE_COUNT" -lt 1 ]; then
+              echo "::error::$APP is missing Storage Blob Data Owner on $STORAGE_ACCOUNT."
+              exit 1
+            fi
+          done
+
+          KV_SETTINGS=(
+            APPLICATIONINSIGHTS_CONNECTION_STRING
+            RakutenApplicationId
+            RakutenAccessKey
+            RakutenAffiliateId
+          )
+          for attempt in {1..18}; do
+            unresolved=0
+            for APP in "$API_APP" "$BATCH_APP"; do
+              for SETTING in "${KV_SETTINGS[@]}"; do
+                STATUS=$(az rest --method get \
+                  --url "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$APP/config/configreferences/appsettings/$SETTING?api-version=2024-04-01" \
+                  --query properties.status -o tsv 2>/dev/null || true)
+                if [ "$STATUS" != "Resolved" ]; then
+                  echo "Waiting for $APP/$SETTING Key Vault reference (status=${STATUS:-unknown}, attempt $attempt/18)."
+                  unresolved=1
+                fi
+              done
+            done
+            if [ "$unresolved" -eq 0 ]; then
+              break
+            fi
+            if [ "$attempt" -eq 18 ]; then
+              echo "::error::One or more production Key Vault references did not resolve."
+              exit 1
+            fi
+            sleep 10
+          done
 
       - name: Set SQL Server Entra admin
         # Idempotent. Required so the deploying SP can issue
@@ -271,6 +358,51 @@ jobs:
             --resource-group "${{ steps.outputs.outputs.rg }}" \
             --name "${{ steps.outputs.outputs.batchApp }}" \
             --src batch.zip
+
+      - name: Verify production Functions
+        run: |
+          set -euo pipefail
+          RG='${{ steps.outputs.outputs.rg }}'
+          API_APP='${{ steps.outputs.outputs.apiApp }}'
+          BATCH_APP='${{ steps.outputs.outputs.batchApp }}'
+
+          for attempt in {1..20}; do
+            API_COUNT=$(az functionapp function list -g "$RG" -n "$API_APP" --query 'length(@)' -o tsv)
+            BATCH_COUNT=$(az functionapp function list -g "$RG" -n "$BATCH_APP" --query 'length(@)' -o tsv)
+            if [ "$API_COUNT" -eq 13 ] && [ "$BATCH_COUNT" -eq 11 ]; then
+              break
+            fi
+            echo "Waiting for Function indexing: API=$API_COUNT/13 Batch=$BATCH_COUNT/11 (attempt $attempt/20)."
+            if [ "$attempt" -eq 20 ]; then
+              echo "::error::Production Functions were not indexed with the expected counts."
+              exit 1
+            fi
+            sleep 15
+          done
+
+          API_HOST=$(az functionapp show -g "$RG" -n "$API_APP" --query defaultHostName -o tsv)
+          check_status() {
+            local path="$1"
+            local expected="$2"
+            local status
+            for attempt in {1..12}; do
+              status=$(curl --silent --show-error --output /dev/null \
+                --write-out '%{http_code}' \
+                --max-time 60 \
+                "https://$API_HOST$path" || true)
+              if [ "$status" = "$expected" ]; then
+                return 0
+              fi
+              echo "Waiting for $path: HTTP $status, expected $expected (attempt $attempt/12)."
+              sleep 10
+            done
+            echo "::error::$path returned HTTP $status; expected $expected."
+            return 1
+          }
+
+          check_status '/api/v1/series?q=release-check' '200'
+          check_status '/api/v1/volumes/upcoming' '200'
+          check_status '/api/v1/admin/batch-runs' '401'
 
       - name: Deploy Frontend to SWA
         uses: Azure/static-web-apps-deploy@1a947af9992250f3bc2e68ad0754c0b0c11566c9 # v1
