@@ -71,8 +71,8 @@ resource vnet 'Microsoft.Network/virtualNetworks@2024-05-01' = {
   }
 }
 
-@description('Resource ID of the subnet delegated to the batch Function App')
+@description('Resource ID of the subnet delegated to the API and batch Function Apps')
 output batchSubnetResourceId string = resourceId('Microsoft.Network/virtualNetworks/subnets', vnet.name, batchSubnetName)
 
-@description('Static public IPv4 address used by the batch Function App for internet egress')
+@description('Static public IPv4 address used by the API and batch Function Apps for internet egress')
 output batchEgressPublicIpAddress string = egressPublicIp.properties.ipAddress

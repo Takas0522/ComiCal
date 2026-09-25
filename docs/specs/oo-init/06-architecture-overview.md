@@ -100,6 +100,8 @@ flowchart TB
         Log[("cmcl-prod-jpe-log<br/>Log Analytics")]
         Alert["cmcl-prod-jpe-alert-batch-failed<br/>Scheduled query alert"]
         ActionGroup["cmcl-prod-jpe-ag<br/>Action Group"]
+        VNet["cmcl-prod-jpe-vnet<br/>delegated Function subnet"]
+        NAT["cmcl-prod-jpe-nat<br/>static egress IP"]
     end
 
     Internet -->|HTTPS| SWA
@@ -111,7 +113,9 @@ flowchart TB
     Api --> Storage
     Batch --> SQL
     Batch --> Storage
-    Batch -->|shared App Service egress| Rakuten
+    Api --> VNet
+    Batch --> VNet
+    VNet --> NAT --> Rakuten
     KV -. Key Vault references / MI .-> Api
     KV -. Key Vault references / MI .-> Batch
     AppCfg -. configuration / feature flags .-> Api
@@ -122,7 +126,7 @@ flowchart TB
     Log --> Alert --> ActionGroup
 ```
 
-> `cmcl-prod-jpe-rg` は固定エグレス適用前の現行構成です。固定 IP 化 PR #369 の dev デプロイでは VNet、NAT Gateway、静的 Public IP は作成済みですが、Flex Consumption に必要なサブネット委任先の誤りにより Function App の VNet 統合は失敗しています。フォローアップで `Microsoft.App/environments` 委任へ修正し、再デプロイ後にバッチの Rakuten API 通信を NAT Gateway 経由へ切り替えます。
+> API とバッチは同じ `Microsoft.App/environments` 委任サブネットへ VNet 統合し、NAT Gateway の静的 Public IP を楽天 API の IP allowlist に登録します。これにより、バッチ収集とAPI検索フォールバックの送信元IPが一致します。
 
 ## 6.3 データフロー
 

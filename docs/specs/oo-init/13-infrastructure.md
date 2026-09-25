@@ -71,8 +71,8 @@
 
 ## 13.6 ネットワーク
 
-- 楽天 Books API の IP allowlist 要件に対応するため、Flex Consumption のバッチ Function は `Microsoft.App/environments` に委任した専用サブネットに VNet 統合する。
-- サブネットに Standard NAT Gateway と静的 Standard Public IP を関連付け、バッチのインターネット送信元を固定する。
+- 楽天 Books API の IP allowlist 要件に対応するため、Flex Consumption の API / バッチ Function は `Microsoft.App/environments` に委任した専用サブネットに VNet 統合する。
+- サブネットに Standard NAT Gateway と静的 Standard Public IP を関連付け、API / バッチのインターネット送信元を共通の固定 IP にする。
 - デプロイ出力 `batchEgressPublicIpAddress` を楽天 API アプリケーションの IP allowlist に登録する。
 - Functions → SQL は SQL の **Allow Azure Services** + Managed Identity 認証で接続。
 - Private Endpoint 化は必要になった時点で別途追加する。
