@@ -142,6 +142,9 @@ output appConfigEndpoint string = app.outputs.appConfigEndpoint
 @description('Shared static public IPv4 address for API and batch to register in the Rakuten API application IP allowlist')
 output batchEgressPublicIpAddress string = network.outputs.batchEgressPublicIpAddress
 
+@description('Storage account name used by the Function Apps')
+output storageAccountName string = data.outputs.storageAccountName
+
 @description('SQL Server fully qualified domain name')
 output sqlServerFqdn string = data.outputs.sqlServerFqdn
 

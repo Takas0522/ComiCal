@@ -15,6 +15,8 @@ param rakutenApplicationId = readEnvironmentVariable('RAKUTEN_APPLICATION_ID')
 param rakutenAccessKey = readEnvironmentVariable('RAKUTEN_ACCESS_KEY')
 param rakutenAffiliateId = readEnvironmentVariable('RAKUTEN_AFFILIATE_ID')
 
-// Daily batch runs at the default schedule (03:00 JST / 18:00 UTC, warmup 02:50 JST / 17:50 UTC).
+// Keep the production schedule explicit so a future main.bicep default change cannot move it.
 // dev is offset +6h from this (see infra/params/dev.bicepparam) so the two environments — which
 // share the same Rakuten API credentials — never call the Rakuten Books API concurrently.
+param dailyBatchCronExpression = '0 0 18 * * *' // 18:00 UTC = 03:00 JST
+param warmupBatchCronExpression = '0 50 17 * * *' // 17:50 UTC = 02:50 JST
