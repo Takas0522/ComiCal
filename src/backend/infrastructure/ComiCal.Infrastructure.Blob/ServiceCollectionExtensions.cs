@@ -16,21 +16,24 @@ public static class ServiceCollectionExtensions
 
     private static BlobServiceClient CreateBlobServiceClient(string storageAccountUri)
     {
-        // Azurite / connection-string mode (ローカル開発)
+        if (!RequiresTokenCredential(storageAccountUri))
+        {
+            return storageAccountUri.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                ? new BlobServiceClient(new Uri(storageAccountUri))
+                : new BlobServiceClient(storageAccountUri);
+        }
+
+        return new BlobServiceClient(new Uri(storageAccountUri), new DefaultAzureCredential());
+    }
+
+    internal static bool RequiresTokenCredential(string storageAccountUri)
+    {
         if (storageAccountUri.Equals("UseDevelopmentStorage=true", StringComparison.OrdinalIgnoreCase) ||
             storageAccountUri.StartsWith("DefaultEndpointsProtocol=", StringComparison.OrdinalIgnoreCase))
         {
-            return new BlobServiceClient(storageAccountUri);
+            return false;
         }
 
-        // HTTP/HTTPS URI (Azurite, local storage)
-        if (storageAccountUri.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-            storageAccountUri.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
-        {
-            return new BlobServiceClient(new Uri(storageAccountUri));
-        }
-
-        // Azure 本番: URI + DefaultAzureCredential (Managed Identity)
-        return new BlobServiceClient(new Uri(storageAccountUri), new DefaultAzureCredential());
+        return new Uri(storageAccountUri).Scheme.Equals(Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase);
     }
 }

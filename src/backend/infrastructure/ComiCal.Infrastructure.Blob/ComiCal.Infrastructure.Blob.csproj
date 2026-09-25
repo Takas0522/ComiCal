@@ -11,4 +11,7 @@
     <PackageReference Include="Azure.Storage.Blobs" />
     <PackageReference Include="Azure.Identity" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="ComiCal.Infrastructure.Tests" />
+  </ItemGroup>
 </Project>
