@@ -102,6 +102,8 @@ public sealed class PrefixSearchFixture : IAsyncLifetime
                 OBJECTPROPERTYEX(OBJECT_ID(N'dbo.Authors'), 'TableFulltextItemCount') >= 1
                 AND (SELECT COUNT(*) FROM [dbo].[Series]
                      WHERE CONTAINS([NormalizedTitlePrefixHiragana], '"frantic*"', LANGUAGE 0)) >= 2
+                AND (SELECT COUNT(*) FROM [dbo].[Series]
+                     WHERE CONTAINS([NormalizedTitleHiragana], '"ふらん*"')) >= 3
                 THEN 1 ELSE 0 END AS [Value]
             """).SingleAsync(timeout.Token) == 0)
         {
