@@ -40,6 +40,7 @@
     <PackageVersion Include="Microsoft.ApplicationInsights.WorkerService" Version="3.1.2" />
   </ItemGroup>
   <ItemGroup Label="Overrides">
+    <PackageVersion Include="System.Security.Cryptography.Pkcs" Version="9.0.21" />
     <PackageVersion Include="OpenTelemetry.Api" Version="1.15.3" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.7" />
     <PackageVersion Include="System.IO.Hashing" Version="10.0.10" />

@@ -21,6 +21,11 @@ public sealed class SeriesConfiguration : IEntityTypeConfiguration<Series>
             .HasComputedColumnSql("[dbo].[fnToHiragana]([NormalizedTitle])", stored: true)
             .ValueGeneratedOnAddOrUpdate()
             .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
+        builder.Property<string>("NormalizedTitlePrefixHiragana")
+            .HasMaxLength(512)
+            .HasComputedColumnSql("[dbo].[fnToHiragana]([NormalizedTitle])", stored: true)
+            .ValueGeneratedOnAddOrUpdate()
+            .Metadata.SetAfterSaveBehavior(Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore);
         builder.Property(s => s.IsCompleted).HasDefaultValue(false);
         builder.Property(s => s.IsDeleted).HasDefaultValue(false);
         builder.Property(s => s.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");

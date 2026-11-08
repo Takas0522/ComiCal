@@ -4,6 +4,7 @@ CREATE TABLE [dbo].[Series]
     [Title]                   nvarchar(512)    NOT NULL,
     [NormalizedTitle]         nvarchar(512)    NOT NULL,
     [NormalizedTitleHiragana] AS ([dbo].[fnToHiragana]([NormalizedTitle])) PERSISTED,
+    [NormalizedTitlePrefixHiragana] AS ([dbo].[fnToHiragana]([NormalizedTitle])) PERSISTED,
     [PrimaryAuthorId]         uniqueidentifier NULL,
     [PublisherId]             uniqueidentifier NULL,
     [IsCompleted]             bit              NOT NULL DEFAULT 0,

@@ -25,13 +25,28 @@ BEGIN
         EXEC('
             CREATE FULLTEXT INDEX ON [dbo].[Series]
             (
-                [NormalizedTitleHiragana] LANGUAGE 1041
+                [NormalizedTitleHiragana] LANGUAGE 1041,
+                [NormalizedTitlePrefixHiragana] LANGUAGE 0
             )
             KEY INDEX [PK_Series]
             ON [FTCatalog]
             WITH CHANGE_TRACKING = AUTO, STOPLIST = SYSTEM
         ')
         PRINT 'Created Full-text Index on Series'
+    END
+
+    -- Preserve Japanese word matching while adding unsplit prefix matching to existing indexes.
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.fulltext_index_columns
+        WHERE object_id = OBJECT_ID(N'dbo.Series')
+          AND column_id = COLUMNPROPERTY(OBJECT_ID(N'dbo.Series'), N'NormalizedTitlePrefixHiragana', 'ColumnId')
+    )
+    BEGIN
+        EXEC('
+            ALTER FULLTEXT INDEX ON [dbo].[Series]
+            ADD ([NormalizedTitlePrefixHiragana] LANGUAGE 0)
+        ')
+        PRINT 'Added neutral-language prefix search to Series'
     END
 
     -- Full-text Index on Authors
