@@ -132,7 +132,7 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
             return volumes;
 
         var sanitizedKeywords = keywords
-            .Select(SanitizeFullTextPhrase)
+            .Select(FullTextSearch.NormalizePhrase)
             .Where(keyword => !string.IsNullOrWhiteSpace(keyword))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -163,6 +163,10 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
                 EF.Functions.Contains(
                     EF.Property<string>(series, "NormalizedTitleHiragana"),
                     term) ||
+                EF.Functions.Contains(
+                    EF.Property<string>(series, "NormalizedTitlePrefixHiragana"),
+                    term,
+                    0) ||
                 series.SeriesAuthors.Any(seriesAuthor =>
                     seriesAuthor.Author != null &&
                     !seriesAuthor.Author.IsDeleted &&
@@ -183,10 +187,6 @@ public sealed class VolumeRepository(ComiCalDbContext db) : IVolumeRepository
 
         return volumes.Where(volume => matchingSeriesIds.Contains(volume.SeriesId));
     }
-
-    private static string SanitizeFullTextPhrase(string keyword)
-        => string.Concat(keyword.Select(character =>
-            char.IsLetterOrDigit(character) || char.IsWhiteSpace(character) ? character : ' ')).Trim();
 
     private static Expression<Func<T, bool>> Or<T>(
         Expression<Func<T, bool>> left,
