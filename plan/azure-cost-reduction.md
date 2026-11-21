@@ -4,6 +4,7 @@
 - ブランチ: `plan/azure-cost-reduction`
 - 対象: ComiCal（`cmcl-dev-jpe-rg` / `cmcl-prod-jpe-rg`）
 - 前提: 個人ユースアプリ。可用性・SLA より月額コストを優先する。
+- 実装計画: [`development-plan.md`](./development-plan.md)（Batch の Durable Task SDK 化、作業分解、テスト、ロールアウト）
 
 ## 決定事項
 
