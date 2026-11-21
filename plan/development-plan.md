@@ -2,6 +2,7 @@
 
 - 作成日: 2026-11-21
 - ブランチ: `plan/azure-cost-reduction`
+- 改訂: 2026-11-21 Windows タスク スケジューラ運用を前提に Batch の運用構造（§2.7）とバックエンド選定を見直し
 - 上位計画: [`azure-cost-reduction.md`](./azure-cost-reduction.md)（何を・なぜ・いくら削るか）、[ADR 0004](../docs/adr/0004-azure-cost-reduction.md)
 - 本書の役割: 上位計画を**どう実装し、どの順で、何をもって完了とするか**を定める。
 
@@ -23,7 +24,7 @@
 | 領域 | 状態 |
 |---|---|
 | IaC（Bicep）・CI/CD・Azure 実体変更スクリプト（`plan/scripts/apply-0*.ps1`） | **実装済み・未検証**（`az bicep build` / What-If 未実施） |
-| ローカル Batch 実行（`tools/run-batch-local.ps1`） | Functions Core Tools（`func start`）＋ Azurite 前提で実装済み → **本計画で Durable Task SDK 版に置き換える** |
+| ローカル Batch 実行（`tools/run-batch-local.ps1`, `tools/register-batch-task.ps1`） | Functions Core Tools（`func start`）＋ Azurite ＋ PowerShell ラッパー前提で実装済み → **本計画で「タスク スケジューラから exe を直接起動」する構造に置き換える**（§2.7, PR-3） |
 | Batch 本体（`ComiCal.Batch`） | 未変更（Durable Functions のまま） |
 | ドキュメント | ADR 0004 等に「Azurite + func」の記述あり → 本計画で更新 |
 
@@ -131,7 +132,7 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     ContentRootPath = AppContext.BaseDirectory,   // タスク スケジューラの作業フォルダに依存しない
 });
 builder.Configuration
-    .AddJsonFile("appsettings.Local.json", optional: true)
+    .AddJsonFile(Path.Combine(BatchPaths.Root, "appsettings.Local.json"), optional: true)   // %LOCALAPPDATA%\ComiCal\Batch
     .AddEnvironmentVariables(prefix: "COMICAL_");
 builder.Configuration.AddComiCalKeyVaultSecrets();   // Key Vault から楽天の認証情報等を読む（§2.7）
 builder.Logging.AddComiCalFileLogging();             // ローテーション付きファイルログ（§2.7）
@@ -232,7 +233,7 @@ return exitCode;
 │   ├── 20261201-a1b2c3d\        … publish 結果（コミット SHA 付き）。直近 3 世代を保持
 │   └── 20261215-e4f5a6b\
 ├── current  → releases\20261215-e4f5a6b   … ジャンクション。タスクはここの exe を起動
-├── appsettings.Local.json       … PC 固有設定（current 側からはシンボリック参照せず、exe が起動時にここも読む）
+├── appsettings.Local.json       … PC 固有設定（期待 IP・Webhook 等）。世代をまたいで共通なので releases の外に置く
 └── logs\batch-20261215.log      … 日次ローテーション、30 日保持
 ```
 
@@ -308,6 +309,9 @@ PR は 4 本に分ける。見積りは 1 人での目安（S ≒ 0.5 日, M ≒
 | T1-3 | `useFreeLimit` / `freeLimitExhaustionBehavior` が `Microsoft.Sql/servers/databases@2023-08-01-preview` で受理されるか確認。不可なら API バージョンを上げる | What-If で検証 | S |
 | T1-4 | `cd-prod.yml` を `actionlint` でチェック。Grant ステップの T-SQL（複数ユーザーを `GO` 区切り）をローカル SQL Server コンテナで試す | lint / 実行成功 | S |
 | T1-5 | `ci.yml` の Batch ビルド・テストが Functions に依存していないか確認（PR-2 後に再確認） | — | S |
+| T1-6 | Durable Task Scheduler（Consumption）の単価を料金計算ツールで確定し、上位計画の見込み額を更新（§2.8） | 計画書更新 | S |
+| T1-7 | `infra/modules/durable-task.bicep` を追加: `Microsoft.DurableTask/schedulers`（sku: Consumption, `ipAllowlist` = 自宅 IP）とタスクハブ `comical`、実行ユーザーへの **Durable Task Data Contributor**（ロール定義 ID は `az role definition list --name "Durable Task Data Contributor"` で確認）。`main.bicep` から呼び出し、エンドポイントを出力 | What-If | M |
+| T1-8 | `data.bicep` に自宅 IP 用の SQL ファイアウォール規則（`batchOperatorIpAddress` パラメーター、空なら作らない）を追加。`prod.bicepparam` は GitHub 変数 `BATCH_OPERATOR_IP_ADDRESS` から読む | What-If | S |
 
 ### PR-2: Batch の Durable Task SDK 化（本計画の中心）
 
@@ -321,33 +325,40 @@ PR は 4 本に分ける。見積りは 1 人での目安（S ≒ 0.5 日, M ≒
 | T2-6 | ペイロードサイズの実測ログ（`FetchSummary` / `ContinueAsNew` 入力のシリアライズ後バイト数）を追加し、エミュレーターで 100 ページ実行して確認。0.5 MB 超なら §2.6 案 (b) を実施し、Orchestrator テストを更新 | 実測値を PR に記載 | S（(b) 実施時 +M） |
 | T2-7 | `appsettings.json` / `appsettings.Local.json.sample` を追加、`local.settings.json.sample` を削除、`.gitignore` に `appsettings.Local.json` を追加 | — | S |
 | T2-8 | `StaleBatchRunCleaner` 用に `IBatchRunRepository` へ「Running のまま一定時間経過したものを取得」メソッドを追加（Domain / Infrastructure.Sql） | 単体テスト | S |
+| T2-9 | コマンド体系（`run` / `run --force` / `status` / `preflight`）と終了コード定義（`ExitCodes`）。引数解析は `System.CommandLine` を使わず簡易実装でよい | 単体テスト | S |
+| T2-10 | `SingleInstanceGuard`（名前付き Mutex）と `Preflight`（トークン・IP・Key Vault・SQL・Scheduler） | 各失敗で終了コード 2 / 4 | M |
+| T2-11 | 日付ベースのインスタンス ID（`daily-yyyyMMdd`, JST）と再開ロジック（実行中なら待つ / 完了なら何もしない / 失敗なら再実行） | Scheduler 上で中断 → 再起動して続きから完走することを確認 | M |
+| T2-12 | Key Vault からの設定読み込み（`Azure.Security.KeyVault.Secrets` は既存。`RakutenAppId` → `RakutenApplicationId` 等の名前対応） | 環境変数なしで起動できる | S |
+| T2-13 | ファイルログ（日次ローテーション・30 日保持）と失敗時 Webhook 通知（`FailureNotifier`） | — | S |
+| T2-14 | `ContentRootPath = AppContext.BaseDirectory` と `BatchPaths`（`%LOCALAPPDATA%\ComiCal\Batch`）で、作業フォルダに依存しない起動にする | タスクから起動して確認 | S |
 
-### PR-3: 実行環境（スクリプト・コンテナ）
+### PR-3: 実行環境（配置・タスク登録・開発用コンテナ）
 
 | ID | 作業 | 成果物・確認 | 規模 |
 |---|---|---|---|
-| T3-1 | `docker-compose.yml` に `dts-emulator` サービス（8080 / 8082）を追加。Batch 実行には Azurite を不要にする | `docker compose up -d dts-emulator` | S |
-| T3-2 | `tools/run-batch-local.ps1` を書き換え: `func start` / HTTP トリガー / Durable HTTP API のポーリングをやめ、`dotnet run --project ... -c Release`（または事前に `dotnet publish` した exe）を起動して終了コードで判定。Key Vault 取得・ファイアウォール一時規則・許可 IP 照合・ロック・Webhook 通知は維持 | 試走成功 | M |
-| T3-3 | 実行を速くするため、初回 / コード更新時のみ `dotnet publish -c Release -o .dev-logs/batch/bin` を行い、日次はその exe を実行する（ビルド時間をなくす） | — | S |
-| T3-4 | `plan/scripts/apply-04-batch-local-setup.ps1` の前提確認を `func` → `docker`（エミュレーター）に変更 | — | S |
-| T3-5 | `tools/register-batch-task.ps1` は変更なしで動くことを確認 | — | S |
+| T3-1 | `docker-compose.yml` に `dts-emulator` サービス（8080 / 8082、イメージタグ固定）を追加（開発・テスト用） | `docker compose up -d dts-emulator` | S |
+| T3-2 | `tools/publish-batch.ps1` を新規作成: テスト → publish → `releases\<日付>-<SHA>` → `current` 張り替え → 古い世代削除。`-Rollback` で 1 つ前に戻す | 2 回 publish → ロールバックを確認 | M |
+| T3-3 | `tools/register-batch-task.ps1` を更新: 操作を `current\ComiCal.Batch.exe run` に、`-RunWhetherLoggedOn`（パスワード保存）スイッチ追加、スリープ解除タイマーの状態を表示 | 登録 → `Start-ScheduledTask` で終了コード 0 | S |
+| T3-4 | `tools/run-batch-local.ps1` を廃止（手動実行は `ComiCal.Batch.exe run` で代替）。Azurite / `func` 前提の記述を削除 | — | S |
+| T3-5 | `plan/scripts/apply-04-batch-local-setup.ps1` を更新: 前提確認を `func` → `dotnet`（publish 用）に、Durable Task Data Contributor の付与と SQL の常設ファイアウォール規則を追加、試走を `publish-batch.ps1` → `ComiCal.Batch.exe run` に変更、`appsettings.Local.json` の雛形作成 | — | M |
 
 ### PR-4: テスト・ドキュメント
 
 | ID | 作業 | 成果物・確認 | 規模 |
 |---|---|---|---|
 | T4-1 | 統合テスト: Testcontainers で DTS エミュレーター + SQL Server + Azurite(Blob) を起動し、楽天 API を `HttpMessageHandler` のスタブに差し替えて `DailyFetchOrchestrator` を 1 回完走させる（2 ページ + サムネイル数件） | `ComiCal.Batch.Tests` に追加。CI で実行（Docker が使えるランナー） | M |
-| T4-2 | `BatchRunner` の単体テスト（Completed → 0、Failed / Timeout → 1） | — | S |
+| T4-2 | `BatchRunner` の単体テスト（Completed → 0、Failed → 1、Timeout → 3、当日完了済み → 0 で何もしない、実行中 → 待機） | — | S |
+| T4-2b | 運用手順書 `docs/runbooks/batch-operations.md`（初期設定、publish / ロールバック、IP 変更時の手順＝楽天・SQL・Scheduler の 3 か所、`az login` 失効時、終了コード別の対処） | — | S |
 | T4-3 | ドキュメント更新: ADR 0004（Azurite / func の記述を Durable Task SDK + エミュレーターに）、`backend-batch.instructions.md`（ランタイム・手動起動方法）、`README.md`（起動方法）、`docs/specs/oo-init/09`、`.claude/skills/add-durable-activity`（`[Function]` 属性 → `TaskActivity<,>` 登録）、`troubleshoot-batch` スキル（Functions / App Insights 前提の手順をローカル実行に） | — | M |
 
 ### 依存関係
 
 ```
-PR-1 ─────────────────────────────┐
-PR-2 (T2-1→T2-2/T2-3→T2-4→T2-5→T2-6) ─→ PR-3 ─→ PR-4 ─→ ロールアウト
+PR-1（T1-7/T1-8 は PR-2 の結合テスト前に What-If まで）──────────┐
+PR-2 (T2-1→T2-2/T2-3→T2-4→T2-5→T2-9〜T2-14→T2-6) ─→ PR-3 ─→ PR-4 ─→ ロールアウト
 ```
 
-PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提。
+PR-1 と PR-2 は並行可能。PR-3 は PR-2 の exe が前提。T2-11（再開ロジック）の確認には T1-7 の Scheduler が Azure 上に必要（エミュレーターでも途中停止→再起動の挙動は確認できるが、コンテナ再起動で状態が消える点だけ異なる）。
 
 ---
 
@@ -358,7 +369,9 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提�
 | 単体 | Orchestrator / Activity（既存） | 既存 xUnit + NSubstitute を**無修正**で実行 | 全件成功（§2.6 (b) を実施した場合のみ Orchestrator テストを更新） |
 | 単体 | BatchRunner / StaleBatchRunCleaner | 新規 | 成功 |
 | 統合 | 1 回の完走（DTS エミュレーター + SQL + Azurite + 楽天スタブ） | Testcontainers | `BatchRuns` が Completed、Volume / Series / ThumbnailAsset が登録される |
-| ローカル E2E | 本番 SQL / Blob に対する実行 | `tools/run-batch-local.ps1` | 終了コード 0、`/admin/batch-runs` に成功記録、カレンダーに新刊が出る |
+| ローカル E2E | 本番 SQL / Blob / Scheduler に対する実行 | `ComiCal.Batch.exe run` | 終了コード 0、`/admin/batch-runs` に成功記録、カレンダーに新刊が出る |
+| 運用 | タスク スケジューラからの起動 | 画面ロック中 / スリープ中（スリープ解除）/ 実行中に PC 再起動 → 再ログオン後の追いかけ実行 | 各ケースで当日分が完了し、再起動ケースでは同じインスタンス ID の続きから完了 |
+| 運用 | 異常系 | `az logout` 状態、IP 不一致、二重起動 | それぞれ終了コード 2 / 2 / 4 と Webhook 通知 |
 | 比較 | Azure 版との結果比較 | 切り替え前後の `BatchRuns.FetchedItemCount` / `UpsertedVolumeCount` | 同程度（±数%）。大きく減る場合は楽天の許可 IP / ページ上限を確認 |
 | 回帰 | API / フロント | 既存 CI（lint / test / build）と本番スモーク（`cd-prod.yml`） | 成功 |
 
@@ -374,7 +387,7 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提�
 | 2 | `apply-01-quick-wins.ps1` | 停止なし |
 | 3 | `apply-02-retire-stage.ps1` | Stage 廃止 |
 | 4 | `apply-03-remove-appconfig.ps1` | |
-| 5 | `apply-04-batch-local-setup.ps1` → 楽天の許可 IP に自宅 IP を追加 → ローカル試走 | Azure 側 Batch は停止（削除はまだ） |
+| 5 | GitHub 変数 `BATCH_OPERATOR_IP_ADDRESS` / `BATCH_OPERATOR_PRINCIPAL_ID` を設定 → `apply-04-batch-local-setup.ps1`（Scheduler 作成・ロール付与・SQL 常設規則・publish・試走・タスク登録）→ 楽天の許可 IP に自宅 IP を追加 | Azure 側 Batch は停止（削除はまだ） |
 | 6 | **1 週間の並行観察**: ローカル Batch を毎日実行し、`BatchRuns` と画面で確認 | 問題があれば Azure Batch を `az functionapp start` で戻せる（楽天の許可 IP も戻す） |
 | 7 | `apply-05-retire-azure-batch.ps1` | ここから Azure Batch へは戻せない |
 | 8 | `apply-06-remove-network.ps1` → 楽天の許可 IP から旧 Azure IP を削除 | |
@@ -393,7 +406,10 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提�
 | Activity の DI スコープが共有される | DbContext の並行利用エラー（サムネイルの並列 8） | T2-3 で確認、スコープ付きラッパー |
 | エミュレーターのイメージ仕様変更（`latest`） | 起動失敗 | compose でタグを固定し、Dependabot（docker）の対象にする |
 | エミュレーターが本番用途非推奨 | 実行途中の状態が失われる | 再実行で回復する設計（べき等 + 古い Running の掃除）。必要なら案 C へ接続文字列切替 |
-| PC 停止・スリープ、自宅 IP 変更 | その日の収集漏れ | タスク スケジューラの追いかけ実行、IP 照合で中止 + Webhook 通知 |
+| PC 停止・スリープ | その日の収集漏れ | 追いかけ実行 + スリープ解除。途中停止は Scheduler の状態から再開 |
+| 自宅 IP の変更 | 楽天 403・SQL 接続拒否 | Preflight で検知して終了コード 2 + 通知。IP は楽天・SQL・Scheduler の 3 か所を手順書どおり同時に更新 |
+| `az login` の失効 / サインアウト中の実行 | 終了コード 2 | 通知を受けて再ログイン。サインアウト運用ならパスワード保存型でタスク登録 |
+| Scheduler の費用が想定超え | 月額増 | T1-6 で単価確定、予算アラートで検知。必要ならサムネイル呼び出し削減またはエミュレーターへ切替 |
 | `useFreeLimit` を既存 DB に適用 | 本番デプロイ失敗 | ロールアウト順 9 → 10 を守る（上位計画にも明記） |
 
 ---
@@ -401,7 +417,8 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提�
 ## 7. 完了の定義
 
 - [ ] `ComiCal.Batch` が Functions 依存なしでビルドでき、既存テスト + 新規テストが CI で成功
-- [ ] `tools/run-batch-local.ps1` が DTS エミュレーターで本番データに対して完走し、終了コードで成否を返す
+- [ ] タスク スケジューラから `current\ComiCal.Batch.exe run` が無人で完走し、終了コードで成否が分かる（ロック中・スリープ解除・途中再起動のケースを含む）
+- [ ] `publish-batch.ps1` で更新とロールバックができる
 - [ ] 1 週間の並行観察で収集件数が Azure 版と同程度
 - [ ] `apply-01`〜`apply-07` 実施後、`v*` デプロイの What-If で想定外の差分がない
 - [ ] `az resource list -g cmcl-prod-jpe-rg` に Batch / NAT / VNet / PIP / App Configuration がない
@@ -414,10 +431,11 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提�
 
 | 項目 | 選択肢 | 推奨 |
 |---|---|---|
-| Durable のバックエンド | B: エミュレーター / C: DTS Consumption（Azure） | B（費用 0。必要になったら C へ接続文字列切替） |
+| Durable のバックエンド（定期実行） | C: DTS Consumption（Azure）/ B: エミュレーター（Docker） | C（exe 単体で無人実行でき、途中再開も可能。単価は T1-6 で確定） |
+| タスクのセキュリティ オプション | ログオン時のみ / ログオン有無にかかわらず（パスワード保存） | PC をサインアウトせずロックで使うならログオン時のみ |
+| ファイルログの実装 | Serilog（`Serilog.Extensions.Hosting` + `Sinks.File`）/ 自前 `ILoggerProvider` | Serilog（ローテーション・保持日数を自前で書かずに済む） |
 | ペイロード対策 | 実測して必要時のみ (b) / 最初から (b) | 実測して判断 |
-| 実行バイナリ | 毎回 `dotnet run` / 事前 publish した exe | 事前 publish（T3-3） |
-| 統合テストの CI 実行 | 毎 PR / Batch 変更時のみ（paths フィルター） | Batch 変更時のみ |
+| 実行時刻 | 03:00（現行）/ PC が確実に起きている時間帯 | PC の使い方次第。スリープ解除できない環境なら起動直後に追いかけ実行される前提で 03:00 のまま |
 
 ---
 
@@ -427,3 +445,6 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の実行可能な exe が前提�
 - クイックスタート（`AddDurableTaskWorker().AddTasks(...).UseDurableTaskScheduler(...)`、`WaitForInstanceCompletionAsync`）: https://learn.microsoft.com/azure/durable-task/sdks/quickstart-portable-durable-task-sdks
 - Durable Task Scheduler（エミュレーターはメモリ保持で本番非推奨、ペイロード 1 MB 制限）: https://learn.microsoft.com/azure/durable-task/scheduler/durable-task-scheduler
 - 課金（アクションの数え方、Consumption SKU）: https://learn.microsoft.com/azure/durable-task/scheduler/durable-task-scheduler-billing
+- Durable Task Scheduler の ID ベース認証（`Authentication=DefaultAzure`、Durable Task Data Contributor）: https://learn.microsoft.com/azure/durable-task/scheduler/durable-task-scheduler-identity
+- `Microsoft.DurableTask/schedulers` リソース（`ipAllowlist`, sku `Consumption`）: https://learn.microsoft.com/azure/templates/microsoft.durabletask/schedulers
+- `Microsoft.DurableTask.InProcessTestHost`（インメモリのテストホスト、プレビュー）: https://www.nuget.org/packages/Microsoft.DurableTask.InProcessTestHost/
