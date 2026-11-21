@@ -18,6 +18,7 @@ param monthlyBudgetAmount = 3000
 param budgetStartDate = '2026-11-01'
 // Entra object ID of the maintainer who runs tools/run-batch-local.ps1 (GitHub variable).
 param batchOperatorPrincipalId = readEnvironmentVariable('BATCH_OPERATOR_PRINCIPAL_ID', '')
+param batchOperatorIpAddress = readEnvironmentVariable('BATCH_OPERATOR_IP_ADDRESS', '')
 param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD')
 param rakutenApplicationId = readEnvironmentVariable('RAKUTEN_APPLICATION_ID')
 param rakutenAccessKey = readEnvironmentVariable('RAKUTEN_ACCESS_KEY')

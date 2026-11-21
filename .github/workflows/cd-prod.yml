@@ -63,6 +63,7 @@ jobs:
           RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
           BATCH_OPERATOR_PRINCIPAL_ID: ${{ vars.BATCH_OPERATOR_PRINCIPAL_ID }}
+          BATCH_OPERATOR_IP_ADDRESS: ${{ vars.BATCH_OPERATOR_IP_ADDRESS }}
         run: |
           az deployment sub what-if \
             --location japaneast \
@@ -76,6 +77,7 @@ jobs:
           RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
           BATCH_OPERATOR_PRINCIPAL_ID: ${{ vars.BATCH_OPERATOR_PRINCIPAL_ID }}
+          BATCH_OPERATOR_IP_ADDRESS: ${{ vars.BATCH_OPERATOR_IP_ADDRESS }}
         run: |
           az deployment sub create \
             --location japaneast \
@@ -93,12 +95,14 @@ jobs:
           STORAGE_ACCOUNT=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.storageAccountName.value" -o tsv)
           SWA_HOST=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.swaDefaultHostname.value" -o tsv)
           RG=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.resourceGroupName.value" -o tsv)
-          echo "sqlFqdn=$SQL_FQDN" >> $GITHUB_OUTPUT
-          echo "sqlDb=$SQL_DB" >> $GITHUB_OUTPUT
-          echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
-          echo "storageAccount=$STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
-          echo "swaHost=$SWA_HOST" >> $GITHUB_OUTPUT
-          echo "rg=$RG" >> $GITHUB_OUTPUT
+          {
+            echo "sqlFqdn=$SQL_FQDN"
+            echo "sqlDb=$SQL_DB"
+            echo "apiApp=$API_APP"
+            echo "storageAccount=$STORAGE_ACCOUNT"
+            echo "swaHost=$SWA_HOST"
+            echo "rg=$RG"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Validate production runtime prerequisites
         run: |

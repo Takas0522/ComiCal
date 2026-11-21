@@ -32,6 +32,7 @@ infra/
 | `RAKUTEN_APPLICATION_ID` / `RAKUTEN_ACCESS_KEY` / `RAKUTEN_AFFILIATE_ID` | secret | 楽天 API 認証情報（Key Vault に格納し、ローカル Batch が参照） |
 | `ALERT_EMAIL_ADDRESS` | secret/var | アラート・予算通知先（省略可） |
 | `BATCH_OPERATOR_PRINCIPAL_ID` | var | ローカル Batch を実行するユーザーの Entra objectId（省略可） |
+| `BATCH_OPERATOR_IP_ADDRESS` | var | ローカル Batch を実行するメンテナーの自宅のグローバル IPv4 アドレス。SQL Server にこの IP だけを許可する常設規則 `batch-operator` を作成する。未設定または空の場合は規則の作成をスキップする。 |
 
 ## What-If / デプロイ
 

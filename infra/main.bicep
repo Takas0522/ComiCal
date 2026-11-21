@@ -66,6 +66,9 @@ param budgetStartDate string = '2026-11-01'
 @description('Entra object ID of the person who runs the batch locally; grants Blob write and Key Vault secret read. Leave empty to skip.')
 param batchOperatorPrincipalId string = ''
 
+@description('Public IPv4 address of the local batch operator. Leave empty to skip creating the SQL firewall rule.')
+param batchOperatorIpAddress string = ''
+
 @description('Reserved: enable private endpoints for future VNet integration (currently no-op)')
 #disable-next-line no-unused-params
 param privateEndpointEnabled bool = false
@@ -102,6 +105,7 @@ module data 'modules/data.bicep' = {
     sqlUseFreeLimit: sqlUseFreeLimit
     sqlAdminLogin: sqlAdminLogin
     sqlAdminPassword: sqlAdminPassword
+    batchOperatorIpAddress: batchOperatorIpAddress
   }
   dependsOn: [
     observability

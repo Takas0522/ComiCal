@@ -20,6 +20,9 @@ param sqlAdminLogin string = 'sqladmin'
 @description('SQL Server administrator password')
 param sqlAdminPassword string
 
+@description('Public IPv4 address of the local batch operator. Leave empty to skip creating the SQL firewall rule.')
+param batchOperatorIpAddress string = ''
+
 var sqlServerName = '${prefix}-${env}-jpe-sql'
 var sqlDatabaseName = '${prefix}-${env}-jpe-sqldb'
 // Storage account names must be lowercase alphanumeric, no hyphens, max 24 chars.
@@ -49,6 +52,15 @@ resource sqlFirewallAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2023
   properties: {
     startIpAddress: '0.0.0.0'
     endIpAddress: '0.0.0.0'
+  }
+}
+
+resource sqlFirewallBatchOperator 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = if (!empty(batchOperatorIpAddress)) {
+  parent: sqlServer
+  name: 'batch-operator'
+  properties: {
+    startIpAddress: batchOperatorIpAddress
+    endIpAddress: batchOperatorIpAddress
   }
 }
 
