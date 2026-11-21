@@ -76,7 +76,7 @@ pnpm --filter e2e test
 
 # Bicep
 bicep build infra/main.bicep
-az deployment sub what-if -l japaneast -f infra/main.bicep -p infra/params/dev.bicepparam
+az deployment sub what-if -l japaneast -f infra/main.bicep -p infra/params/prod.bicepparam
 ```
 
 **PR 前に必ず**: `pnpm test` + `dotnet test` + `dotnet format` + lint が違反なしで通ること。

@@ -30,6 +30,36 @@
 
 ---
 
+## 実施状況と手順（2026-11-21 時点）
+
+コード（IaC・CI/CD・ローカル Batch）は本ブランチで**最終形まで変更済み**。Azure の実体はまだ変わっていないので、下のスクリプトを**この順で**実行すると IaC と一致する。
+すべて確認プロンプト付き（`-Yes` で省略）で、ログは `.secrets\apply-logs\` に保存される。
+
+| 順 | スクリプト | 実体に対する変更 | 対応する IaC / コード変更 |
+|---|---|---|---|
+| 1 | `plan/scripts/apply-01-quick-wins.ps1` | SQL min 0.5 / pause 15 分、LA 保持 30 日・上限 0.2 GB、API 最大 10 インスタンス、予算作成 | `data.bicep`, `observability.bicep`, `app.bicep`, `budget.bicep`, `prod.bicepparam` |
+| 2 | `plan/scripts/apply-02-retire-stage.ps1` | `cmcl-dev-jpe-rg` 削除、dev KV / App Config purge、GitHub Environment dev 削除 | `dev.bicepparam`・`cd-dev.yml`・`dev-sql-nightly-pause.yml`・`pr-preview.yml` 削除、`main.bicep` の env を prod のみに |
+| 3 | `plan/scripts/apply-03-remove-appconfig.ps1` | App Configuration (prod) 削除・purge | `app.bicep` から appConfig / FF / `AppConfiguration__Endpoint` 削除 |
+| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | 実行ユーザーへの RBAC・DB ユーザー作成、Azure Batch 停止、ローカル試走、タスク登録 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/run-batch-local.ps1`, `tools/register-batch-task.ps1` |
+| — | （手作業）楽天アプリの許可 IP に自宅 IP を追加 | | |
+| 5 | `plan/scripts/apply-05-retire-azure-batch.ps1` | Batch Function App / プラン / 失敗アラート / Durable タスクハブ / DB ユーザー削除 | `app.bicep`・`observability.bicep`・`data.bicep`・`cd-prod.yml` から Batch 関連を削除 |
+| 6 | `plan/scripts/apply-06-remove-network.ps1` | API の楽天設定・VNet 統合を解除 → VNet / NAT / PIP 削除 | `network.bicep` 削除、`main.bicep`・`app.bicep`・`cd-prod.yml`（検証ステップ） |
+| — | （手作業）楽天アプリの許可 IP から旧 Azure の IP を削除 | | |
+| 7 | `plan/scripts/apply-07-sql-free-offer.ps1` | 旧 DB をリネーム → 同名で無料オファー DB を作成 → bacpac 移送（API 停止を伴う） | `data.bicep` の `useFreeLimit` / `freeLimitExhaustionBehavior`, `prod.bicepparam` の `sqlUseFreeLimit` |
+| 8 | 数日後に `apply-07-sql-free-offer.ps1 -DeleteOldDatabase` | 旧 DB 削除 | |
+| 9 | `v*` タグで本番デプロイ（`cd-prod.yml`） | IaC と実体の最終同期（What-If で差分がないことを確認） | |
+
+**順序の注意**
+
+- **手順 7 が終わるまで `v*` タグで本番デプロイしない**。`sqlUseFreeLimit = true` を有償の既存 DB に適用しようとするとデプロイが失敗する。急ぎでデプロイが必要なときは、一時的に `prod.bicepparam` を `sqlUseFreeLimit = false` にする。
+- 手順 6 は手順 5 の後に行う（Batch が同じサブネットを使っているため。スクリプト側でもチェックしている）。
+- Bicep は Incremental デプロイなので、IaC から消したリソースはデプロイしても消えない。削除はスクリプトで明示的に行う。
+- GitHub（environment: prod）に変数 `BATCH_OPERATOR_PRINCIPAL_ID` を設定する（手順 4 で gh CLI があれば自動）。未設定でも動くが、その場合 CD はローカル Batch 用の権限を管理しない。
+
+**前提ツール（実行する PC）**: Azure CLI、PowerShell、Azure Functions Core Tools v4、.NET 10 SDK、go-sqlcmd（`winget install sqlcmd`）、sqlpackage（`dotnet tool install -g microsoft.sqlpackage`, 手順 7）、Docker Desktop または npm の azurite、（任意）gh CLI。
+
+---
+
 ## 1. 現状把握
 
 ### 1.1 データ取得方法
