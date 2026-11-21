@@ -85,14 +85,26 @@ function Restore-SqlEntraAdmin($prev) {
 }
 
 # ローカル Batch のスケジュールタスク（tools/register-batch-task.ps1 の既定名）。
+# 先に無効化してから実行中でないことを確認する（確認 → 無効化の間にタスクが起動する競合を防ぐ）。
+# 実行中なら元の状態に戻して中止する。手動実行（タスク外）も検出するため Batch のプロセスも確認する。
 function Disable-BatchTask {
   $t = Get-ScheduledTask -TaskName $Names.BatchTask -ErrorAction SilentlyContinue
-  if (-not $t) { return $false }
-  if ($t.State -eq 'Running') { throw "タスク $($Names.BatchTask) が実行中です。完了を待ってから再実行してください。" }
-  if ($t.State -eq 'Disabled') { return $false }
-  $null = Disable-ScheduledTask -TaskName $Names.BatchTask
-  Write-Done "タスク $($Names.BatchTask) を一時無効化"
-  return $true
+  $disabledHere = $false
+  if ($t -and $t.State -ne 'Disabled') {
+    $null = Disable-ScheduledTask -TaskName $Names.BatchTask
+    $disabledHere = $true
+  }
+  $running = @()
+  if ($t -and (Get-ScheduledTask -TaskName $Names.BatchTask).State -eq 'Running') { $running += "タスク $($Names.BatchTask)" }
+  # 現行の暫定実装は func ホスト（tools/run-batch-local.ps1）、PR-3 以降は ComiCal.Batch.exe
+  $procs = Get-Process -Name 'ComiCal.Batch', 'func' -ErrorAction SilentlyContinue
+  if ($procs) { $running += "プロセス $(($procs.Name | Sort-Object -Unique) -join ', ')" }
+  if ($running) {
+    if ($disabledHere) { $null = Enable-ScheduledTask -TaskName $Names.BatchTask -ErrorAction Continue }
+    throw "Batch が実行中です（$($running -join ' / ')）。完了を待ってから再実行してください。"
+  }
+  if ($disabledHere) { Write-Done "タスク $($Names.BatchTask) を一時無効化" }
+  return $disabledHere
 }
 function Enable-BatchTask([bool]$wasDisabled) {
   if (-not $wasDisabled) { return }

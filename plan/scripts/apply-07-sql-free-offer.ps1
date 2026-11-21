@@ -69,7 +69,6 @@ try {
   $null = Invoke-Az functionapp stop -g $Names.Rg -n $Names.FuncApi -o none
   $apiStopped = $true
   $taskDisabled = Disable-BatchTask
-  if (Get-Process -Name 'ComiCal.Batch' -ErrorAction SilentlyContinue) { throw 'ComiCal.Batch を実行中です。完了を待ってから再実行してください。' }
 
   Write-Step 'bacpac をエクスポート'
   $backupDir = Join-Path $RepoRoot '.secrets\sql-backup'

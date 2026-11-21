@@ -8,8 +8,8 @@
   3. GitHub 変数 BATCH_OPERATOR_PRINCIPAL_ID を設定（gh CLI がある場合。次回以降の本番デプロイで維持される）
   4. 楽天ウェブサービスのアプリ設定に登録する自宅のグローバル IP を表示
   5. ローカルで 1 回試走（この間だけ Azure 側 Batch を停止して楽天 API の二重呼び出しを防ぐ）
-  6. 試走成功 → Azure 側 Batch は停止したまま、タスク スケジューラ登録
-     試走失敗 → Azure 側 Batch を再開して終了（Batch が 1 本も動かない状態を残さない）
+  6. 試走成功 → タスク スケジューラ登録 → 登録成功で Azure 側 Batch は停止したまま
+     試走失敗・登録しない・登録失敗 → Azure 側 Batch を再開して終了（定期実行が 1 本もない状態を残さない）
   -SkipTestRun のときは Azure 側 Batch を停止しない（準備だけ行う）。
   SQL の Entra 管理者は一時的に実行ユーザーに切り替え、終了時に元へ戻す。
 #>
@@ -72,10 +72,14 @@ try {
     }
     & (Join-Path $RepoRoot 'tools\run-batch-local.ps1')
     if ($LASTEXITCODE -ne 0) { throw 'ローカル試走が失敗しました。.dev-logs\batch のログを確認してください。' }
-    $cutoverDone = $true
-    Write-Done 'ローカル試走成功。Azure 側 Batch は停止したまま（削除は apply-05 で）。管理画面 /admin/batch-runs でも確認できます'
-    if (Confirm-Action 'タスク スケジューラに毎日 03:00 で登録しますか？') {
+    Write-Done 'ローカル試走成功（管理画面 /admin/batch-runs でも確認できます）'
+    # 定期実行の切り替えはタスク登録の成功をもって完了とする。登録しない・失敗した場合は
+    # finally で Azure 側 Batch を再開し、定期実行がどちらにもない状態を残さない。
+    if (Confirm-Action 'タスク スケジューラに毎日 03:00 で登録しますか？（登録しない場合は Azure 側 Batch を再開します）') {
       & (Join-Path $RepoRoot 'tools\register-batch-task.ps1')
+      if (-not (Get-ScheduledTask -TaskName $Names.BatchTask -ErrorAction SilentlyContinue)) { throw "タスク $($Names.BatchTask) の登録を確認できません。" }
+      $cutoverDone = $true
+      Write-Done 'タスク登録済み。Azure 側 Batch は停止したまま（削除は apply-05 で）'
     }
   }
 }
