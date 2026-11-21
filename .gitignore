@@ -45,7 +45,7 @@ artifacts/
 
 # ----- Functions / Local secrets -----
 local.settings.json
-!local.settings.json.sample
+appsettings.Local.json
 .azurite/
 __azurite_db*.json
 __blobstorage__/

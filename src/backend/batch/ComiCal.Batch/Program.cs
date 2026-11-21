@@ -1,43 +1,47 @@
-using ComiCal.Application;
-using ComiCal.Infrastructure.Blob;
-using ComiCal.Infrastructure.Rakuten;
-using ComiCal.Infrastructure.Sql;
-using Microsoft.Azure.Functions.Worker;
+using ComiCal.Batch.Hosting;
+using ComiCal.Batch.Jobs;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
-    .ConfigureServices((ctx, services) =>
+if (args is not ["run"])
+{
+    Console.Error.WriteLine("Usage: ComiCal.Batch run");
+    return 1;
+}
+
+try
+{
+    var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     {
-        // Application Insights: only enable when connection string is configured
-        if (!string.IsNullOrWhiteSpace(ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-            services.AddApplicationInsightsTelemetryWorkerService();
+        ContentRootPath = AppContext.BaseDirectory
+    });
+    var localSettingsPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+        "ComiCal", "Batch", "appsettings.Local.json");
+    builder.Configuration.AddJsonFile(localSettingsPath, optional: true);
+    builder.Configuration.AddEnvironmentVariables(prefix: "COMICAL_");
+    builder.Services.AddBatchInfrastructure(builder.Configuration);
 
-        services.AddApplicationServices();
+    using var host = builder.Build();
+    await host.StartAsync();
+    try
+    {
+        var ct = host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+        await using (var scope = host.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<SqlWarmup>().RunAsync(ct);
+        }
+        await host.Services.GetRequiredService<DailyFetchJob>().RunAsync(ct);
+    }
+    finally
+    {
+        await host.StopAsync();
+    }
 
-        var connectionString = ctx.Configuration["SqlConnectionString"]
-            ?? throw new InvalidOperationException("SqlConnectionString is required");
-        // Batch はユーザーに直接見えない非同期処理のため、Serverless の auto-resume
-        // （60〜120 秒程度）を確実に吸収できるよう長めの ConnectTimeout / リトライを使う。
-        // WarmupBatchTimer による事前 resume が効いていれば通常はここまで待たない。
-        services.AddSqlInfrastructure(connectionString, SqlInfrastructureOptions.BatchDefaults);
-
-        var storageUri = ctx.Configuration["StorageAccountUri"]
-            ?? throw new InvalidOperationException("StorageAccountUri is required");
-        services.AddBlobInfrastructure(storageUri);
-
-        var rakutenAppId = ctx.Configuration["RakutenApplicationId"]
-            ?? throw new InvalidOperationException("RakutenApplicationId is required");
-        var rakutenAccessKey = ctx.Configuration["RakutenAccessKey"]
-            ?? throw new InvalidOperationException("RakutenAccessKey is required");
-        var rakutenAffiliateId = ctx.Configuration["RakutenAffiliateId"]
-            ?? throw new InvalidOperationException("RakutenAffiliateId is required");
-        services.AddRakutenInfrastructure(rakutenAppId, rakutenAccessKey, rakutenAffiliateId);
-
-        // Durable Task orchestrators/activities are auto-discovered by
-        // Microsoft.Azure.Functions.Worker.Extensions.DurableTask — no manual registration needed.
-    })
-    .Build();
-
-await host.RunAsync();
+    return 0;
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex);
+    return 1;
+}

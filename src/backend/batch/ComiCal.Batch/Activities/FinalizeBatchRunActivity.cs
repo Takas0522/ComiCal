@@ -1,6 +1,5 @@
 using ComiCal.Batch.Models;
 using ComiCal.Domain.Repositories;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Activities;
@@ -9,10 +8,11 @@ public partial class FinalizeBatchRunActivity(
     IBatchRunRepository batchRunRepo,
     ILogger<FinalizeBatchRunActivity> logger)
 {
-    [Function("FinalizeBatchRunActivity")]
-    public async Task<bool> Run([ActivityTrigger] FinalizeBatchRunInput input)
+    public Task<bool> Run(FinalizeBatchRunInput input) => Run(input, CancellationToken.None);
+
+    public async Task<bool> Run(FinalizeBatchRunInput input, CancellationToken ct)
     {
-        var batchRun = await batchRunRepo.FindByIdAsync(input.BatchRunId);
+        var batchRun = await batchRunRepo.FindByIdAsync(input.BatchRunId, ct);
         if (batchRun is null)
         {
             LogBatchRunNotFound(logger, input.BatchRunId);
@@ -26,7 +26,7 @@ public partial class FinalizeBatchRunActivity(
             input.SkippedCount,
             input.FailedCount);
 
-        await batchRunRepo.UpdateAsync(batchRun);
+        await batchRunRepo.UpdateAsync(batchRun, ct);
 
         LogBatchRunFinalized(logger, input.BatchRunId, input.FetchedItemCount,
             input.UpsertedVolumeCount, input.DownloadedCount, input.FailedCount);

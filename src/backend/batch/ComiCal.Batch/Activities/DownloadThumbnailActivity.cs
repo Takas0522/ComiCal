@@ -1,7 +1,6 @@
 using ComiCal.Batch.Models;
 using ComiCal.Domain.Repositories;
 using ComiCal.Infrastructure.Blob;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Activities;
@@ -11,24 +10,25 @@ public partial class DownloadThumbnailActivity(
     IThumbnailAssetRepository thumbnailRepo,
     ILogger<DownloadThumbnailActivity> logger)
 {
-    [Function("DownloadThumbnailActivity")]
-    public async Task<DownloadThumbnailOutput> Run([ActivityTrigger] DownloadThumbnailInput input)
+    public Task<DownloadThumbnailOutput> Run(DownloadThumbnailInput input) => Run(input, CancellationToken.None);
+
+    public async Task<DownloadThumbnailOutput> Run(DownloadThumbnailInput input, CancellationToken ct)
     {
         try
         {
             var asset = await blobService.UploadThumbnailIfChangedAsync(
-                input.VolumeId, input.ImageUrl, input.ExistingHash);
+                input.VolumeId, input.ImageUrl, input.ExistingHash, ct);
 
             if (asset is null)
             {
                 return new DownloadThumbnailOutput(false, true, false, null);
             }
 
-            await thumbnailRepo.UpsertAsync(asset);
+            await thumbnailRepo.UpsertAsync(asset, ct);
             LogThumbnailDownloaded(logger, input.VolumeId);
             return new DownloadThumbnailOutput(true, false, false, null);
         }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             LogThumbnailFailed(logger, input.VolumeId, ex);
             return new DownloadThumbnailOutput(false, false, true, ex.Message);

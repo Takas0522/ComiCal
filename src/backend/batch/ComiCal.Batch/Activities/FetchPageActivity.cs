@@ -1,6 +1,5 @@
 using ComiCal.Batch.Models;
 using ComiCal.Infrastructure.Rakuten;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Activities;
@@ -9,8 +8,9 @@ public partial class FetchPageActivity(
     RakutenBooksApiClient rakutenClient,
     ILogger<FetchPageActivity> logger)
 {
-    [Function("FetchPageActivity")]
-    public async Task<FetchPageOutput> Run([ActivityTrigger] FetchPageInput input)
+    public Task<FetchPageOutput> Run(FetchPageInput input) => Run(input, CancellationToken.None);
+
+    public async Task<FetchPageOutput> Run(FetchPageInput input, CancellationToken ct)
     {
         using var scope = logger.BeginScope(new Dictionary<string, object?>
         {
@@ -19,7 +19,7 @@ public partial class FetchPageActivity(
         });
 
         var result = await rakutenClient.SearchComicsAsync(
-            input.Page, input.ReleaseDateFrom, input.ReleaseDateTo);
+            input.Page, input.ReleaseDateFrom, input.ReleaseDateTo, ct);
 
         var items = result.Items.Select(item => new RakutenVolumeData(
             item.Isbn,
@@ -33,7 +33,7 @@ public partial class FetchPageActivity(
 
         // Rakuten Books Search API caps queryable pages at 100 (page 101+ returns HTTP 400).
         // The `Last` field in the response can exceed this cap, so we clamp here to
-        // prevent FetchOrchestrator from chaining ContinueAsNew past the limit.
+        // keep pagination within the limit.
         const int RakutenMaxPage = 100;
         var totalPages = Math.Min(result.Last, RakutenMaxPage);
 
