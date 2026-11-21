@@ -23,7 +23,7 @@
 | フロントエンド | Angular v21 (Standalone / Signals / Zoneless / SSR) + Tailwind CSS v4 |
 | ホスティング | Azure Static Web Apps Standard |
 | バックエンド API | Azure Functions .NET 10 Isolated Worker |
-| バックエンドバッチ | Azure Durable Functions .NET 10 |
+| バックエンドバッチ | Durable Functions .NET 10（メンテナー PC でローカル実行。`tools/run-batch-local.ps1`） |
 | データベース | Azure SQL Database Serverless (EF Core 10 Database First) |
 | ストレージ | Azure Blob Storage |
 | 認証 | Entra External ID (Microsoft / Google / X) |
@@ -59,6 +59,9 @@ func start --csharp --port 7071 --prefix src/backend/api/ComiCal.Api
 # バックエンドバッチ (別ターミナル)
 func start --csharp --port 7072 --prefix src/backend/batch/ComiCal.Batch
 ```
+
+本番データに対する日次バッチはローカル PC から実行します（Azure には Batch をデプロイしません）。
+`tools/run-batch-local.ps1` で 1 回実行、`tools/register-batch-task.ps1` で毎日 03:00 に登録します（[ADR 0004](docs/adr/0004-azure-cost-reduction.md)）。
 
 ### 環境変数
 

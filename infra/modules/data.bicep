@@ -7,8 +7,11 @@ param env string
 @description('Azure region')
 param location string
 
-@description('Number of SQL vCores for the Serverless GP_S_Gen5 tier (1 for dev, 2 for prod)')
-param sqlVCores int = 1
+@description('Max SQL vCores for the Serverless GP_S_Gen5 tier (the free offer allows up to 4)')
+param sqlVCores int = 2
+
+@description('Apply the Azure SQL Database free offer (100,000 vCore-seconds / 32 GB per month). Cannot be applied to an existing paid database — migrate first.')
+param sqlUseFreeLimit bool = true
 
 @description('SQL Server administrator login name')
 param sqlAdminLogin string = 'sqladmin'
@@ -16,6 +19,9 @@ param sqlAdminLogin string = 'sqladmin'
 @secure()
 @description('SQL Server administrator password')
 param sqlAdminPassword string
+
+@description('Public IPv4 address of the local batch operator. Leave empty to skip creating the SQL firewall rule.')
+param batchOperatorIpAddress string = ''
 
 var sqlServerName = '${prefix}-${env}-jpe-sql'
 var sqlDatabaseName = '${prefix}-${env}-jpe-sqldb'
@@ -49,6 +55,15 @@ resource sqlFirewallAllowAzureServices 'Microsoft.Sql/servers/firewallRules@2023
   }
 }
 
+resource sqlFirewallBatchOperator 'Microsoft.Sql/servers/firewallRules@2023-08-01-preview' = if (!empty(batchOperatorIpAddress)) {
+  parent: sqlServer
+  name: 'batch-operator'
+  properties: {
+    startIpAddress: batchOperatorIpAddress
+    endIpAddress: batchOperatorIpAddress
+  }
+}
+
 resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   parent: sqlServer
   name: sqlDatabaseName
@@ -61,10 +76,18 @@ resource sqlDatabase 'Microsoft.Sql/servers/databases@2023-08-01-preview' = {
   }
   properties: {
     collation: 'Japanese_CI_AS'
-    // Auto-pause after 60 minutes of inactivity (cost optimisation)
-    autoPauseDelay: 60
-    // Minimum vCores when active; 1 keeps costs low while ensuring predictable cold-start
-    minCapacity: json('1.0')
+    // Auto-pause after 15 minutes of inactivity (the minimum since 2024-10). CPU usage is a few
+    // percent, so billing is dominated by "min vCores x time awake"; a short delay keeps it low.
+    autoPauseDelay: 15
+    // Lowest serverless minimum. Halves the billed vCore-seconds while the database is awake.
+    minCapacity: json('0.5')
+    // 32 GB is covered by the free offer. (Without the free offer, storage is billed on this
+    // configured max size, not on actual usage — shrink it if the free offer is disabled.)
+    maxSizeBytes: 34359738368
+    // Free offer: keep the database online and bill overage at normal rates instead of pausing
+    // the database until next month (which would take the site down).
+    useFreeLimit: sqlUseFreeLimit
+    freeLimitExhaustionBehavior: sqlUseFreeLimit ? 'BillOverUsage' : null
     // LRS for cost minimisation (DR not required per spec)
     requestedBackupStorageRedundancy: 'Local'
   }
@@ -107,19 +130,12 @@ resource containerSyncTmp 'Microsoft.Storage/storageAccounts/blobServices/contai
   }
 }
 
-// FlexConsumption deployment package containers (one per Function App).
+// FlexConsumption deployment package container for the API Function App.
 // The Function App's Managed Identity uploads its zip here on each deployment.
+// (The batch runs locally — see tools/run-batch-local.ps1 — so there is no batch package container.)
 resource containerAppPackageApi 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
   parent: blobService
   name: 'app-package-api'
-  properties: {
-    publicAccess: 'None'
-  }
-}
-
-resource containerAppPackageBatch 'Microsoft.Storage/storageAccounts/blobServices/containers@2023-05-01' = {
-  parent: blobService
-  name: 'app-package-batch'
   properties: {
     publicAccess: 'None'
   }

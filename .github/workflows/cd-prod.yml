@@ -62,6 +62,8 @@ jobs:
           RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
           RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          BATCH_OPERATOR_PRINCIPAL_ID: ${{ vars.BATCH_OPERATOR_PRINCIPAL_ID }}
+          BATCH_OPERATOR_IP_ADDRESS: ${{ vars.BATCH_OPERATOR_IP_ADDRESS }}
         run: |
           az deployment sub what-if \
             --location japaneast \
@@ -74,6 +76,8 @@ jobs:
           RAKUTEN_APPLICATION_ID: ${{ secrets.RAKUTEN_APPLICATION_ID }}
           RAKUTEN_ACCESS_KEY: ${{ secrets.RAKUTEN_ACCESS_KEY }}
           RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          BATCH_OPERATOR_PRINCIPAL_ID: ${{ vars.BATCH_OPERATOR_PRINCIPAL_ID }}
+          BATCH_OPERATOR_IP_ADDRESS: ${{ vars.BATCH_OPERATOR_IP_ADDRESS }}
         run: |
           az deployment sub create \
             --location japaneast \
@@ -88,98 +92,63 @@ jobs:
           SQL_FQDN=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlServerFqdn.value" -o tsv)
           SQL_DB=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.sqlDatabaseName.value" -o tsv)
           API_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcApiName.value" -o tsv)
-          BATCH_APP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.funcBatchName.value" -o tsv)
           STORAGE_ACCOUNT=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.storageAccountName.value" -o tsv)
           SWA_HOST=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.swaDefaultHostname.value" -o tsv)
-          EGRESS_IP=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.batchEgressPublicIpAddress.value" -o tsv)
           RG=$(az deployment sub show --name "$DEPLOY_NAME" --query "properties.outputs.resourceGroupName.value" -o tsv)
-          echo "sqlFqdn=$SQL_FQDN" >> $GITHUB_OUTPUT
-          echo "sqlDb=$SQL_DB" >> $GITHUB_OUTPUT
-          echo "apiApp=$API_APP" >> $GITHUB_OUTPUT
-          echo "batchApp=$BATCH_APP" >> $GITHUB_OUTPUT
-          echo "storageAccount=$STORAGE_ACCOUNT" >> $GITHUB_OUTPUT
-          echo "swaHost=$SWA_HOST" >> $GITHUB_OUTPUT
-          echo "egressIp=$EGRESS_IP" >> $GITHUB_OUTPUT
-          echo "rg=$RG" >> $GITHUB_OUTPUT
+          {
+            echo "sqlFqdn=$SQL_FQDN"
+            echo "sqlDb=$SQL_DB"
+            echo "apiApp=$API_APP"
+            echo "storageAccount=$STORAGE_ACCOUNT"
+            echo "swaHost=$SWA_HOST"
+            echo "rg=$RG"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Validate production runtime prerequisites
         run: |
           set -euo pipefail
           RG='${{ steps.outputs.outputs.rg }}'
           API_APP='${{ steps.outputs.outputs.apiApp }}'
-          BATCH_APP='${{ steps.outputs.outputs.batchApp }}'
           STORAGE_ACCOUNT='${{ steps.outputs.outputs.storageAccount }}'
-          EGRESS_IP='${{ steps.outputs.outputs.egressIp }}'
           SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 
+          # The API must not depend on a static egress IP any more (NAT Gateway was removed;
+          # the Rakuten API is only called by the locally run batch — see ADR 0004).
           API_SUBNET=$(az resource show \
             --ids "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$API_APP" \
             --api-version 2024-04-01 \
             --query properties.virtualNetworkSubnetId -o tsv)
-          BATCH_SUBNET=$(az resource show \
-            --ids "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$BATCH_APP" \
-            --api-version 2024-04-01 \
-            --query properties.virtualNetworkSubnetId -o tsv)
-
-          if [ -z "$API_SUBNET" ] || [ "$API_SUBNET" != "$BATCH_SUBNET" ]; then
-            echo "::error::API and Batch must share the same NAT-backed Function subnet."
-            echo "API_SUBNET=$API_SUBNET"
-            echo "BATCH_SUBNET=$BATCH_SUBNET"
-            exit 1
+          if [ -n "$API_SUBNET" ]; then
+            echo "::warning::$API_APP is still VNet-integrated ($API_SUBNET). Run plan/scripts/apply-06-remove-network.ps1."
           fi
-
-          ACTUAL_EGRESS_IP=$(az network public-ip list \
-            --resource-group "$RG" \
-            --query "[?ipAddress=='$EGRESS_IP'].ipAddress | [0]" -o tsv)
-          if [ "$ACTUAL_EGRESS_IP" != "$EGRESS_IP" ]; then
-            echo "::error::The deployment egress IP does not match a provisioned static public IP."
-            exit 1
-          fi
-          echo "::notice::Rakuten allowlisted production egress IP: $EGRESS_IP"
 
           STORAGE_ID=$(az storage account show \
             --resource-group "$RG" \
             --name "$STORAGE_ACCOUNT" \
             --query id -o tsv)
-          for APP in "$API_APP" "$BATCH_APP"; do
-            PRINCIPAL_ID=$(az functionapp identity show \
-              --resource-group "$RG" \
-              --name "$APP" \
-              --query principalId -o tsv)
-            BLOB_ROLE_COUNT=$(az role assignment list \
-              --assignee-object-id "$PRINCIPAL_ID" \
-              --scope "$STORAGE_ID" \
-              --query "[?roleDefinitionName=='Storage Blob Data Owner'] | length(@)" -o tsv)
-            if [ "$BLOB_ROLE_COUNT" -lt 1 ]; then
-              echo "::error::$APP is missing Storage Blob Data Owner on $STORAGE_ACCOUNT."
-              exit 1
-            fi
-          done
+          PRINCIPAL_ID=$(az functionapp identity show \
+            --resource-group "$RG" \
+            --name "$API_APP" \
+            --query principalId -o tsv)
+          BLOB_ROLE_COUNT=$(az role assignment list \
+            --assignee-object-id "$PRINCIPAL_ID" \
+            --scope "$STORAGE_ID" \
+            --query "[?roleDefinitionName=='Storage Blob Data Owner'] | length(@)" -o tsv)
+          if [ "$BLOB_ROLE_COUNT" -lt 1 ]; then
+            echo "::error::$API_APP is missing Storage Blob Data Owner on $STORAGE_ACCOUNT."
+            exit 1
+          fi
 
-          KV_SETTINGS=(
-            APPLICATIONINSIGHTS_CONNECTION_STRING
-            RakutenApplicationId
-            RakutenAccessKey
-            RakutenAffiliateId
-          )
           for attempt in {1..18}; do
-            unresolved=0
-            for APP in "$API_APP" "$BATCH_APP"; do
-              for SETTING in "${KV_SETTINGS[@]}"; do
-                STATUS=$(az rest --method get \
-                  --url "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$APP/config/configreferences/appsettings/$SETTING?api-version=2024-04-01" \
-                  --query properties.status -o tsv 2>/dev/null || true)
-                if [ "$STATUS" != "Resolved" ]; then
-                  echo "Waiting for $APP/$SETTING Key Vault reference (status=${STATUS:-unknown}, attempt $attempt/18)."
-                  unresolved=1
-                fi
-              done
-            done
-            if [ "$unresolved" -eq 0 ]; then
+            STATUS=$(az rest --method get \
+              --url "https://management.azure.com/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RG/providers/Microsoft.Web/sites/$API_APP/config/configreferences/appsettings/APPLICATIONINSIGHTS_CONNECTION_STRING?api-version=2024-04-01" \
+              --query properties.status -o tsv 2>/dev/null || true)
+            if [ "$STATUS" = "Resolved" ]; then
               break
             fi
+            echo "Waiting for $API_APP/APPLICATIONINSIGHTS_CONNECTION_STRING Key Vault reference (status=${STATUS:-unknown}, attempt $attempt/18)."
             if [ "$attempt" -eq 18 ]; then
-              echo "::error::One or more production Key Vault references did not resolve."
+              echo "::error::The production Key Vault reference did not resolve."
               exit 1
             fi
             sleep 10
@@ -216,10 +185,12 @@ jobs:
             /p:BlockOnPossibleDataLoss=true \
             /p:BackupDatabaseBeforeChanges=false
 
-      - name: Grant Function MIs DB access
-        # Idempotently CREATE USER FROM EXTERNAL PROVIDER (via SID) and grant
-        # db_datareader / db_datawriter to the API and Batch Function App MIs.
-        # Mirrors the equivalent step in cd-dev.yml.
+      - name: Grant DB access (API MI and local batch operator)
+        # Idempotently CREATE USER (via SID) and grant db_datareader / db_datawriter /
+        # EXECUTE to the API Function App MI and, when configured, to the maintainer who
+        # runs the batch locally (vars.BATCH_OPERATOR_PRINCIPAL_ID, an Entra user object ID).
+        env:
+          BATCH_OPERATOR_PRINCIPAL_ID: ${{ vars.BATCH_OPERATOR_PRINCIPAL_ID }}
         run: |
           set -euo pipefail
           # Install go-sqlcmd (single static binary; uses az CLI session for AAD auth)
@@ -230,98 +201,59 @@ jobs:
 
           RG='${{ steps.outputs.outputs.rg }}'
           API_APP='${{ steps.outputs.outputs.apiApp }}'
-          BATCH_APP='${{ steps.outputs.outputs.batchApp }}'
           SQL_FQDN='${{ steps.outputs.outputs.sqlFqdn }}'
           SQL_DB='${{ steps.outputs.outputs.sqlDb }}'
 
           # For Service Principals (Managed Identity included), Azure SQL
           # expects the database user SID to be derived from the AAD
           # *application ID* (appId) — NOT the principal/object ID.
-          # If we use the objectId, CREATE USER succeeds but the MI's
-          # token is rejected at login as "<token-identified principal>".
+          # For Entra *users*, the SID is derived from the object ID.
           API_PID=$(az functionapp identity show -g "$RG" -n "$API_APP" --query principalId -o tsv)
-          BATCH_PID=$(az functionapp identity show -g "$RG" -n "$BATCH_APP" --query principalId -o tsv)
           API_APPID=$(az ad sp show --id "$API_PID" --query appId -o tsv)
-          BATCH_APPID=$(az ad sp show --id "$BATCH_PID" --query appId -o tsv)
-
-          if [ -z "$API_APPID" ] || [ -z "$BATCH_APPID" ]; then
-            echo "Failed to resolve appId for one or both Function App MIs." >&2
-            echo "API_APPID=$API_APPID BATCH_APPID=$BATCH_APPID" >&2
+          if [ -z "$API_APPID" ]; then
+            echo "Failed to resolve appId for the API Function App MI." >&2
             exit 1
           fi
 
-          cat > /tmp/grant.sql <<SQL
+          grant_sql() {
+            local name="$1" guid="$2"
+            cat <<SQL
           SET NOCOUNT ON;
-          DECLARE @apiName    sysname          = N'$API_APP';
-          DECLARE @apiAppId   uniqueidentifier = N'$API_APPID';
-          DECLARE @bchName    sysname          = N'$BATCH_APP';
-          DECLARE @bchAppId   uniqueidentifier = N'$BATCH_APPID';
-          DECLARE @apiSid     varbinary(16)    = CONVERT(varbinary(16), @apiAppId);
-          DECLARE @bchSid     varbinary(16)    = CONVERT(varbinary(16), @bchAppId);
-
-          -- If a user with the same name exists but with the wrong SID
-          -- (e.g. previously created from objectId), drop it so we can
-          -- recreate it with the correct appId-based SID.
-          IF EXISTS (
-              SELECT 1 FROM sys.database_principals
-              WHERE name = @apiName AND sid <> @apiSid
-          )
+          DECLARE @name sysname          = N'$name';
+          DECLARE @id   uniqueidentifier = N'$guid';
+          DECLARE @sid  varbinary(16)    = CONVERT(varbinary(16), @id);
+          IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @name AND sid <> @sid)
           BEGIN
-              DECLARE @dropApi nvarchar(max) = N'DROP USER ' + QUOTENAME(@apiName);
-              EXEC sp_executesql @dropApi;
+              DECLARE @drop nvarchar(max) = N'DROP USER ' + QUOTENAME(@name);
+              EXEC sp_executesql @drop;
           END;
-          IF EXISTS (
-              SELECT 1 FROM sys.database_principals
-              WHERE name = @bchName AND sid <> @bchSid
-          )
+          IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @name)
           BEGIN
-              DECLARE @dropBch nvarchar(max) = N'DROP USER ' + QUOTENAME(@bchName);
-              EXEC sp_executesql @dropBch;
+              DECLARE @create nvarchar(max) = N'CREATE USER ' + QUOTENAME(@name)
+                  + N' WITH SID = ' + CONVERT(nvarchar(100), @sid, 1) + N', TYPE = E';
+              EXEC sp_executesql @create;
           END;
-
-          IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @apiName)
+          IF ISNULL(IS_ROLEMEMBER(N'db_datareader', @name), 0) = 0
           BEGIN
-              DECLARE @apiSql nvarchar(max) = N'CREATE USER ' + QUOTENAME(@apiName)
-                  + N' WITH SID = ' + CONVERT(nvarchar(100), @apiSid, 1) + N', TYPE = E';
-              EXEC sp_executesql @apiSql;
+              DECLARE @r nvarchar(max) = N'ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@name);
+              EXEC sp_executesql @r;
           END;
-
-          IF NOT EXISTS (SELECT 1 FROM sys.database_principals WHERE name = @bchName)
+          IF ISNULL(IS_ROLEMEMBER(N'db_datawriter', @name), 0) = 0
           BEGIN
-              DECLARE @bchSql nvarchar(max) = N'CREATE USER ' + QUOTENAME(@bchName)
-                  + N' WITH SID = ' + CONVERT(nvarchar(100), @bchSid, 1) + N', TYPE = E';
-              EXEC sp_executesql @bchSql;
+              DECLARE @w nvarchar(max) = N'ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@name);
+              EXEC sp_executesql @w;
           END;
-
-          DECLARE @addRoleApiR  nvarchar(max) = N'ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@apiName);
-          DECLARE @addRoleApiW  nvarchar(max) = N'ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@apiName);
-          DECLARE @addRoleBchR  nvarchar(max) = N'ALTER ROLE db_datareader ADD MEMBER ' + QUOTENAME(@bchName);
-          DECLARE @addRoleBchW  nvarchar(max) = N'ALTER ROLE db_datawriter ADD MEMBER ' + QUOTENAME(@bchName);
-
-          IF NOT EXISTS (SELECT 1 FROM sys.database_role_members rm
-              JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
-              JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
-              WHERE r.name = N'db_datareader' AND m.name = @apiName) EXEC sp_executesql @addRoleApiR;
-          IF NOT EXISTS (SELECT 1 FROM sys.database_role_members rm
-              JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
-              JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
-              WHERE r.name = N'db_datawriter' AND m.name = @apiName) EXEC sp_executesql @addRoleApiW;
-          IF NOT EXISTS (SELECT 1 FROM sys.database_role_members rm
-              JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
-              JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
-              WHERE r.name = N'db_datareader' AND m.name = @bchName) EXEC sp_executesql @addRoleBchR;
-          IF NOT EXISTS (SELECT 1 FROM sys.database_role_members rm
-              JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
-              JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
-              WHERE r.name = N'db_datawriter' AND m.name = @bchName) EXEC sp_executesql @addRoleBchW;
-
-          -- Grant EXECUTE on scalar functions / stored procs (e.g. dbo.fnToHiragana).
-          -- db_datareader / db_datawriter alone do NOT include EXECUTE.
-          DECLARE @grantApi nvarchar(max) = N'GRANT EXECUTE TO ' + QUOTENAME(@apiName);
-          DECLARE @grantBch nvarchar(max) = N'GRANT EXECUTE TO ' + QUOTENAME(@bchName);
-          EXEC sp_executesql @grantApi;
-          EXEC sp_executesql @grantBch;
+          -- db_datareader / db_datawriter alone do NOT include EXECUTE (e.g. dbo.fnToHiragana).
+          DECLARE @x nvarchar(max) = N'GRANT EXECUTE TO ' + QUOTENAME(@name);
+          EXEC sp_executesql @x;
+          GO
           SQL
+          }
+
+          grant_sql "$API_APP" "$API_APPID" > /tmp/grant.sql
+          if [ -n "${BATCH_OPERATOR_PRINCIPAL_ID:-}" ]; then
+            grant_sql "comical-batch-operator" "$BATCH_OPERATOR_PRINCIPAL_ID" >> /tmp/grant.sql
+          fi
 
           # Authenticate via the active az CLI session (the OIDC SP that
           # was just set as the SQL Entra admin in the previous step).
@@ -337,16 +269,15 @@ jobs:
           cp src/frontend/dist/frontend/browser/index.csr.html src/frontend/dist/frontend/browser/index.html
           cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
 
-      - name: Publish Functions
+      # The batch (src/backend/batch) is not deployed to Azure; it runs locally via
+      # tools/run-batch-local.ps1 (see ADR 0004).
+      - name: Publish API Functions
         run: |
           dotnet publish src/backend/api/ComiCal.Api/ComiCal.Api.csproj -c Release -o ./publish/api
-          dotnet publish src/backend/batch/ComiCal.Batch/ComiCal.Batch.csproj -c Release -o ./publish/batch
           cd publish/api && zip -r ../../api.zip . && cd ../..
-          cd publish/batch && zip -r ../../batch.zip . && cd ../..
 
-      # NOTE: Function Apps run on Flex Consumption (FC1), which does not
-      # support deployment slots. Deploy directly to the production app
-      # (same approach as cd-dev.yml).
+      # NOTE: The Function App runs on Flex Consumption (FC1), which does not
+      # support deployment slots. Deploy directly to the production app.
       - name: Deploy API to Azure Functions
         run: |
           az functionapp deployment source config-zip \
@@ -354,27 +285,18 @@ jobs:
             --name "${{ steps.outputs.outputs.apiApp }}" \
             --src api.zip
 
-      - name: Deploy Batch to Azure Functions
-        run: |
-          az functionapp deployment source config-zip \
-            --resource-group "${{ steps.outputs.outputs.rg }}" \
-            --name "${{ steps.outputs.outputs.batchApp }}" \
-            --src batch.zip
-
       - name: Verify production Functions
         run: |
           set -euo pipefail
           RG='${{ steps.outputs.outputs.rg }}'
           API_APP='${{ steps.outputs.outputs.apiApp }}'
-          BATCH_APP='${{ steps.outputs.outputs.batchApp }}'
 
           for attempt in {1..20}; do
             API_COUNT=$(az functionapp function list -g "$RG" -n "$API_APP" --query 'length(@)' -o tsv)
-            BATCH_COUNT=$(az functionapp function list -g "$RG" -n "$BATCH_APP" --query 'length(@)' -o tsv)
-            if [ "$API_COUNT" -eq 13 ] && [ "$BATCH_COUNT" -eq 11 ]; then
+            if [ "$API_COUNT" -eq 13 ]; then
               break
             fi
-            echo "Waiting for Function indexing: API=$API_COUNT/13 Batch=$BATCH_COUNT/11 (attempt $attempt/20)."
+            echo "Waiting for Function indexing: API=$API_COUNT/13 (attempt $attempt/20)."
             if [ "$attempt" -eq 20 ]; then
               echo "::error::Production Functions were not indexed with the expected counts."
               exit 1

@@ -11,13 +11,13 @@ applyTo: 'infra/**'
 infra/
 ├── main.bicep
 ├── modules/
-│   ├── network.bicep         # VNet / Private Endpoint（必要時）
-│   ├── data.bicep            # SQL / Storage
-│   ├── app.bicep             # SWA / Functions / Key Vault / App Configuration
-│   └── observability.bicep   # App Insights / Log Analytics / Alerts
+│   ├── data.bicep            # SQL（Serverless, 無料オファー）/ Storage
+│   ├── app.bicep             # SWA / Functions(API) / Key Vault
+│   ├── batch-operator.bicep  # ローカル Batch 実行者の RBAC
+│   ├── budget.bicep          # 月次予算アラート
+│   └── observability.bicep   # App Insights / Log Analytics / Action Group
 ├── params/
-│   ├── dev.bicepparam
-│   └── prod.bicepparam
+│   └── prod.bicepparam       # 環境は prod のみ（Stage は廃止: ADR 0004）
 └── README.md
 ```
 
@@ -46,8 +46,9 @@ param sqlAdminPassword string
 
 ## bicepparam（環境差分）
 
-- `params/dev.bicepparam` と `params/prod.bicepparam` を同期して維持
-- 環境固有の値（SKU、リージョン、ホスト名）はここに
+- 環境は **prod のみ**（Stage/dev は 2026-11 に廃止。ADR 0004）
+- 環境固有の値（SKU、リージョン、ホスト名）は `params/prod.bicepparam` に
+- **固定費の出るリソース（NAT Gateway / App Configuration Standard / 常時課金のアラート等）を追加する場合は ADR を書く**
 
 ## モジュール参照
 

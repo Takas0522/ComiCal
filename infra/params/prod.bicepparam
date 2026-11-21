@@ -6,17 +6,20 @@ using '../main.bicep'
 param env = 'prod'
 param location = 'japaneast'
 param sqlVCores = 2
-param logRetentionDays = 90
+// Requires the database to have been migrated to the free offer first
+// (plan/scripts/apply-07-sql-free-offer.ps1). An existing paid database cannot be converted.
+param sqlUseFreeLimit = true
+param logRetentionDays = 30
+param logDailyQuotaGb = '0.2'
 param enablePurgeProtection = true
 param alertWebhookUrl = ''
 param alertEmailAddress = readEnvironmentVariable('ALERT_EMAIL_ADDRESS', '')
+param monthlyBudgetAmount = 3000
+param budgetStartDate = '2026-11-01'
+// Entra object ID of the maintainer who runs tools/run-batch-local.ps1 (GitHub variable).
+param batchOperatorPrincipalId = readEnvironmentVariable('BATCH_OPERATOR_PRINCIPAL_ID', '')
+param batchOperatorIpAddress = readEnvironmentVariable('BATCH_OPERATOR_IP_ADDRESS', '')
 param sqlAdminPassword = readEnvironmentVariable('SQL_ADMIN_PASSWORD')
 param rakutenApplicationId = readEnvironmentVariable('RAKUTEN_APPLICATION_ID')
 param rakutenAccessKey = readEnvironmentVariable('RAKUTEN_ACCESS_KEY')
 param rakutenAffiliateId = readEnvironmentVariable('RAKUTEN_AFFILIATE_ID')
-
-// Keep the production schedule explicit so a future main.bicep default change cannot move it.
-// dev is offset +6h from this (see infra/params/dev.bicepparam) so the two environments — which
-// share the same Rakuten API credentials — never call the Rakuten Books API concurrently.
-param dailyBatchCronExpression = '0 0 18 * * *' // 18:00 UTC = 03:00 JST
-param warmupBatchCronExpression = '0 50 17 * * *' // 17:50 UTC = 02:50 JST

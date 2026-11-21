@@ -33,7 +33,7 @@ allowed-tools: Bash, Read, Write, Edit
 - [ ] Superseded 関係があれば双方向リンク
 
 ### 5. インフラ what-if
-- [ ] dev: `az deployment sub what-if --parameters infra/params/dev.bicepparam`
+- [ ] dev: `az deployment sub what-if --parameters infra/params/prod.bicepparam`
 - [ ] prod: `az deployment sub what-if --parameters infra/params/prod.bicepparam`
 - [ ] 想定外の差分がないこと
 

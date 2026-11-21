@@ -7,9 +7,10 @@ applyTo: 'src/backend/batch/**'
 
 ## ランタイム
 
-- **.NET 10 Isolated Worker** + **Durable Functions** + **Consumption Plan**
-- スケジュール: **毎日 03:00 JST フル収集**（Timer Trigger）
-- 手動起動: 管理者用 HTTP Trigger（Function Key + Entra 保護）
+- **.NET 10 Isolated Worker** + **Durable Functions**
+- **Azure にはデプロイしない**。メンテナー PC で `tools/run-batch-local.ps1` から実行（タスクハブは Azurite、本番 SQL / Blob へは `az login` の資格情報で接続）。楽天 API の IP 許可は自宅のグローバル IP（ADR 0004）
+- スケジュール: **毎日 03:00 JST フル収集**（Windows タスク スケジューラ。`tools/register-batch-task.ps1`）。Timer Trigger はローカル実行では無効化
+- 手動起動: `tools/run-batch-local.ps1` を実行（内部で HTTP Trigger `POST /api/batch/trigger` を呼ぶ）
 
 ## Determinism（Orchestrator のルール）
 

@@ -10,7 +10,7 @@ allowed-tools: Read, Write, Edit, Bash
 ## 配置
 
 - `infra/modules/<name>.bicep`
-- 環境差分: `infra/params/dev.bicepparam`, `infra/params/prod.bicepparam`
+- 環境差分: `infra/params/prod.bicepparam`（環境は prod のみ）
 
 ## 必須要件
 
@@ -63,7 +63,7 @@ az bicep build --file infra/modules/<name>.bicep
 az bicep lint --file infra/modules/<name>.bicep
 az deployment sub what-if --location japaneast \
   --template-file infra/main.bicep \
-  --parameters infra/params/dev.bicepparam
+  --parameters infra/params/prod.bicepparam
 ```
 
 ## main.bicep への統合

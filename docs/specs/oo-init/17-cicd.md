@@ -1,5 +1,9 @@
 # 17. CI / CD / リリース
 
+> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 以下の記述のうち、次の点は現行構成と異なります。
+>
+> - `cd-dev.yml` / `dev-sql-nightly-pause.yml` / `pr-preview.yml` は削除。`cd-prod.yml` は API と SWA のみをデプロイ（Batch はデプロイしない）。
+
 ## 17.1 パイプライン全体像
 
 ```mermaid

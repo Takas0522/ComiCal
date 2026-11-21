@@ -1,6 +1,7 @@
 # ComiCal — Bicep IaC
 
-Azure インフラストラクチャを Bicep で管理します。ファイル構成と各モジュールの責務は以下の通りです。
+Azure インフラストラクチャを Bicep で管理します。環境は **prod のみ** です（Stage/dev は 2026-11 にコスト削減のため廃止。[ADR 0004](../docs/adr/0004-azure-cost-reduction.md)）。
+日次バッチは Azure にデプロイせず、メンテナー PC で実行します（`tools/run-batch-local.ps1`）。
 
 ## ディレクトリ構成
 
@@ -8,72 +9,40 @@ Azure インフラストラクチャを Bicep で管理します。ファイル�
 infra/
 ├── main.bicep                  # サブスクリプションスコープのエントリポイント・RG作成
 ├── modules/
-│   ├── observability.bicep     # Log Analytics / App Insights / Action Group / Alert
-│   ├── data.bicep              # SQL Database Serverless / Storage Account
-│   └── app.bicep               # SWA / Function Apps / Key Vault / App Configuration
+│   ├── observability.bicep     # Log Analytics / App Insights / Action Group
+│   ├── data.bicep              # SQL Database Serverless（無料オファー）/ Storage Account
+│   ├── app.bicep               # SWA / Function App (API) / Key Vault
+│   ├── batch-operator.bicep    # ローカル Batch 実行者の RBAC（Blob 書き込み / KV シークレット読み取り）
+│   └── budget.bicep            # RG の月次予算アラート
 └── params/
-    ├── dev.bicepparam
     └── prod.bicepparam
 ```
 
 ## 前提条件
 
-- Azure CLI (`az`) がインストール済みであること
-- Bicep CLI (`bicep`) がインストール済みであること
+- Azure CLI (`az`) がインストール済みであること（Bicep は `az bicep` で自動導入）
 - OIDC フェデレーテッドクレデンシャルでサブスクリプションへのアクセス権があること
-- GitHub Actions シークレット `SQL_ADMIN_PASSWORD` が設定済みであること
+- GitHub Actions（environment: prod）のシークレット / 変数が設定済みであること
 
-## 環境変数
+## 環境変数（CI/CD）
 
-| 変数名 | 説明 |
-|---|---|
-| `SQL_ADMIN_PASSWORD` | SQL Server 管理者パスワード（CI/CD シークレット） |
-| `ALERT_WEBHOOK_URL` | Slack / Teams 通知 URL（省略可） |
+| 変数名 | 種別 | 説明 |
+|---|---|---|
+| `SQL_ADMIN_PASSWORD` | secret | SQL Server 管理者パスワード |
+| `RAKUTEN_APPLICATION_ID` / `RAKUTEN_ACCESS_KEY` / `RAKUTEN_AFFILIATE_ID` | secret | 楽天 API 認証情報（Key Vault に格納し、ローカル Batch が参照） |
+| `ALERT_EMAIL_ADDRESS` | secret/var | アラート・予算通知先（省略可） |
+| `BATCH_OPERATOR_PRINCIPAL_ID` | var | ローカル Batch を実行するユーザーの Entra objectId（省略可） |
+| `BATCH_OPERATOR_IP_ADDRESS` | var | ローカル Batch を実行するメンテナーの自宅のグローバル IPv4 アドレス。SQL Server にこの IP だけを許可する常設規則 `batch-operator` を作成する。未設定または空の場合は規則の作成をスキップする。 |
 
-## 構文チェック
+## What-If / デプロイ
+
+本番デプロイは `v*` タグの push（`.github/workflows/cd-prod.yml`）で行います。手動の差分確認:
 
 ```bash
-bicep build infra/main.bicep
-```
-
-## What-If (差分確認)
-
-```bash
-# dev 環境
 az deployment sub what-if \
   --location japaneast \
   --template-file infra/main.bicep \
-  --parameters infra/params/dev.bicepparam \
-  --parameters sqlAdminPassword="$SQL_ADMIN_PASSWORD"
-
-# prod 環境
-az deployment sub what-if \
-  --location japaneast \
-  --template-file infra/main.bicep \
-  --parameters infra/params/prod.bicepparam \
-  --parameters sqlAdminPassword="$SQL_ADMIN_PASSWORD" \
-  --parameters alertWebhookUrl="$ALERT_WEBHOOK_URL"
-```
-
-## デプロイ
-
-```bash
-# dev 環境
-az deployment sub create \
-  --location japaneast \
-  --name "cmcl-dev-$(date +%Y%m%d-%H%M%S)" \
-  --template-file infra/main.bicep \
-  --parameters infra/params/dev.bicepparam \
-  --parameters sqlAdminPassword="$SQL_ADMIN_PASSWORD"
-
-# prod 環境（手動承認後）
-az deployment sub create \
-  --location japaneast \
-  --name "cmcl-prod-$(date +%Y%m%d-%H%M%S)" \
-  --template-file infra/main.bicep \
-  --parameters infra/params/prod.bicepparam \
-  --parameters sqlAdminPassword="$SQL_ADMIN_PASSWORD" \
-  --parameters alertWebhookUrl="$ALERT_WEBHOOK_URL"
+  --parameters infra/params/prod.bicepparam
 ```
 
 ## モジュール詳細
@@ -82,51 +51,53 @@ az deployment sub create \
 
 | リソース | 命名 | 備考 |
 |---|---|---|
-| Log Analytics Workspace | `cmcl-{env}-jpe-log` | dev=30日 / prod=90日保持 |
-| Application Insights | `cmcl-{env}-jpe-appi` | Workspace-based (LogAnalytics) |
-| Action Group | `cmcl-{env}-jpe-ag` | Webhook optional |
-| Alert Rule | `cmcl-{env}-jpe-alert-batch-failed` | batch.failedItem >= 5 で発火 |
+| Log Analytics Workspace | `cmcl-prod-jpe-log` | 保持 30 日 / 日次上限 0.2 GB |
+| Application Insights | `cmcl-prod-jpe-appi` | Workspace-based |
+| Action Group | `cmcl-prod-jpe-ag` | メール / Webhook（予算通知にも使用） |
+
+ログアラートは常時課金のため配置しません（旧 Batch 失敗アラートは Batch のローカル化に伴い削除）。
 
 ### data.bicep
 
 | リソース | 命名 | 備考 |
 |---|---|---|
-| SQL Server | `cmcl-{env}-jpe-sql` | System Assigned MI |
-| SQL Database | `cmcl-{env}-jpe-sqldb` | GP_S_Gen5, auto-pause 60分 |
-| Storage Account | `cmcl{env}jpest` | StorageV2 / Standard_LRS |
+| SQL Server | `cmcl-prod-jpe-sql` | System Assigned MI |
+| SQL Database | `cmcl-prod-jpe-sqldb` | GP_S_Gen5_2, **無料オファー**（超過時は課金継続）, min 0.5 vCore, auto-pause 15 分, 32 GB |
+| Storage Account | `cmclprodjpest` | StorageV2 / Standard_LRS |
 | Blob Container | `covers` | public read (表紙画像直接配信) |
-| Blob Container | `sync-tmp` | private (バッチ一時ファイル) |
+| Blob Container | `sync-tmp` | private（1 日で自動削除） |
+| Blob Container | `app-package-api` | Flex Consumption のデプロイパッケージ |
 | Queue | `failed-items-dlq` | バッチ失敗キュー |
 
-> **補足**: `sync-tmp` コンテナのライフサイクルポリシーは 1 日削除（Azure Blob ライフサイクル管理の最小単位）。
-> 設計上の 5 分 TTL はアプリケーション側（バッチ完了後に即削除）で担保します。
+> 既存の有償 DB は無料オファーに変換できません。`sqlUseFreeLimit = true` の状態でデプロイする前に
+> `plan/scripts/apply-07-sql-free-offer.ps1` で DB を移行してください。
 
 ### app.bicep
 
 | リソース | 命名 | 備考 |
 |---|---|---|
-| Key Vault | `cmcl-{env}-jpe-kv` | RBAC モード, Soft-delete |
-| Static Web App | `cmcl-{env}-jpe-swa` | Standard, Linked Backend |
-| Function App (API) | `cmcl-{env}-jpe-func-api` | Consumption Linux, .NET 10 Isolated |
-| Function App (Batch) | `cmcl-{env}-jpe-func-batch` | Consumption Linux, .NET 10 Isolated |
-| App Configuration | `cmcl-{env}-jpe-appcfg` | Standard, Feature Flags |
+| Key Vault | `cmcl-prod-jpe-kv` | RBAC モード, Soft-delete, Purge protection |
+| Static Web App | `cmcl-prod-jpe-swa` | Standard（linked backend とカスタム認証のため） |
+| Function App (API) | `cmcl-prod-jpe-func-api` | Flex Consumption, .NET 10 Isolated, 最大 10 インスタンス, VNet 統合なし |
 
-**Key Vault シークレット**:
-- `AzureWebJobsStorage` — Storage Account 接続文字列
-- `AppInsightsConnectionString` — Application Insights 接続文字列
+API は楽天 API を呼びません（静的な送信元 IP を持たないため。検索は DB のみ）。
 
-**Feature Flags** (すべて初期値 `false`):
-- `discovery-recommend`
-- `calendar-ab-test`
-- `entra-login-rollout`
+**Key Vault シークレット**: `AzureWebJobsStorage`, `AppInsightsConnectionString`, `RakutenAppId`, `RakutenAccessKey`, `RakutenAffiliateId`
+
+### batch-operator.bicep / budget.bicep
+
+- `batchOperatorPrincipalId` 指定時のみ: 実行ユーザーに Storage Blob Data Contributor と Key Vault Secrets User を付与。DB ユーザーは `cd-prod.yml` の Grant ステップで作成。
+- `cmcl-prod-jpe-budget`: 月 3,000 円。実績 80% / 100%、予測 100% で Action Group に通知。
+
+## 注意: Incremental デプロイ
+
+`az deployment sub create` は Incremental モードのため、Bicep から削除したリソースは Azure から自動では消えません。
+削除は `plan/scripts/apply-0*.ps1` のように明示的に行います。
 
 ## ロールバック
 
 ```bash
-# 直前のデプロイ名を確認
-az deployment sub list --query "[?starts_with(name,'cmcl-dev')].{name:name,time:properties.timestamp}" -o table
-
-# 直前バージョンの Bicep を再デプロイ（Git で前コミットを取得して再実行）
+az deployment sub list --query "[?starts_with(name,'deploy-prod')].{name:name,time:properties.timestamp}" -o table
 git checkout <previous-sha> -- infra/
 az deployment sub create ...
 ```

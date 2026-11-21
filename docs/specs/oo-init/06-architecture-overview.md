@@ -1,5 +1,9 @@
 # 06. アーキテクチャ概要
 
+> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 以下の記述のうち、次の点は現行構成と異なります。
+>
+> - Batch は Azure にデプロイせずメンテナー PC で実行。API は楽天 API を呼ばない（検索は DB のみ）。VNet / NAT Gateway / App Configuration は廃止。
+
 ## 6.1 技術スタック（latest = 2026 年 4 月時点）
 
 | 区分 | 採用技術 | 備考 |

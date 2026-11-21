@@ -1,5 +1,10 @@
 # 13. インフラ仕様 (Azure / Bicep)
 
+> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 以下の記述のうち、次の点は現行構成と異なります。
+>
+> - 環境は prod のみ（Stage/dev 廃止）。`network.bicep` / `dev.bicepparam` / App Configuration / Batch Function App は削除。
+> - SQL は無料オファー（min 0.5 vCore / auto-pause 15 分）、月次予算 `cmcl-prod-jpe-budget` を追加。最新の構成は `infra/README.md` を参照。
+
 ## 13.1 IaC ポリシー
 
 - **Bicep** で Azure リソースを宣言的に管理。手動変更禁止（CI で `what-if` ドリフト検出）。

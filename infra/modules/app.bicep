@@ -25,18 +25,12 @@ param storageAccountId string
 @description('Application Insights resource name (from observability module); used to obtain connection string via existing reference')
 param appInsightsName string
 
-@description('Resource ID of the NAT-backed subnet used for API and batch Function App virtual network integration')
-param batchSubnetResourceId string
-
 @description('Enable Key Vault purge protection (false for dev, true for prod)')
 param enablePurgeProtection bool
 
-@description('NCRONTAB expression for the daily batch orchestration trigger (UTC). Default is 18:00 UTC = 03:00 JST.')
-param dailyBatchCronExpression string = '0 0 18 * * *'
-
-@description('NCRONTAB expression for the SQL warm-up trigger (UTC), which must fire 10 minutes before dailyBatchCronExpression. Default is 17:50 UTC = 02:50 JST.')
-param warmupBatchCronExpression string = '0 50 17 * * *'
-
+// Rakuten credentials are kept in Key Vault for the locally run batch only. The API Function
+// App does not call the Rakuten API (no static egress IP in Azure — see ADR 0004), so its
+// search fallback is disabled via NullRakutenBookSearchService.
 @secure()
 @description('Rakuten Books API application ID')
 param rakutenApplicationId string
@@ -52,10 +46,7 @@ param rakutenAffiliateId string
 var kvName = '${prefix}-${env}-jpe-kv'
 var swaName = '${prefix}-${env}-jpe-swa'
 var funcApiName = '${prefix}-${env}-jpe-func-api'
-var funcBatchName = '${prefix}-${env}-jpe-func-batch'
 var planApiName = '${prefix}-${env}-jpe-plan-api'
-var planBatchName = '${prefix}-${env}-jpe-plan-batch'
-var appConfigName = '${prefix}-${env}-jpe-appcfg'
 
 // Role definition IDs
 var kvSecretsUserRoleId = '4633458b-17de-408a-b874-0445c86b69e6'
@@ -146,24 +137,11 @@ resource kvSecretRakutenAffiliateId 'Microsoft.KeyVault/vaults/secrets@2023-07-0
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// App Service Plans (FlexConsumption, Linux) — API and Batch use separate plans
+// App Service Plan (FlexConsumption, Linux) — API only (the batch runs locally)
 // ──────────────────────────────────────────────────────────────────────────────
 
 resource planApi 'Microsoft.Web/serverfarms@2024-04-01' = {
   name: planApiName
-  location: location
-  kind: 'functionapp'
-  sku: {
-    name: 'FC1'
-    tier: 'FlexConsumption'
-  }
-  properties: {
-    reserved: true
-  }
-}
-
-resource planBatch 'Microsoft.Web/serverfarms@2024-04-01' = {
-  name: planBatchName
   location: location
   kind: 'functionapp'
   sku: {
@@ -189,7 +167,6 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
   properties: {
     serverFarmId: planApi.id
     httpsOnly: true
-    virtualNetworkSubnetId: batchSubnetResourceId
     functionAppConfig: {
       deployment: {
         storage: {
@@ -201,7 +178,8 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
         }
       }
       scaleAndConcurrency: {
-        maximumInstanceCount: 100
+        // Personal-use app: cap scale-out so a bug or abusive traffic cannot run up the bill.
+        maximumInstanceCount: 10
         instanceMemoryMB: 2048
       }
       runtime: {
@@ -211,7 +189,6 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
     }
     siteConfig: {
       minTlsVersion: '1.2'
-      vnetRouteAllEnabled: true
       appSettings: [
         {
           name: 'AzureWebJobsStorage__accountName'
@@ -237,30 +214,11 @@ resource funcApi 'Microsoft.Web/sites@2024-04-01' = {
           name: 'BlobBaseUrl'
           value: 'https://${storageAccountName}.blob.core.windows.net/covers'
         }
-        {
-          name: 'RakutenApplicationId'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAppId/)'
-        }
-        {
-          name: 'RakutenAccessKey'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAccessKey/)'
-        }
-        {
-          name: 'RakutenAffiliateId'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAffiliateId/)'
-        }
-        {
-          name: 'AppConfiguration__Endpoint'
-          value: 'https://${appConfigName}.azconfig.io'
-        }
       ]
     }
   }
   dependsOn: [
     kvSecretAppInsights
-    kvSecretRakutenAppId
-    kvSecretRakutenAccessKey
-    kvSecretRakutenAffiliateId
   ]
 }
 
@@ -310,104 +268,7 @@ resource funcApiAuthSettings 'Microsoft.Web/sites/config@2024-04-01' = {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Function App — Batch (Durable Functions, Consumption, separate plan)
-// ──────────────────────────────────────────────────────────────────────────────
-
-resource funcBatch 'Microsoft.Web/sites@2024-04-01' = {
-  name: funcBatchName
-  location: location
-  kind: 'functionapp,linux'
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    serverFarmId: planBatch.id
-    httpsOnly: true
-    virtualNetworkSubnetId: batchSubnetResourceId
-    functionAppConfig: {
-      deployment: {
-        storage: {
-          type: 'blobContainer'
-          value: '${existingStorage.properties.primaryEndpoints.blob}app-package-batch'
-          authentication: {
-            type: 'SystemAssignedIdentity'
-          }
-        }
-      }
-      scaleAndConcurrency: {
-        maximumInstanceCount: 100
-        instanceMemoryMB: 2048
-      }
-      runtime: {
-        name: 'dotnet-isolated'
-        version: '10.0'
-      }
-    }
-    siteConfig: {
-      minTlsVersion: '1.2'
-      vnetRouteAllEnabled: true
-      appSettings: [
-        {
-          name: 'AzureWebJobsStorage__accountName'
-          value: storageAccountName
-        }
-        {
-          name: 'AzureWebJobsStorage__credential'
-          value: 'managedidentity'
-        }
-        {
-          name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/AppInsightsConnectionString/)'
-        }
-        {
-          name: 'SqlConnectionString'
-          value: sqlConnectionString
-        }
-        {
-          name: 'StorageAccountUri'
-          value: 'https://${storageAccountName}.blob.core.windows.net'
-        }
-        {
-          name: 'BlobBaseUrl'
-          value: 'https://${storageAccountName}.blob.core.windows.net/covers'
-        }
-        {
-          name: 'RakutenApplicationId'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAppId/)'
-        }
-        {
-          name: 'RakutenAccessKey'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAccessKey/)'
-        }
-        {
-          name: 'RakutenAffiliateId'
-          value: '@Microsoft.KeyVault(SecretUri=${kv.properties.vaultUri}secrets/RakutenAffiliateId/)'
-        }
-        {
-          name: 'AppConfiguration__Endpoint'
-          value: 'https://${appConfigName}.azconfig.io'
-        }
-        {
-          name: 'DailyBatchCronExpression'
-          value: dailyBatchCronExpression
-        }
-        {
-          name: 'WarmupBatchCronExpression'
-          value: warmupBatchCronExpression
-        }
-      ]
-    }
-  }
-  dependsOn: [
-    kvSecretAppInsights
-    kvSecretRakutenAppId
-    kvSecretRakutenAccessKey
-    kvSecretRakutenAffiliateId
-  ]
-}
-
-// ──────────────────────────────────────────────────────────────────────────────
-// Storage RBAC — grant Function App MIs access to the storage account
+// Storage RBAC — grant the API Function App MI access to the storage account
 // (host runtime + FlexConsumption deployment package container)
 // ──────────────────────────────────────────────────────────────────────────────
 
@@ -447,44 +308,8 @@ resource storageRoleFuncApiTable 'Microsoft.Authorization/roleAssignments@2022-0
   }
 }
 
-resource storageRoleFuncBatchBlob 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: existingStorage
-  name: guid(existingStorage.id, funcBatch.id, storageBlobDataOwnerRoleId)
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', storageBlobDataOwnerRoleId)
-    principalId: funcBatch.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource storageRoleFuncBatchQueue 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: existingStorage
-  name: guid(existingStorage.id, funcBatch.id, storageQueueDataContributorRoleId)
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      storageQueueDataContributorRoleId
-    )
-    principalId: funcBatch.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
-resource storageRoleFuncBatchTable 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: existingStorage
-  name: guid(existingStorage.id, funcBatch.id, storageTableDataContributorRoleId)
-  properties: {
-    roleDefinitionId: subscriptionResourceId(
-      'Microsoft.Authorization/roleDefinitions',
-      storageTableDataContributorRoleId
-    )
-    principalId: funcBatch.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
-// Key Vault RBAC — grant "Key Vault Secrets User" to each Function App MI and SWA MI
+// Key Vault RBAC — grant "Key Vault Secrets User" to the API Function App MI and SWA MI
 // ──────────────────────────────────────────────────────────────────────────────
 
 resource kvRoleAssignFuncApi 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
@@ -497,25 +322,13 @@ resource kvRoleAssignFuncApi 'Microsoft.Authorization/roleAssignments@2022-04-01
   }
 }
 
-resource kvRoleAssignFuncBatch 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  scope: kv
-  name: guid(kv.id, funcBatch.id, kvSecretsUserRoleId)
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsUserRoleId)
-    principalId: funcBatch.identity.principalId
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // ──────────────────────────────────────────────────────────────────────────────
 // Static Web App (Standard) — hosts Angular SSR via Managed Functions
 // ──────────────────────────────────────────────────────────────────────────────
 
-// Cost optimization: Standard tier only in prod. Dev uses Free tier which lacks
-// linkedBackends, SystemAssigned Identity, custom auth, and SLA — acceptable for dev.
-var swaIsStandard = env == 'prod'
-
-resource swaStandard 'Microsoft.Web/staticSites@2024-04-01' = if (swaIsStandard) {
+// Standard is required for the linked backend (Bring-your-own Functions) and the custom
+// Entra External ID registration. Free was evaluated and rejected (see ADR 0004).
+resource swaStandard 'Microsoft.Web/staticSites@2024-04-01' = {
   name: swaName
   location: swaLocation
   sku: {
@@ -528,25 +341,11 @@ resource swaStandard 'Microsoft.Web/staticSites@2024-04-01' = if (swaIsStandard)
   properties: {}
 }
 
-resource swaFree 'Microsoft.Web/staticSites@2024-04-01' = if (!swaIsStandard) {
-  name: swaName
-  location: swaLocation
-  sku: {
-    name: 'Free'
-    tier: 'Free'
-  }
-  tags: {
-    comicalFreeSwa: 'true'
-  }
-  properties: {}
-}
-
 var swaResourceId = resourceId('Microsoft.Web/staticSites', swaName)
 
 // Link the API Function App to the SWA so that /api/* requests are proxied
 // with the x-ms-client-principal header injected by SWA authentication.
-// linkedBackends require the Standard tier, so only deploy for prod.
-resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' = if (swaIsStandard) {
+resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' = {
   parent: swaStandard
   name: 'apifunc'
   properties: {
@@ -555,70 +354,19 @@ resource swaLinkedBackend 'Microsoft.Web/staticSites/linkedBackends@2024-04-01' 
   }
 }
 
-// SWA Managed Identity → Key Vault Secrets User (only when SystemAssigned identity is available)
-resource kvRoleAssignSwa 'Microsoft.Authorization/roleAssignments@2022-04-01' = if (swaIsStandard) {
+// SWA Managed Identity → Key Vault Secrets User
+resource kvRoleAssignSwa 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   scope: kv
   name: guid(kv.id, swaResourceId, kvSecretsUserRoleId)
   properties: {
     roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsUserRoleId)
-    principalId: swaStandard!.identity.principalId
+    principalId: swaStandard.identity.principalId
     principalType: 'ServicePrincipal'
   }
 }
 
-// ──────────────────────────────────────────────────────────────────────────────
-// App Configuration — Standard in prod, Free in dev (cost optimization)
-// Note: Free tier is limited to 1 store per subscription; keep prod on Standard.
-// ──────────────────────────────────────────────────────────────────────────────
-
-resource appConfig 'Microsoft.AppConfiguration/configurationStores@2023-03-01' = {
-  name: appConfigName
-  location: location
-  sku: {
-    name: env == 'prod' ? 'standard' : 'free'
-  }
-  tags: env == 'prod' ? {} : {
-    comicalFreeAppConfig: 'true'
-  }
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    disableLocalAuth: false
-    enablePurgeProtection: false
-  }
-}
-
-// Feature flags are stored as key-values with the .appconfig.featureflag/ prefix.
-// The slash in the key is encoded as ~2F in the ARM resource name.
-// All flags start as disabled (false) and are enabled via staged rollout.
-
-resource ffDiscoveryRecommend 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
-  parent: appConfig
-  name: '.appconfig.featureflag~2Fdiscovery-recommend'
-  properties: {
-    value: '{"id":"discovery-recommend","description":"Recommendation panel on discovery page","enabled":false,"conditions":{"client_filters":[]}}'
-    contentType: 'application/vnd.microsoft.appconfig.ff+json;charset=utf-8'
-  }
-}
-
-resource ffCalendarAbTest 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
-  parent: appConfig
-  name: '.appconfig.featureflag~2Fcalendar-ab-test'
-  properties: {
-    value: '{"id":"calendar-ab-test","description":"A/B test for calendar view layout","enabled":false,"conditions":{"client_filters":[]}}'
-    contentType: 'application/vnd.microsoft.appconfig.ff+json;charset=utf-8'
-  }
-}
-
-resource ffEntraLoginRollout 'Microsoft.AppConfiguration/configurationStores/keyValues@2023-03-01' = {
-  parent: appConfig
-  name: '.appconfig.featureflag~2Fentra-login-rollout'
-  properties: {
-    value: '{"id":"entra-login-rollout","description":"Gradual rollout of Entra External ID login","enabled":false,"conditions":{"client_filters":[]}}'
-    contentType: 'application/vnd.microsoft.appconfig.ff+json;charset=utf-8'
-  }
-}
+// App Configuration was removed: nothing in the code read it (see ADR 0004).
+// Local batch operator RBAC lives in modules/batch-operator.bicep.
 
 // ──────────────────────────────────────────────────────────────────────────────
 // Outputs
@@ -630,11 +378,8 @@ output swaDefaultHostname string = reference(swaResourceId, '2024-04-01').defaul
 @description('Function App (API) resource name')
 output funcApiName string = funcApi.name
 
-@description('Function App (Batch) resource name')
-output funcBatchName string = funcBatch.name
+@description('Key Vault name')
+output kvName string = kv.name
 
 @description('Key Vault URI')
 output kvUri string = kv.properties.vaultUri
-
-@description('App Configuration endpoint')
-output appConfigEndpoint string = appConfig.properties.endpoint

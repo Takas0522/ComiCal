@@ -10,6 +10,9 @@ param location string
 @description('Log Analytics workspace retention in days')
 param logRetentionDays int
 
+@description('Daily ingestion cap in GB (string, e.g. "0.2"); ingestion stops for the day once reached')
+param logDailyQuotaGb string = '0.2'
+
 @description('Webhook URL for alert notifications (Slack or Teams); leave empty to disable')
 param alertWebhookUrl string = ''
 
@@ -19,7 +22,6 @@ param alertEmailAddress string = ''
 var logName = '${prefix}-${env}-jpe-log'
 var appiName = '${prefix}-${env}-jpe-appi'
 var actionGroupName = '${prefix}-${env}-jpe-ag'
-var alertRuleName = '${prefix}-${env}-jpe-alert-batch-failed'
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   name: logName
@@ -28,6 +30,10 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
     retentionInDays: logRetentionDays
     sku: {
       name: 'PerGB2018'
+    }
+    // Cost guard-rail: a personal app ingests well under 1 GB/month.
+    workspaceCapping: {
+      dailyQuotaGb: json(logDailyQuotaGb)
     }
   }
 }
@@ -66,54 +72,9 @@ resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
   }
 }
 
-// Fires when the Batch Function App has any failed function invocation in the
-// last 15 minutes. This catches the actual failure surface (uncaught exceptions
-// from FetchPageActivity / FetchOrchestrator / DailyFetchOrchestrator, etc.),
-// which the previous "batch.failedItem" customMetrics query missed entirely
-// because no code path emits that metric name — a prod outage on 2026-08-15
-// through 2026-08-22 went silent as a result.
-//
-// Cost optimization: log alert rules are billed per rule per month, so deploy
-// in prod only. The Application Insights resource scope exposes the classic
-// `requests` table (rather than the workspace-scoped `AppRequests` table).
-resource alertRule 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = if (env == 'prod') {
-  name: alertRuleName
-  location: location
-  properties: {
-    displayName: 'Batch Function Failures'
-    description: 'Fires when the Batch Function App records at least one failed invocation within a 15-minute window.'
-    severity: 2
-    enabled: true
-    evaluationFrequency: 'PT5M'
-    windowSize: 'PT15M'
-    scopes: [
-      appInsights.id
-    ]
-    criteria: {
-      allOf: [
-        {
-          query: 'requests | where cloud_RoleName == "${prefix}-${env}-jpe-func-batch" and success == false | summarize AggregatedValue = count() by bin(timestamp, 15m)'
-          timeAggregation: 'Total'
-          metricMeasureColumn: 'AggregatedValue'
-          operator: 'GreaterThanOrEqual'
-          threshold: 1
-          failingPeriods: {
-            numberOfEvaluationPeriods: 1
-            minFailingPeriodsToAlert: 1
-          }
-        }
-      ]
-    }
-    actions: {
-      actionGroups: [
-        actionGroup.id
-      ]
-    }
-    // Auto-resolve once the batch recovers so the next failure raises a fresh
-    // alert instead of appending to a stale one.
-    autoMitigate: true
-  }
-}
+// NOTE: the former "Batch Function Failures" log alert was removed together with the batch
+// Function App (the batch now runs locally and reports failures itself). Log alert rules are
+// billed per rule per month, so none are deployed. The action group is kept for budget alerts.
 
 @description('Application Insights resource name (used by downstream modules to obtain connection string via existing reference)')
 output appInsightsName string = appInsights.name
