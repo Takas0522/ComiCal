@@ -4,16 +4,17 @@
 - ブランチ: `plan/azure-cost-reduction`
 - 対象: ComiCal（`cmcl-dev-jpe-rg` / `cmcl-prod-jpe-rg`）
 - 前提: 個人ユースアプリ。可用性・SLA より月額コストを優先する。
-- 実装計画: [`development-plan.md`](./development-plan.md)（Batch の Durable Task SDK 化、作業分解、テスト、ロールアウト）
+- 実装計画: [`development-plan.md`](./development-plan.md)（Batch のコンソールアプリ化、作業分解、テスト、ロールアウト）
 
 ## 決定事項
 
 | 日付 | 項目 | 決定 |
 |---|---|---|
 | 2026-11-21 | API の楽天連携（施策 D） | **D-1 を採用**: API の楽天連携を無効化し、NAT Gateway / Public IP / VNet を撤去する。D-2（ブラウザ直呼び）は必要になった時点で再検討 |
-| 2026-11-21 | Batch の実装方式（施策 C） | Durable Functions + `func start` をやめ、**Durable Task SDK のコンソールアプリ（exe）+ Durable Task Scheduler（Consumption）**をタスク スケジューラから直接起動する。詳細は [development-plan.md §2](./development-plan.md)。DTS は PR-2 着手前に PoC で採用条件を確認する |
+| 2026-11-21 | Batch の実装方式（施策 C） | Durable Functions + `func start` をやめ、**Durable なしの .NET コンソールアプリ（exe）**をタスク スケジューラから直接起動する。詳細は [development-plan.md §2](./development-plan.md) |
+| 2026-11-21 | Durable Task Scheduler の不採用 | 当初は Durable Task SDK + Durable Task Scheduler（Consumption）を採用予定だったが、小売価格が「1 アクションあたり 0.688 円」と読め、月 20 万アクションで約 13.7 万円になるおそれがあるため取りやめた（[development-plan.md §2.1, §2.8](./development-plan.md)） |
 | 2026-11-21 | Batch の未実行検知 | 外部ハートビート（無料の死活監視サービス）で、PC やタスクが起動しなかった日も検知する |
-| 2026-11-21 | Batch の日付またぎ | 前日分が未完了なら終了させ、当日分を最初から実行する |
+| 2026-11-21 | Batch の中断・日付またぎ | 途中再開はせず、次回起動時に最初から実行する（べき等）。異常終了で Running のまま残った実行記録は Failed にしてから実行する |
 
 ---
 
@@ -22,7 +23,7 @@
 | | 月額（2026-10 実績, 税抜・円） |
 |---|---:|
 | 現在の ComiCal 合計（dev + prod） | **約 33,500** |
-| 本計画を全フェーズ実施後の見込み | **約 1,600〜2,300**（▲93〜95%。Durable Task Scheduler 分を含む。DTS の見積りは [development-plan.md §2.8](./development-plan.md)（単価は T1-6 で確定）） |
+| 本計画を全フェーズ実施後の見込み | **約 1,500〜2,200**（▲93〜96%） |
 
 削減の大半は次の 5 つから来る。
 
@@ -45,7 +46,7 @@
 | 2 | `plan/scripts/apply-02-retire-stage.ps1` | `cmcl-dev-jpe-rg` 削除、dev KV / App Config purge、GitHub Environment dev 削除 | `dev.bicepparam`・`cd-dev.yml`・`dev-sql-nightly-pause.yml`・`pr-preview.yml` 削除、`main.bicep` の env を prod のみに |
 | 3 | `plan/scripts/apply-03-remove-appconfig.ps1` | App Configuration (prod) 削除・purge | `app.bicep` から appConfig / FF / `AppConfiguration__Endpoint` 削除 |
 | — | （手作業）楽天アプリの許可 IP に自宅 IP を追加 | | |
-| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | 実行ユーザーへの RBAC・DB ユーザー作成 → （楽天 IP 登録の確認後）Azure Batch 停止 → ローカル試走 → タスク登録。試走失敗時は Azure Batch を自動で再開 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/run-batch-local.ps1`, `tools/register-batch-task.ps1`。※ development-plan.md PR-3（T3-5）で exe + DTS 方式に更新予定 |
+| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | 実行ユーザーへの RBAC・DB ユーザー作成 → （楽天 IP 登録の確認後）Azure Batch 停止 → ローカル試走 → タスク登録。試走失敗時は Azure Batch を自動で再開 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/run-batch-local.ps1`, `tools/register-batch-task.ps1`。※ development-plan.md PR-3（T3-5）で exe 方式に更新予定 |
 | 5 | `plan/scripts/apply-05-retire-azure-batch.ps1` | Batch Function App / プラン / 失敗アラート / Durable タスクハブ / DB ユーザー削除 | `app.bicep`・`observability.bicep`・`data.bicep`・`cd-prod.yml` から Batch 関連を削除 |
 | 6 | `plan/scripts/apply-06-remove-network.ps1` | API の楽天設定・VNet 統合を解除 → VNet / NAT / PIP 削除 | `network.bicep` 削除、`main.bicep`・`app.bicep`・`cd-prod.yml`（検証ステップ） |
 | — | （手作業）楽天アプリの許可 IP から旧 Azure の IP を削除 | | |
@@ -171,14 +172,14 @@ dev RG には NAT Gateway・SQL・dev 用アラートまで一式が残ってお
 
 #### 方針
 
-> 当初は既存の Durable Functions を `func start` + Azurite + PowerShell ラッパーでローカル実行する案だった（現ブランチの `tools/run-batch-local.ps1`）。2026-11-21 に、タスク スケジューラから exe を直接起動できる **Durable Task SDK のコンソールアプリ + Durable Task Scheduler（Consumption）** に変更した。実装・設定・運用の詳細は [development-plan.md §2](./development-plan.md) を正とし、ここでは概要だけ記す。
+> 当初は既存の Durable Functions を `func start` + Azurite + PowerShell ラッパーでローカル実行する案だった（現ブランチの `tools/run-batch-local.ps1`）。2026-11-21 に、タスク スケジューラから exe を直接起動できる **Durable なしの .NET コンソールアプリ** に変更した（途中で検討した Durable Task Scheduler は単価リスクで不採用）。実装・設定・運用の詳細は [development-plan.md §2](./development-plan.md) を正とし、ここでは概要だけ記す。
 
 ```
 Windows タスク スケジューラ (毎日 03:00, 見逃し時は起動後に即実行, スリープ解除)
   └ %LOCALAPPDATA%\ComiCal\Batch\current\ComiCal.Batch.exe run
-      1. Preflight: Entra トークン / グローバル IP 照合 / Key Vault / SQL（resume を兼ねる）/ Scheduler
-      2. 前日以前の未完了インスタンスがあれば終了させる
-      3. 当日分（daily-yyyyMMdd）を開始、または途中から再開して完了を待つ
+      1. 多重起動チェック → Preflight: Entra トークン / グローバル IP 照合 / Key Vault / SQL（resume を兼ねる）
+      2. Running のまま残った古い実行記録を Failed にする。当日分が完了済みなら何もしない
+      3. 楽天から全ページ取得 → UPSERT → サムネイル取得（並列 8）→ 実行記録を確定
       4. 終了コードで成否を返す。失敗は Webhook、成功・失敗は外部ハートビートへ
 ```
 
@@ -186,9 +187,9 @@ Windows タスク スケジューラ (毎日 03:00, 見逃し時は起動後に�
 
 | 対象 | 変更 |
 |---|---|
-| `src/backend/batch/ComiCal.Batch` | Functions SDK → Generic Host + Durable Task SDK（Orchestrator / Activity のロジックは維持） |
-| 権限 | 実行ユーザーに Storage Blob Data Contributor / Key Vault Secrets User / Durable Task Data Contributor、SQL に DB ユーザー |
-| ネットワーク | SQL ファイアウォールと DTS の `ipAllowlist` に自宅 IP を常設（毎回の追加・削除はしない）。楽天の許可 IP も同じ値 |
+| `src/backend/batch/ComiCal.Batch` | Functions / Durable → Generic Host のコンソールアプリ（Orchestrator は通常の async コードに、Activity のロジックは維持） |
+| 権限 | 実行ユーザーに Storage Blob Data Contributor / Key Vault Secrets User、SQL に DB ユーザー |
+| ネットワーク | SQL ファイアウォールに自宅 IP を常設（毎回の追加・削除はしない）。楽天の許可 IP も同じ値 |
 | 楽天アプリ設定 | 許可 IP に**自宅のグローバル IP** を追加（Azure の PIP は D 完了後に削除）。IP が変わったら Preflight が楽天を呼ぶ前に止める |
 | `tools/publish-batch.ps1`, `tools/register-batch-task.ps1` | publish・世代管理・ロールバック、タスク登録 |
 | `.github/instructions/backend-batch.instructions.md`, `docs/specs/oo-init/09-rakuten-and-batch.md` | 「Consumption Plan / 毎日 03:00 Timer」→「ローカル実行 / タスク スケジューラ」に更新 |
@@ -206,7 +207,7 @@ Windows タスク スケジューラ (毎日 03:00, 見逃し時は起動後に�
 - PC が 03:00 に起動していない日は、次回起動時に追いかけ実行される。発売情報は日次で十分なため許容。
 - Batch の実行履歴は従来どおり `BatchRuns` テーブルに残り、管理画面 `/admin/batch-runs` で確認できる。
 - PC やタスクが起動しなかった日は、外部ハートビートの期限切れメールで気づける。
-- DTS（Consumption）はアクション課金で、月 1 万円規模にはならない見込み（[development-plan.md §2.8](./development-plan.md)）。
+- 実行途中で PC が止まった場合は、次回起動時に最初から実行し直す（すべて UPSERT でべき等、1 回数十分）。
 
 #### 検討して見送った案
 
@@ -311,10 +312,10 @@ Free プランは「既存の Functions App を紐付ける（Bring your own Fun
 | 2 | B: App Configuration 削除 | 約 10,700 |
 | 3 | C: Batch ローカル化（並行稼働 1 週間 → Azure 側 Batch 停止 → 削除） | 約 10,200 |
 | 4 | D-1: API 楽天連携無効化 → NAT / PIP / VNet 撤去 | 約 4,300 |
-| 5 | F: 無料オファー DB へ移行 / G / H | **約 1,600〜2,300**（DTS 含む） |
+| 5 | F: 無料オファー DB へ移行 / G / H | **約 1,500〜2,200** |
 | 6（任意・未定） | D-2: ブラウザ直呼びでの楽天候補復活（必要になった場合のみ） | 変化なし |
 
-残るのは概ね SWA Standard（約 1,090）+ Storage（約 100〜200）+ Log Analytics（約 100〜400）+ Durable Task Scheduler（約 150 見込み。T1-6 で確定）+ SQL 超過分（0〜数百）。
+残るのは概ね SWA Standard（約 1,090）+ Storage（約 100〜200）+ Log Analytics（約 100〜400）+ SQL 超過分（0〜数百）。
 
 **Phase 3 の並行稼働について**: ローカル Batch と Azure Batch が同時に楽天 API を叩くと 1 req/5 秒の制限に抵触しうる。並行期間中は Azure 側 Timer を `AzureWebJobs.DailyBatchTimer.Disabled=true` で止め、ローカルだけで回して `BatchRuns` を比較する。
 
@@ -379,7 +380,7 @@ Free プランは「既存の Functions App を紐付ける（Bring your own Fun
 ## 7. 完了確認
 
 - 各 Phase 後に `plan/scripts/collect-azure-state.ps1` を再実行し、`az resource list` の差分と Cost Management の日次コストを確認。
-- 翌月の請求で ComiCal 関連が目標（約 2,500 円以下。見込みは約 1,600〜2,300 円）に収まっていること。
+- 翌月の請求で ComiCal 関連が目標（約 2,500 円以下。見込みは約 1,500〜2,200 円）に収まっていること。
 - 機能確認: カレンダー / 購読 / 購入状態 / 検索（DB）/ ログイン / 管理画面のバッチ履歴。
 
 ---
