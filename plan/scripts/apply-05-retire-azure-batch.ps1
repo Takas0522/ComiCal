@@ -13,6 +13,7 @@ param([switch]$Yes)
 $Script:AssumeYes = [bool]$Yes
 $log = Start-ApplyLog 'apply-05'
 $rule = $null
+$prevAdmin = $null
 try {
   Assert-AzLogin
   if (-not (Confirm-Action 'ローカル実行のバッチが成功していることを確認済みですか？（/admin/batch-runs）')) { throw '中止しました。' }
@@ -54,7 +55,7 @@ try {
   }
 
   Write-Step "DB ユーザー $($Names.FuncBatch) を削除"
-  Use-SqlEntraAdmin
+  $prevAdmin = Use-SqlEntraAdmin
   $rule = Add-TempFirewallRule (Get-PublicIp)
   Invoke-SqlAzCli $Names.SqlDb "IF EXISTS (SELECT 1 FROM sys.database_principals WHERE name = N'$($Names.FuncBatch)') DROP USER [$($Names.FuncBatch)];"
   Write-Done 'DROP USER'
@@ -63,5 +64,6 @@ finally {
   Remove-Item Env:AZURE_STORAGE_KEY -ErrorAction SilentlyContinue
   Remove-Item Env:AZURE_STORAGE_ACCOUNT -ErrorAction SilentlyContinue
   if ($rule) { Remove-TempFirewallRule $rule }
+  Restore-SqlEntraAdmin $prevAdmin
   Stop-Transcript | Out-Null; Write-Host "ログ: $log"
 }

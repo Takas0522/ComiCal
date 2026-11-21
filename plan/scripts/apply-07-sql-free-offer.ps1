@@ -8,14 +8,15 @@
 
   手順:
     1. 前提確認（無料オファー DB が未使用か、sqlpackage / sqlcmd があるか）
-    2. API Function App を停止（書き込みを止める）
+    2. API Function App を停止し、ローカル Batch のスケジュールタスクを一時無効化（書き込みを止める）
     3. bacpac をエクスポート（.secrets\sql-backup\ に保存）
     4. 旧 DB を <名前>-old にリネーム
     5. 同名で無料オファー DB を作成（BillOverUsage, min 0.5 / pause 15 分 / 32 GB / LRS / Japanese_CI_AS）
     6. bacpac をインポート
     7. API MI と comical-batch-operator の DB 権限を付与
     8. API を起動してスモークテスト
-  失敗時は自動で旧 DB の名前を戻す。旧 DB の削除は確認後に -DeleteOldDatabase で別途実行。
+  API 再開前の失敗時は自動で旧 DB の名前を戻す（API 再開後は新 DB に書き込みが入りうるため自動では戻さない）。
+  SQL の Entra 管理者は一時的に実行ユーザーに切り替え、終了時に元へ戻す。旧 DB の削除は確認後に -DeleteOldDatabase で別途実行。
 #>
 [CmdletBinding()]
 param([switch]$Yes, [switch]$DeleteOldDatabase)
@@ -27,6 +28,9 @@ $rule = $null
 $renamed = $false
 $created = $false
 $apiStopped = $false
+$writesResumed = $false
+$prevAdmin = $null
+$taskDisabled = $false
 
 try {
   Assert-AzLogin
@@ -58,12 +62,14 @@ try {
   Write-Host ("現在: {0} / max {1} vCore / min {2} / {3} GB" -f $cur.currentServiceObjectiveName, $cur.capacity, $cur.minCapacity, [math]::Round($cur.maxSizeBytes / 1GB))
   if (-not (Confirm-Action 'API を停止して移行を開始しますか？（サイトは移行中アクセス不可）')) { throw '中止しました。' }
 
-  Use-SqlEntraAdmin
+  $prevAdmin = Use-SqlEntraAdmin
   $rule = Add-TempFirewallRule (Get-PublicIp)
 
   Write-Step "API $($Names.FuncApi) を停止"
   $null = Invoke-Az functionapp stop -g $Names.Rg -n $Names.FuncApi -o none
   $apiStopped = $true
+  $taskDisabled = Disable-BatchTask
+  if (Get-Process -Name 'ComiCal.Batch' -ErrorAction SilentlyContinue) { throw 'ComiCal.Batch を実行中です。完了を待ってから再実行してください。' }
 
   Write-Step 'bacpac をエクスポート'
   $backupDir = Join-Path $RepoRoot '.secrets\sql-backup'
@@ -104,6 +110,7 @@ try {
   Write-Step 'API を起動してスモークテスト'
   $null = Invoke-Az functionapp start -g $Names.Rg -n $Names.FuncApi -o none
   $apiStopped = $false
+  $writesResumed = $true
   $swaHost = (Invoke-Az staticwebapp show -g $Names.Rg -n $Names.Swa --query defaultHostname -o tsv | Out-String).Trim()
   $ok = $false
   for ($i = 1; $i -le 18 -and -not $ok; $i++) {
@@ -123,15 +130,26 @@ try {
 }
 catch {
   Write-Error $_ -ErrorAction Continue
-  if ($renamed) {
+  if ($renamed -and $writesResumed) {
+    Write-Warning "API 再開後に失敗しました。新 DB に書き込みが入っている可能性があるため自動では戻しません。状況を確認し、必要なら手動で $oldDb を正規名に戻してください。"
+  }
+  elseif ($renamed) {
     Write-Step 'ロールバック: 新 DB を削除し、旧 DB の名前を戻す'
-    if ($created) { & az sql db delete -g $Names.Rg -s $Names.SqlServer -n $Names.SqlDb --yes -o none 2>&1 | Out-Host }
+    # create が途中で失敗しても DB が作られている場合があるので、$created ではなく実在で判定する
+    $newExists = & az sql db show -g $Names.Rg -s $Names.SqlServer -n $Names.SqlDb --query name -o tsv 2>$null
+    if ($newExists) {
+      & az sql db delete -g $Names.Rg -s $Names.SqlServer -n $Names.SqlDb --yes -o none 2>&1 | Out-Host
+      if ($LASTEXITCODE -ne 0) { Write-Warning "新 DB の削除に失敗しました。$oldDb のリネームは手動で行ってください。" }
+    }
     & az sql db rename -g $Names.Rg -s $Names.SqlServer -n $oldDb --new-name $Names.SqlDb -o none 2>&1 | Out-Host
+    if ($LASTEXITCODE -ne 0) { Write-Warning "旧 DB の名前を戻せませんでした。手動で実行してください: az sql db rename -g $($Names.Rg) -s $($Names.SqlServer) -n $oldDb --new-name $($Names.SqlDb)" }
   }
   throw
 }
 finally {
   if ($apiStopped) { & az functionapp start -g $Names.Rg -n $Names.FuncApi -o none 2>&1 | Out-Null }
   if ($rule) { Remove-TempFirewallRule $rule }
+  Enable-BatchTask $taskDisabled
+  Restore-SqlEntraAdmin $prevAdmin
   Stop-Transcript | Out-Null; Write-Host "ログ: $log"
 }

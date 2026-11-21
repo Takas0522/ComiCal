@@ -22,6 +22,7 @@ $Script:Names = [ordered]@{
   Nat         = 'cmcl-prod-jpe-nat'
   Pip         = 'cmcl-prod-jpe-pip-egress'
   Swa         = 'cmcl-prod-jpe-swa'
+  BatchTask   = 'ComiCal-DailyBatch'
   Location    = 'japaneast'
   GitHubRepo  = 'Takas0522/ComiCal'
 }
@@ -61,11 +62,42 @@ function Get-PublicIp { (Invoke-RestMethod -Uri 'https://api.ipify.org' -Timeout
 
 function Get-SignedInObjectId { (Invoke-Az ad signed-in-user show --query id -o tsv | Out-String).Trim() }
 
-# 実行中ユーザーを一時的に SQL Server の Entra 管理者にする（次回 cd-prod.yml で CI の SP に戻る）。
+# 実行中ユーザーを一時的に SQL Server の Entra 管理者にする。
+# 戻り値（変更前の管理者。変更しなかった場合は $null）を Restore-SqlEntraAdmin に渡して finally で必ず戻すこと。
+# （apply-07 完了まで cd-prod.yml を実行しないため、「次回 CD で戻る」に頼ると数日〜数週間個人が管理者のまま残る）
 function Use-SqlEntraAdmin {
   $me = Invoke-Az ad signed-in-user show -o json | Out-String | ConvertFrom-Json
-  Write-Step "SQL Server の Entra 管理者を一時的に $($me.userPrincipalName) に設定（次回の本番デプロイで CI の SP に戻ります）"
+  $prev = Invoke-Az sql server ad-admin list -g $Names.Rg -s $Names.SqlServer -o json | Out-String | ConvertFrom-Json | Select-Object -First 1
+  if ($prev -and $prev.sid -eq $me.id) { Write-Skip "SQL Server の Entra 管理者は既に $($me.userPrincipalName) です"; return $null }
+  if (-not $prev) { throw 'SQL Server の Entra 管理者が取得できません。中断します（復元先が不明なため）。' }
+  Write-Step "SQL Server の Entra 管理者を一時的に $($me.userPrincipalName) に設定（終了時に $($prev.login) へ戻します）"
   $null = Invoke-Az sql server ad-admin create -g $Names.Rg -s $Names.SqlServer --display-name $me.userPrincipalName --object-id $me.id -o none
+  return $prev
+}
+
+function Restore-SqlEntraAdmin($prev) {
+  if (-not $prev) { return }
+  Write-Step "SQL Server の Entra 管理者を $($prev.login) に戻す"
+  & az sql server ad-admin create -g $Names.Rg -s $Names.SqlServer --display-name $prev.login --object-id $prev.sid -o none 2>&1 | Out-Host
+  if ($LASTEXITCODE -ne 0) {
+    Write-Warning "Entra 管理者の復元に失敗しました。手動で実行してください: az sql server ad-admin create -g $($Names.Rg) -s $($Names.SqlServer) --display-name '$($prev.login)' --object-id $($prev.sid)"
+  }
+}
+
+# ローカル Batch のスケジュールタスク（tools/register-batch-task.ps1 の既定名）。
+function Disable-BatchTask {
+  $t = Get-ScheduledTask -TaskName $Names.BatchTask -ErrorAction SilentlyContinue
+  if (-not $t) { return $false }
+  if ($t.State -eq 'Running') { throw "タスク $($Names.BatchTask) が実行中です。完了を待ってから再実行してください。" }
+  if ($t.State -eq 'Disabled') { return $false }
+  $null = Disable-ScheduledTask -TaskName $Names.BatchTask
+  Write-Done "タスク $($Names.BatchTask) を一時無効化"
+  return $true
+}
+function Enable-BatchTask([bool]$wasDisabled) {
+  if (-not $wasDisabled) { return }
+  $null = Enable-ScheduledTask -TaskName $Names.BatchTask -ErrorAction Continue
+  Write-Host "タスク $($Names.BatchTask) を再有効化しました"
 }
 
 function Add-TempFirewallRule([string]$ip) {

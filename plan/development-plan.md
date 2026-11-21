@@ -3,6 +3,7 @@
 - 作成日: 2026-11-21
 - ブランチ: `plan/azure-cost-reduction`
 - 改訂: 2026-11-21 Windows タスク スケジューラ運用を前提に Batch の運用構造（§2.7）とバックエンド選定を見直し
+- 改訂: 2026-11-21 レビュー反映（DTS の事前 PoC、日付またぎの方針、外部ハートビートによる未実行検知、切り替え手順の安全化）
 - 上位計画: [`azure-cost-reduction.md`](./azure-cost-reduction.md)（何を・なぜ・いくら削るか）、[ADR 0004](../docs/adr/0004-azure-cost-reduction.md)
 - 本書の役割: 上位計画を**どう実装し、どの順で、何をもって完了とするか**を定める。
 
@@ -16,7 +17,9 @@
 | Batch の実行場所 | メンテナーの PC（Windows） |
 | **Batch の起動方法** | **Windows タスク スケジューラから exe を直接起動する**（PowerShell ラッパーや常駐プロセスを必須にしない）。運用構造は §2.7 |
 | **Batch の実装方式** | **Azure Functions をやめ、Durable Task SDK（`Microsoft.DurableTask.*`）を使う .NET コンソールアプリにする**。Orchestrator / Activity の構造とロジックは維持する |
-| Durable のバックエンド | **定期実行（本番）: Durable Task Scheduler の Consumption SKU（Azure）**／開発・テスト: DTS エミュレーター（Docker）。§2.1 で比較 |
+| Durable のバックエンド | **定期実行（本番）: Durable Task Scheduler の Consumption SKU（Azure）**／開発・テスト: DTS エミュレーター（Docker）。§2.1 で比較。**PR-2 着手前に PoC（T1-0）で採用条件を確認**し、満たさなければ方式を再検討する |
+| 日付またぎ | 前日分のインスタンスが未完了のまま翌日の起動を迎えたら、**前日分を終了（Terminate）して当日分を最初から実行**する（UPSERT でべき等、収集範囲は前後 6 か月なので取りこぼさない）。§2.3 |
+| 未実行の検知 | **外部ハートビート**（healthchecks.io 等の無料サービス）。成功時に ping し、期限までに届かなければサービス側からメール通知。PC が起動しない・タスクが起動しないケースも検知する。§2.7 |
 | プロジェクト構成 | `src/backend/batch/ComiCal.Batch` のパス・名前空間・クラス名を維持（テストプロジェクトもそのまま） |
 
 ### 現在のブランチの状態
@@ -177,6 +180,7 @@ return exitCode;
    - 実行中 / 保留中 → 新規開始せず完了を待つ（前回 PC が落ちた場合、ワーカーが起動すれば Scheduler 側の状態から**続きを再開**する）
    - 完了済み → 何もしないで終了コード 0（`--force` 指定時は `daily-yyyyMMdd-2` などで再実行）
    - 失敗 / 終了済み → `--force` なしでも再実行（新 ID）
+   - **前日以前の `daily-*` インスタンスが Running / Pending のまま残っている** → `TerminateInstanceAsync` で終了させ、終了を確認してから当日分を開始する（ワーカーが前日分を拾って当日分と並行実行するのを防ぐ）。終了させた日付はログと Webhook に出す
 2. 古い Running 状態の BatchRun を Failed に更新（§2.6）
 3. SQL の事前 resume（`WarmupTrigger` のクエリを移植）
 4. `ScheduleNewOrchestrationInstanceAsync("DailyFetchOrchestrator", new StartOrchestrationOptions { InstanceId = id })`
@@ -208,6 +212,7 @@ return exitCode;
 | `Batch:TimeoutMinutes` | 240 | 完了待ちのタイムアウト |
 | `Batch:LogDirectory` | `%LOCALAPPDATA%\ComiCal\Batch\logs` | 30 日分保持 |
 | `Batch:FailureWebhookUrl` | 任意（`appsettings.Local.json`） | 失敗時に通知 |
+| `Batch:HeartbeatUrl` | 任意（`appsettings.Local.json`。例: healthchecks.io の ping URL） | 成功（終了コード 0）時に GET、失敗時は `/fail` に送る。未設定なら送らない |
 | `APPLICATIONINSIGHTS_CONNECTION_STRING` | 任意（Key Vault の `AppInsightsConnectionString`） | 指定時のみ App Insights へ送信 |
 
 `DailyBatchCronExpression` / `WarmupBatchCronExpression` / `AzureWebJobs*` は不要になる（スケジュールはタスク スケジューラ側で持つ）。
@@ -218,7 +223,7 @@ return exitCode;
 |---|---|---|
 | **ペイロード 1 MB 制限** | Durable Task Scheduler はオーケストレーター / アクティビティの入出力をそれぞれ 1 MB までに制限している。現行の `FetchOrchestrator` は `ContinueAsNew` の入力に全ページ分の `AccumThumbnails` を積み上げ、`FetchSummary` → `ThumbnailInput` にも同じリストを渡す。楽天の上限 100 ページ × 30 件 = 最大 3,000 件 × 約 230 バイト ≒ 0.7 MB で、上限に近い | **T2-6** で実測（シリアライズ後サイズをログ出力）。0.5 MB を超えるなら案 (b) を実施: ページごとに `ThumbnailOrchestrator` をサブオーケストレーションで呼び、`ContinueAsNew` には件数だけを持ち回す（`FetchSummary` から `ThumbnailPending` を除き、サムネイル件数を追加）。Durable Functions（Azure Storage）は大きいメッセージを自動で Blob に逃がしていたため顕在化していなかった |
 | DI スコープ | `ComiCalDbContext` は Scoped。Activity 実行ごとにスコープが切られるか（SDK の実装依存） | **T2-3** で確認。切られない場合は Activity 内で `IServiceScopeFactory` からスコープを作るラッパーを用意 |
-| 実行途中での PC 停止 | 処理が中断する | Scheduler（C）に状態が残るため、同日中の次回起動で同じインスタンス ID の続きから再開。日をまたいだ場合は新しいインスタンスで最初から（UPSERT でべき等）。孤立した `BatchRuns`（Status=Running）は `StaleBatchRunCleaner` が Failed に更新 |
+| 実行途中での PC 停止 | 処理が中断する | Scheduler（C）に状態が残るため、同日中の次回起動で同じインスタンス ID の続きから再開。日をまたいだ場合は**前日分を Terminate してから**新しいインスタンスで最初から（UPSERT でべき等。§2.3）。孤立した `BatchRuns`（Status=Running）は `StaleBatchRunCleaner` が Failed に更新 |
 | 楽天レート制限（1 req / 5 秒） | `SlidingWindowRateLimiter` はシングルトンで同一プロセス内に効く | 変更なし。名前付き Mutex で多重起動を防ぐ（手動実行とタスク実行の衝突も防止） |
 | オーケストレーターの決定性 | ルールは Durable Functions と同じ | 本体ロジックは変更しない |
 | ログ / テレメトリ | Functions のホストログがなくなる | コンソール + ファイル（実行スクリプトがリダイレクト）、App Insights は任意 |
@@ -279,7 +284,9 @@ return exitCode;
 
 **タスク登録**（`tools/register-batch-task.ps1` を更新）: トリガー毎日 03:00、操作 `current\ComiCal.Batch.exe run`、「スケジュールされた時刻に開始できなかった場合すぐに実行」「スリープを解除して実行」（電源オプションの「スリープ解除タイマーの許可」も有効化が必要）、「新しいインスタンスを開始しない」、実行時間の上限 5 時間。
 
-**ログと通知**: ファイルログ（`Serilog.Extensions.Hosting` + `Serilog.Sinks.File`、もしくは軽量な自前 `ILoggerProvider`。§8 で決定）を `logs\` に日次出力。失敗（終了コード 1〜3）時は `Batch:FailureWebhookUrl` に通知。成功・失敗の履歴は従来どおり `BatchRuns` と管理画面でも確認できる。
+**ログと通知**: ファイルログ（`Serilog.Extensions.Hosting` + `Serilog.Sinks.File`、もしくは軽量な自前 `ILoggerProvider`。§8 で決定）を `logs\` に日次出力。失敗（終了コード 1〜3）時は `Batch:FailureWebhookUrl` に通知（終了コード 4 = 多重起動は通知しない）。成功・失敗の履歴は従来どおり `BatchRuns` と管理画面でも確認できる。
+
+**未実行の検知（外部ハートビート）**: プロセス内の通知は「起動しなかった」場合に何も出せないため、`Batch:HeartbeatUrl` に成功時 ping を送り、外部サービス側で「毎日 1 回・猶予（例: 12 時間）」のチェックを設定する。期限切れでメール通知されたら、PC の起動状態・タスクの前回結果・`az login` を確認する。
 
 ### 2.8 Durable Task Scheduler（Consumption）の費用見積り
 
@@ -304,6 +311,7 @@ PR は 4 本に分ける。見積りは 1 人での目安（S ≒ 0.5 日, M ≒
 
 | ID | 作業 | 成果物・確認 | 規模 |
 |---|---|---|---|
+| T1-0 | **DTS PoC（PR-2 着手前）**: 対象サブスクリプションの Japan East に Consumption SKU の Scheduler とタスクハブを作成し、①実行ユーザー（`az login`）で SDK サンプルが接続・完走する、②`ipAllowlist` が Consumption で受理され許可外 IP が拒否される、③完了インスタンスの保持期間、④1 MB ペイロード上限の適用範囲、⑤単価（T1-6）を確認。結果を本書に記録し、満たさなければ §2.1 を再検討 | PoC 記録 | M |
 | T1-1 | `az bicep build` / `az bicep lint` を全モジュールで実行し、警告・エラーを解消 | ビルド成功 | S |
 | T1-2 | `az deployment sub what-if`（prod.bicepparam）を実行し、差分が計画どおりか確認（App Config / Batch / NAT は「削除されない」= Incremental であることも確認） | What-If 結果を PR に添付 | S |
 | T1-3 | `useFreeLimit` / `freeLimitExhaustionBehavior` が `Microsoft.Sql/servers/databases@2023-08-01-preview` で受理されるか確認。不可なら API バージョンを上げる | What-If で検証 | S |
@@ -327,9 +335,9 @@ PR は 4 本に分ける。見積りは 1 人での目安（S ≒ 0.5 日, M ≒
 | T2-8 | `StaleBatchRunCleaner` 用に `IBatchRunRepository` へ「Running のまま一定時間経過したものを取得」メソッドを追加（Domain / Infrastructure.Sql） | 単体テスト | S |
 | T2-9 | コマンド体系（`run` / `run --force` / `status` / `preflight`）と終了コード定義（`ExitCodes`）。引数解析は `System.CommandLine` を使わず簡易実装でよい | 単体テスト | S |
 | T2-10 | `SingleInstanceGuard`（名前付き Mutex）と `Preflight`（トークン・IP・Key Vault・SQL・Scheduler） | 各失敗で終了コード 2 / 4 | M |
-| T2-11 | 日付ベースのインスタンス ID（`daily-yyyyMMdd`, JST）と再開ロジック（実行中なら待つ / 完了なら何もしない / 失敗なら再実行） | Scheduler 上で中断 → 再起動して続きから完走することを確認 | M |
+| T2-11 | 日付ベースのインスタンス ID（`daily-yyyyMMdd`, JST）と再開ロジック（実行中なら待つ / 完了なら何もしない / 失敗なら再実行 / **前日以前の未完了は Terminate してから当日分を開始**） | Scheduler 上で中断 → 再起動して続きから完走すること、日付をまたいだ場合に前日分が終了され並行実行されないことを確認 | M |
 | T2-12 | Key Vault からの設定読み込み（`Azure.Security.KeyVault.Secrets` は既存。`RakutenAppId` → `RakutenApplicationId` 等の名前対応） | 環境変数なしで起動できる | S |
-| T2-13 | ファイルログ（日次ローテーション・30 日保持）と失敗時 Webhook 通知（`FailureNotifier`） | — | S |
+| T2-13 | ファイルログ（日次ローテーション・30 日保持）、失敗時 Webhook 通知（`FailureNotifier`）、成功・失敗時の外部ハートビート送信（`Batch:HeartbeatUrl`） | ハートビートサービスに ping が届く | S |
 | T2-14 | `ContentRootPath = AppContext.BaseDirectory` と `BatchPaths`（`%LOCALAPPDATA%\ComiCal\Batch`）で、作業フォルダに依存しない起動にする | タスクから起動して確認 | S |
 
 ### PR-3: 実行環境（配置・タスク登録・開発用コンテナ）
@@ -340,20 +348,21 @@ PR は 4 本に分ける。見積りは 1 人での目安（S ≒ 0.5 日, M ≒
 | T3-2 | `tools/publish-batch.ps1` を新規作成: テスト → publish → `releases\<日付>-<SHA>` → `current` 張り替え → 古い世代削除。`-Rollback` で 1 つ前に戻す | 2 回 publish → ロールバックを確認 | M |
 | T3-3 | `tools/register-batch-task.ps1` を更新: 操作を `current\ComiCal.Batch.exe run` に、`-RunWhetherLoggedOn`（パスワード保存）スイッチ追加、スリープ解除タイマーの状態を表示 | 登録 → `Start-ScheduledTask` で終了コード 0 | S |
 | T3-4 | `tools/run-batch-local.ps1` を廃止（手動実行は `ComiCal.Batch.exe run` で代替）。Azurite / `func` 前提の記述を削除 | — | S |
-| T3-5 | `plan/scripts/apply-04-batch-local-setup.ps1` を更新: 前提確認を `func` → `dotnet`（publish 用）に、Durable Task Data Contributor の付与と SQL の常設ファイアウォール規則を追加、試走を `publish-batch.ps1` → `ComiCal.Batch.exe run` に変更、`appsettings.Local.json` の雛形作成 | — | M |
+| T3-5 | `plan/scripts/apply-04-batch-local-setup.ps1` を更新: 前提確認を `func` → `dotnet`（publish 用）に、Durable Task Data Contributor の付与と SQL の常設ファイアウォール規則を追加、試走を `publish-batch.ps1` → `ComiCal.Batch.exe run` に変更、`appsettings.Local.json` の雛形作成。**Azure 側 Batch の停止は「楽天 IP 登録の確認 → 試走直前」に行い、試走失敗時は再開する**（現行スクリプトで実装済みの順序を維持） | — | M |
 
 ### PR-4: テスト・ドキュメント
 
 | ID | 作業 | 成果物・確認 | 規模 |
 |---|---|---|---|
 | T4-1 | 統合テスト: Testcontainers で DTS エミュレーター + SQL Server + Azurite(Blob) を起動し、楽天 API を `HttpMessageHandler` のスタブに差し替えて `DailyFetchOrchestrator` を 1 回完走させる（2 ページ + サムネイル数件） | `ComiCal.Batch.Tests` に追加。CI で実行（Docker が使えるランナー） | M |
-| T4-2 | `BatchRunner` の単体テスト（Completed → 0、Failed → 1、Timeout → 3、当日完了済み → 0 で何もしない、実行中 → 待機） | — | S |
+| T4-2 | `BatchRunner` の単体テスト（Completed → 0、Failed → 1、Timeout → 3、当日完了済み → 0 で何もしない、実行中 → 待機、前日分が未完了 → Terminate して当日分を開始） | — | S |
 | T4-2b | 運用手順書 `docs/runbooks/batch-operations.md`（初期設定、publish / ロールバック、IP 変更時の手順＝楽天・SQL・Scheduler の 3 か所、`az login` 失効時、終了コード別の対処） | — | S |
 | T4-3 | ドキュメント更新: ADR 0004（Azurite / func の記述を Durable Task SDK + エミュレーターに）、`backend-batch.instructions.md`（ランタイム・手動起動方法）、`README.md`（起動方法）、`docs/specs/oo-init/09`、`.claude/skills/add-durable-activity`（`[Function]` 属性 → `TaskActivity<,>` 登録）、`troubleshoot-batch` スキル（Functions / App Insights 前提の手順をローカル実行に） | — | M |
 
 ### 依存関係
 
 ```
+T1-0（DTS PoC）─→ PR-2 着手
 PR-1（T1-7/T1-8 は PR-2 の結合テスト前に What-If まで）──────────┐
 PR-2 (T2-1→T2-2/T2-3→T2-4→T2-5→T2-9〜T2-14→T2-6) ─→ PR-3 ─→ PR-4 ─→ ロールアウト
 ```
@@ -371,7 +380,8 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の exe が前提。T2-11（再開
 | 統合 | 1 回の完走（DTS エミュレーター + SQL + Azurite + 楽天スタブ） | Testcontainers | `BatchRuns` が Completed、Volume / Series / ThumbnailAsset が登録される |
 | ローカル E2E | 本番 SQL / Blob / Scheduler に対する実行 | `ComiCal.Batch.exe run` | 終了コード 0、`/admin/batch-runs` に成功記録、カレンダーに新刊が出る |
 | 運用 | タスク スケジューラからの起動 | 画面ロック中 / スリープ中（スリープ解除）/ 実行中に PC 再起動 → 再ログオン後の追いかけ実行 | 各ケースで当日分が完了し、再起動ケースでは同じインスタンス ID の続きから完了 |
-| 運用 | 異常系 | `az logout` 状態、IP 不一致、二重起動 | それぞれ終了コード 2 / 2 / 4 と Webhook 通知 |
+| 運用 | 異常系 | `az logout` 状態、IP 不一致、二重起動 | それぞれ終了コード 2 / 2 / 4。2 は Webhook 通知とハートビート `/fail` |
+| 運用 | 未実行 | タスクを無効化して 1 日放置 | 外部ハートビートの期限切れメールが届く |
 | 比較 | Azure 版との結果比較 | 切り替え前後の `BatchRuns.FetchedItemCount` / `UpsertedVolumeCount` | 同程度（±数%）。大きく減る場合は楽天の許可 IP / ページ上限を確認 |
 | 回帰 | API / フロント | 既存 CI（lint / test / build）と本番スモーク（`cd-prod.yml`） | 成功 |
 
@@ -383,15 +393,16 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の exe が前提。T2-11（再開
 
 | 順 | 作業 | 備考 |
 |---|---|---|
+| 0 | T1-0（DTS PoC）で採用条件を確認 | PR-2 着手前 |
 | 1 | PR-1 / PR-2 / PR-3 / PR-4 をマージ（`main`） | マージだけでは本番に何もデプロイされない（`cd-prod.yml` は `v*` タグ起動） |
 | 2 | `apply-01-quick-wins.ps1` | 停止なし |
 | 3 | `apply-02-retire-stage.ps1` | Stage 廃止 |
 | 4 | `apply-03-remove-appconfig.ps1` | |
-| 5 | GitHub 変数 `BATCH_OPERATOR_IP_ADDRESS` / `BATCH_OPERATOR_PRINCIPAL_ID` を設定 → `apply-04-batch-local-setup.ps1`（Scheduler 作成・ロール付与・SQL 常設規則・publish・試走・タスク登録）→ 楽天の許可 IP に自宅 IP を追加 | Azure 側 Batch は停止（削除はまだ） |
+| 5 | GitHub 変数 `BATCH_OPERATOR_IP_ADDRESS` / `BATCH_OPERATOR_PRINCIPAL_ID` を設定 → 楽天の許可 IP に自宅 IP を追加 → 外部ハートビートのチェックを作成 → `apply-04-batch-local-setup.ps1`（Scheduler 作成・ロール付与・SQL 常設規則・publish → 確認後に Azure Batch 停止 → 試走 → タスク登録） | 試走が失敗したら Azure 側 Batch は自動で再開される。成功時のみ停止したまま（削除はまだ） |
 | 6 | **1 週間の並行観察**: ローカル Batch を毎日実行し、`BatchRuns` と画面で確認 | 問題があれば Azure Batch を `az functionapp start` で戻せる（楽天の許可 IP も戻す） |
 | 7 | `apply-05-retire-azure-batch.ps1` | ここから Azure Batch へは戻せない |
 | 8 | `apply-06-remove-network.ps1` → 楽天の許可 IP から旧 Azure IP を削除 | |
-| 9 | `apply-07-sql-free-offer.ps1` | API 停止 10〜30 分 |
+| 9 | `apply-07-sql-free-offer.ps1` | API 停止 10〜30 分。移行中はローカル Batch のタスクを自動で無効化（実行中なら中止） |
 | 10 | `v*` タグで本番デプロイ → What-If の差分なしを確認 | IaC と実体の最終同期 |
 | 11 | 数日後 `apply-07-sql-free-offer.ps1 -DeleteOldDatabase` | |
 | 12 | 翌月の請求で目標（約 2,500 円以下）を確認 | |
@@ -405,12 +416,16 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の exe が前提。T2-11（再開
 | ペイロード 1 MB 超過 | オーケストレーション失敗 | T2-6 の実測と §2.6 (b) |
 | Activity の DI スコープが共有される | DbContext の並行利用エラー（サムネイルの並列 8） | T2-3 で確認、スコープ付きラッパー |
 | エミュレーターのイメージ仕様変更（`latest`） | 起動失敗 | compose でタグを固定し、Dependabot（docker）の対象にする |
-| エミュレーターが本番用途非推奨 | 実行途中の状態が失われる | 再実行で回復する設計（べき等 + 古い Running の掃除）。必要なら案 C へ接続文字列切替 |
+| DTS（C）が採用条件を満たさない | PR-2 の前提が崩れる | T1-0 の PoC を PR-2 着手前に行い、満たさなければ §2.1 を再検討（B: エミュレーターは開発用途のみ） |
+| 日付またぎで前日分と当日分が並行実行 | 楽天レート制限超過・二重書き込み | 前日分を Terminate してから当日分を開始（§2.3, T2-11） |
+| PC が起動しない / タスクが起動しない | 収集漏れに気づかない | 外部ハートビートの期限切れ通知（§2.7） |
 | PC 停止・スリープ | その日の収集漏れ | 追いかけ実行 + スリープ解除。途中停止は Scheduler の状態から再開 |
 | 自宅 IP の変更 | 楽天 403・SQL 接続拒否 | Preflight で検知して終了コード 2 + 通知。IP は楽天・SQL・Scheduler の 3 か所を手順書どおり同時に更新 |
 | `az login` の失効 / サインアウト中の実行 | 終了コード 2 | 通知を受けて再ログイン。サインアウト運用ならパスワード保存型でタスク登録 |
 | Scheduler の費用が想定超え | 月額増 | T1-6 で単価確定、予算アラートで検知。必要ならサムネイル呼び出し削減またはエミュレーターへ切替 |
 | `useFreeLimit` を既存 DB に適用 | 本番デプロイ失敗 | ロールアウト順 9 → 10 を守る（上位計画にも明記） |
+
+レビュー（2026-11-21）で指摘され、対応せずに受容したリスクは [上位計画 §6.1](./azure-cost-reduction.md) に記録している。
 
 ---
 
@@ -431,7 +446,9 @@ PR-1 と PR-2 は並行可能。PR-3 は PR-2 の exe が前提。T2-11（再開
 
 | 項目 | 選択肢 | 推奨 |
 |---|---|---|
-| Durable のバックエンド（定期実行） | C: DTS Consumption（Azure）/ B: エミュレーター（Docker） | C（exe 単体で無人実行でき、途中再開も可能。単価は T1-6 で確定） |
+| Durable のバックエンド（定期実行） | C: DTS Consumption（Azure）/ B: エミュレーター（Docker） | C で決定（2026-11-21）。ただし T1-0 の PoC で採用条件を満たすことが前提 |
+| 日付またぎの扱い | 前日分を終了して当日分を実行 / 前日分を完走させてから | **決定（2026-11-21）**: 前日分を終了して当日分を実行 |
+| 未実行の検知 | 外部ハートビート / GitHub Actions で定期確認 / 手動確認 | **決定（2026-11-21）**: 外部ハートビート（サービス選定は T2-13 で） |
 | タスクのセキュリティ オプション | ログオン時のみ / ログオン有無にかかわらず（パスワード保存） | PC をサインアウトせずロックで使うならログオン時のみ |
 | ファイルログの実装 | Serilog（`Serilog.Extensions.Hosting` + `Sinks.File`）/ 自前 `ILoggerProvider` | Serilog（ローテーション・保持日数を自前で書かずに済む） |
 | ペイロード対策 | 実測して必要時のみ (b) / 最初から (b) | 実測して判断 |

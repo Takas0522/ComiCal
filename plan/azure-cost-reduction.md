@@ -11,6 +11,9 @@
 | 日付 | 項目 | 決定 |
 |---|---|---|
 | 2026-11-21 | API の楽天連携（施策 D） | **D-1 を採用**: API の楽天連携を無効化し、NAT Gateway / Public IP / VNet を撤去する。D-2（ブラウザ直呼び）は必要になった時点で再検討 |
+| 2026-11-21 | Batch の実装方式（施策 C） | Durable Functions + `func start` をやめ、**Durable Task SDK のコンソールアプリ（exe）+ Durable Task Scheduler（Consumption）**をタスク スケジューラから直接起動する。詳細は [development-plan.md §2](./development-plan.md)。DTS は PR-2 着手前に PoC で採用条件を確認する |
+| 2026-11-21 | Batch の未実行検知 | 外部ハートビート（無料の死活監視サービス）で、PC やタスクが起動しなかった日も検知する |
+| 2026-11-21 | Batch の日付またぎ | 前日分が未完了なら終了させ、当日分を最初から実行する |
 
 ---
 
@@ -19,7 +22,7 @@
 | | 月額（2026-10 実績, 税抜・円） |
 |---|---:|
 | 現在の ComiCal 合計（dev + prod） | **約 33,500** |
-| 本計画を全フェーズ実施後の見込み | **約 1,600〜2,300**（▲93〜95%。Durable Task Scheduler 分を含む。内訳は [development-plan.md §2.9](./development-plan.md)） |
+| 本計画を全フェーズ実施後の見込み | **約 1,600〜2,300**（▲93〜95%。Durable Task Scheduler 分を含む。DTS の見積りは [development-plan.md §2.8](./development-plan.md)（単価は T1-6 で確定）） |
 
 削減の大半は次の 5 つから来る。
 
@@ -41,23 +44,24 @@
 | 1 | `plan/scripts/apply-01-quick-wins.ps1` | SQL min 0.5 / pause 15 分、LA 保持 30 日・上限 0.2 GB、API 最大 10 インスタンス、予算作成 | `data.bicep`, `observability.bicep`, `app.bicep`, `budget.bicep`, `prod.bicepparam` |
 | 2 | `plan/scripts/apply-02-retire-stage.ps1` | `cmcl-dev-jpe-rg` 削除、dev KV / App Config purge、GitHub Environment dev 削除 | `dev.bicepparam`・`cd-dev.yml`・`dev-sql-nightly-pause.yml`・`pr-preview.yml` 削除、`main.bicep` の env を prod のみに |
 | 3 | `plan/scripts/apply-03-remove-appconfig.ps1` | App Configuration (prod) 削除・purge | `app.bicep` から appConfig / FF / `AppConfiguration__Endpoint` 削除 |
-| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | 実行ユーザーへの RBAC・DB ユーザー作成、Azure Batch 停止、ローカル試走、タスク登録 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/run-batch-local.ps1`, `tools/register-batch-task.ps1` |
 | — | （手作業）楽天アプリの許可 IP に自宅 IP を追加 | | |
+| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | 実行ユーザーへの RBAC・DB ユーザー作成 → （楽天 IP 登録の確認後）Azure Batch 停止 → ローカル試走 → タスク登録。試走失敗時は Azure Batch を自動で再開 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/run-batch-local.ps1`, `tools/register-batch-task.ps1`。※ development-plan.md PR-3（T3-5）で exe + DTS 方式に更新予定 |
 | 5 | `plan/scripts/apply-05-retire-azure-batch.ps1` | Batch Function App / プラン / 失敗アラート / Durable タスクハブ / DB ユーザー削除 | `app.bicep`・`observability.bicep`・`data.bicep`・`cd-prod.yml` から Batch 関連を削除 |
 | 6 | `plan/scripts/apply-06-remove-network.ps1` | API の楽天設定・VNet 統合を解除 → VNet / NAT / PIP 削除 | `network.bicep` 削除、`main.bicep`・`app.bicep`・`cd-prod.yml`（検証ステップ） |
 | — | （手作業）楽天アプリの許可 IP から旧 Azure の IP を削除 | | |
-| 7 | `plan/scripts/apply-07-sql-free-offer.ps1` | 旧 DB をリネーム → 同名で無料オファー DB を作成 → bacpac 移送（API 停止を伴う） | `data.bicep` の `useFreeLimit` / `freeLimitExhaustionBehavior`, `prod.bicepparam` の `sqlUseFreeLimit` |
-| 8 | 数日後に `apply-07-sql-free-offer.ps1 -DeleteOldDatabase` | 旧 DB 削除 | |
-| 9 | `v*` タグで本番デプロイ（`cd-prod.yml`） | IaC と実体の最終同期（What-If で差分がないことを確認） | |
+| 7 | `plan/scripts/apply-07-sql-free-offer.ps1` | 旧 DB をリネーム → 同名で無料オファー DB を作成 → bacpac 移送（API 停止・ローカル Batch タスクの一時無効化を伴う） | `data.bicep` の `useFreeLimit` / `freeLimitExhaustionBehavior`, `prod.bicepparam` の `sqlUseFreeLimit` |
+| 8 | `v*` タグで本番デプロイ（`cd-prod.yml`） | IaC と実体の最終同期（What-If で差分がないことを確認） | |
+| 9 | 数日後に `apply-07-sql-free-offer.ps1 -DeleteOldDatabase` | 旧 DB 削除（手順 8 のデプロイ後の動作確認が済んでから） | |
 
 **順序の注意**
 
-- **手順 7 が終わるまで `v*` タグで本番デプロイしない**。`sqlUseFreeLimit = true` を有償の既存 DB に適用しようとするとデプロイが失敗する。急ぎでデプロイが必要なときは、一時的に `prod.bicepparam` を `sqlUseFreeLimit = false` にする。
+- **手順 7 が終わるまで本番デプロイしない**（`v*` タグだけでなく `workflow_dispatch` による手動起動も）。`sqlUseFreeLimit = true` を有償の既存 DB に適用しようとするとデプロイが失敗する。急ぎでデプロイが必要なときは、一時的に `prod.bicepparam` を `sqlUseFreeLimit = false` にする。
 - 手順 6 は手順 5 の後に行う（Batch が同じサブネットを使っているため。スクリプト側でもチェックしている）。
 - Bicep は Incremental デプロイなので、IaC から消したリソースはデプロイしても消えない。削除はスクリプトで明示的に行う。
+- 手順 4・5・7 は SQL Server の Entra 管理者を一時的に実行ユーザーに切り替えるが、スクリプト終了時に元の管理者（CI の SP）へ戻す。戻せなかった場合は警告に表示されるコマンドを手動で実行する。
 - GitHub（environment: prod）に変数 `BATCH_OPERATOR_PRINCIPAL_ID` を設定する（手順 4 で gh CLI があれば自動）。未設定でも動くが、その場合 CD はローカル Batch 用の権限を管理しない。
 
-**前提ツール（実行する PC）**: Azure CLI、PowerShell、Azure Functions Core Tools v4、.NET 10 SDK、go-sqlcmd（`winget install sqlcmd`）、sqlpackage（`dotnet tool install -g microsoft.sqlpackage`, 手順 7）、Docker Desktop または npm の azurite、（任意）gh CLI。
+**前提ツール（実行する PC）**: Azure CLI、PowerShell、.NET 10 SDK、go-sqlcmd（`winget install sqlcmd`）、sqlpackage（`dotnet tool install -g microsoft.sqlpackage`, 手順 7）、（任意）gh CLI。現行の `apply-04` は暫定的に Azure Functions Core Tools v4 と Azurite（Docker Desktop または npm）も必要とする（PR-3 で不要になる）。
 
 ---
 
@@ -167,32 +171,26 @@ dev RG には NAT Gateway・SQL・dev 用アラートまで一式が残ってお
 
 #### 方針
 
-まずは **既存の Durable Functions プロジェクト（`src/backend/batch/ComiCal.Batch`）をそのままローカルの Functions ホストで動かす**。コードの書き換えは最小限にし、スケジューラだけ Windows タスク スケジューラに置き換える。
+> 当初は既存の Durable Functions を `func start` + Azurite + PowerShell ラッパーでローカル実行する案だった（現ブランチの `tools/run-batch-local.ps1`）。2026-11-21 に、タスク スケジューラから exe を直接起動できる **Durable Task SDK のコンソールアプリ + Durable Task Scheduler（Consumption）** に変更した。実装・設定・運用の詳細は [development-plan.md §2](./development-plan.md) を正とし、ここでは概要だけ記す。
 
 ```
-Windows タスク スケジューラ (毎日 03:00, 見逃し時は起動後に即実行)
-  └ tools/run-batch-local.ps1
-      1. az account show（ログイン確認）
-      2. Azurite 起動（Durable のタスクハブ用。本番ストレージは使わない）
-      3. SQL ファイアウォールに現在のグローバル IP を一時追加
-      4. SQL を事前 resume（軽いクエリ。WarmupTrigger の代わり）
-      5. func start（ComiCal.Batch）をバックグラウンド起動
-      6. POST /api/batch/trigger → instanceId を取得
-      7. Durable の状態 API をポーリングして Completed / Failed を待つ
-      8. func 停止、ファイアウォール規則を削除
-      9. 失敗時は通知（Windows イベントログ + 任意で Webhook）
+Windows タスク スケジューラ (毎日 03:00, 見逃し時は起動後に即実行, スリープ解除)
+  └ %LOCALAPPDATA%\ComiCal\Batch\current\ComiCal.Batch.exe run
+      1. Preflight: Entra トークン / グローバル IP 照合 / Key Vault / SQL（resume を兼ねる）/ Scheduler
+      2. 前日以前の未完了インスタンスがあれば終了させる
+      3. 当日分（daily-yyyyMMdd）を開始、または途中から再開して完了を待つ
+      4. 終了コードで成否を返す。失敗は Webhook、成功・失敗は外部ハートビートへ
 ```
 
-#### 必要な変更
+#### 必要な変更（概要）
 
 | 対象 | 変更 |
 |---|---|
-| `ComiCal.Batch/local.settings.json`（gitignore 済み） | `AzureWebJobsStorage=UseDevelopmentStorage=true`、`SqlConnectionString`（`Authentication=Active Directory Default` のまま）、`StorageAccountUri=https://cmclprodjpest.blob.core.windows.net`、楽天の 3 値、`AzureWebJobs.DailyBatchTimer.Disabled=true`、`AzureWebJobs.WarmupBatchTimer.Disabled=true`、`DailyBatchCronExpression` / `WarmupBatchCronExpression`（%参照の解決用にダミー値） |
-| `local.settings.json.sample` | 上記キーを追記（値は空） |
-| 権限 | 自分の Entra ユーザーに `cmclprodjpest` の **Storage Blob Data Contributor**、SQL に DB ユーザー（`CREATE USER [you@...] FROM EXTERNAL PROVIDER` + db_datareader/db_datawriter、または SQL Entra 管理者） |
-| 楽天アプリ設定 | 許可 IP に**自宅のグローバル IP** を追加（Azure の PIP は D 完了後に削除）。IP が変わる回線なら、スクリプト冒頭で現在 IP を確認し、変わっていたら警告して止める |
-| 新規 `tools/run-batch-local.ps1` | 上記フロー。ログは `.dev-logs/batch/yyyyMMdd.log` |
-| 新規 `tools/register-batch-task.ps1` | `Register-ScheduledTask`（「スケジュールされた時刻に開始できなかった場合すぐに実行」「スリープ解除して実行」を有効化） |
+| `src/backend/batch/ComiCal.Batch` | Functions SDK → Generic Host + Durable Task SDK（Orchestrator / Activity のロジックは維持） |
+| 権限 | 実行ユーザーに Storage Blob Data Contributor / Key Vault Secrets User / Durable Task Data Contributor、SQL に DB ユーザー |
+| ネットワーク | SQL ファイアウォールと DTS の `ipAllowlist` に自宅 IP を常設（毎回の追加・削除はしない）。楽天の許可 IP も同じ値 |
+| 楽天アプリ設定 | 許可 IP に**自宅のグローバル IP** を追加（Azure の PIP は D 完了後に削除）。IP が変わったら Preflight が楽天を呼ぶ前に止める |
+| `tools/publish-batch.ps1`, `tools/register-batch-task.ps1` | publish・世代管理・ロールバック、タスク登録 |
 | `.github/instructions/backend-batch.instructions.md`, `docs/specs/oo-init/09-rakuten-and-batch.md` | 「Consumption Plan / 毎日 03:00 Timer」→「ローカル実行 / タスク スケジューラ」に更新 |
 
 #### Azure 側の撤去
@@ -207,7 +205,8 @@ Windows タスク スケジューラ (毎日 03:00, 見逃し時は起動後に�
 
 - PC が 03:00 に起動していない日は、次回起動時に追いかけ実行される。発売情報は日次で十分なため許容。
 - Batch の実行履歴は従来どおり `BatchRuns` テーブルに残り、管理画面 `/admin/batch-runs` で確認できる。
-- 将来的に Durable 依存をやめて単純なコンソールアプリ（`dotnet run`）にすると Azurite も不要になる。今回は**スコープ外**（任意の Phase 6）。
+- PC やタスクが起動しなかった日は、外部ハートビートの期限切れメールで気づける。
+- DTS（Consumption）はアクション課金で、月 1 万円規模にはならない見込み（[development-plan.md §2.8](./development-plan.md)）。
 
 #### 検討して見送った案
 
@@ -312,10 +311,10 @@ Free プランは「既存の Functions App を紐付ける（Bring your own Fun
 | 2 | B: App Configuration 削除 | 約 10,700 |
 | 3 | C: Batch ローカル化（並行稼働 1 週間 → Azure 側 Batch 停止 → 削除） | 約 10,200 |
 | 4 | D-1: API 楽天連携無効化 → NAT / PIP / VNet 撤去 | 約 4,300 |
-| 5 | F: 無料オファー DB へ移行 / G / H | **約 1,500〜2,500** |
-| 6（任意・未定） | D-2: ブラウザ直呼びでの楽天候補復活（必要になった場合のみ）/ Batch のコンソールアプリ化 | 変化なし |
+| 5 | F: 無料オファー DB へ移行 / G / H | **約 1,600〜2,300**（DTS 含む） |
+| 6（任意・未定） | D-2: ブラウザ直呼びでの楽天候補復活（必要になった場合のみ） | 変化なし |
 
-残るのは概ね SWA Standard（約 1,090）+ Storage（約 100〜200）+ Log Analytics（約 100〜400）+ SQL 超過分（0〜数百）。
+残るのは概ね SWA Standard（約 1,090）+ Storage（約 100〜200）+ Log Analytics（約 100〜400）+ Durable Task Scheduler（約 150 見込み。T1-6 で確定）+ SQL 超過分（0〜数百）。
 
 **Phase 3 の並行稼働について**: ローカル Batch と Azure Batch が同時に楽天 API を叩くと 1 req/5 秒の制限に抵触しうる。並行期間中は Azure 側 Timer を `AzureWebJobs.DailyBatchTimer.Disabled=true` で止め、ローカルだけで回して `BatchRuns` を比較する。
 
@@ -347,7 +346,9 @@ Free プランは「既存の Functions App を紐付ける（Bring your own Fun
 
 | リスク | 対策 |
 |---|---|
-| PC 停止・スリープでバッチが走らない | タスク スケジューラの「見逃し時に即実行」「スリープ解除」。`BatchRuns` を管理画面で確認 |
+| PC 停止・スリープでバッチが走らない | タスク スケジューラの「見逃し時に即実行」「スリープ解除」。起動しなかった日は外部ハートビートの期限切れで通知 |
+| 切り替え時に Batch が 1 本も動かない期間ができる | `apply-04` は楽天 IP 登録の確認後に Azure Batch を止め、ローカル試走が失敗したら自動で再開する |
+| SQL 移行中にローカル Batch が書き込む | `apply-07` が移行中だけタスクを無効化し、実行中なら中止する |
 | 自宅 IP 変更で楽天 API が 403 | スクリプトで実行前に現在 IP を確認し、変わっていたら中断・通知。楽天側の許可 IP を更新 |
 | 楽天連携無効化（D-1）で古い作品を検索・購読できない | 2026-11-21 に許容と決定。必要になったら D-2 を Phase 6 で実施 |
 | SQL pause 15 分化で初回アクセスの待ちが増える | 既存の 503 + Retry-After + フロント再試行で吸収。気になれば 30 分に調整 |
@@ -356,12 +357,29 @@ Free プランは「既存の Functions App を紐付ける（Bring your own Fun
 | Bicep を消してもリソースは残る（Incremental） | 各 Phase で `az ... delete` を明示的に実行し、最後に `az resource list -g cmcl-prod-jpe-rg` で棚卸し |
 | dev 廃止で本番前の検証場所がなくなる | DevContainer のローカル環境で E2E。prod デプロイは What-If を必ず確認 |
 
+### 6.1 レビューで受容したリスク（2026-11-21）
+
+2026-11-21 に計画書・スクリプトをレビューした（Codex CLI + Claude Code）。High の指摘と計画書間の食い違いは修正済み。以下の Medium / Low 指摘は、個人ユースでコスト優先という前提のもとオーナーが**対応せず受容**した。状況が変わったら再検討する。
+
+| 指摘 | 受容した内容 |
+|---|---|
+| Batch 実行ユーザーの権限が広い | Storage アカウント全体の Blob Data Contributor と Key Vault 全体の Secrets User（Storage 接続文字列も読める）を持つ。コンテナー・シークレット単位には絞らない |
+| `cd-prod.yml` は `workflow_dispatch` でも起動できる | 「手順 7 まで本番デプロイしない」は運用で守る。手動起動を止める仕組みは入れない |
+| SQL の maxSize 縮小（施策 E）が未実装 | 32 GB のまま。施策 F（無料オファー DB、32 GB 込み）への移行で意味がなくなるため |
+| `collect-azure-state.ps1` は一部の取得に失敗しても完了扱いになる | 読み取り専用の補助スクリプトなので、出力を目視で確認する |
+| `apply-02` / `apply-03` の purge に個別の確認がない | スクリプト冒頭の確認で実行を判断する |
+| SQL 移行（apply-07）のリハーサルをしない | 移行前に bacpac を手元に保存し、失敗時はスクリプトのロールバックと bacpac で戻す。停止時間（10〜30 分）は見込み値のまま |
+| `apply-07` の SqlPackage がアクセストークンをコマンド引数で渡す、bacpac をローカルに平文で置く | 実行 PC は個人管理の端末なので許容する。bacpac は `.secrets/`（gitignore 済み）に置き、旧 DB を削除したら不要になった時点で消す |
+| 現行 `tools/run-batch-local.ps1` の排他・タイムアウト処理の不備 | PR-3 で exe 方式に置き換えて廃止するため修正しない |
+| `apply-06` のネットワーク撤去前の確認が公開エンドポイント 1 本のスモークテストだけ | 撤去後に機能確認（§7）を手動で行う。撤去後の SQL は「Azure サービスからのアクセスを許可」規則と Entra 認証に依存する構成を受け入れる |
+| `maximumInstanceCount` は費用の上限ではない | 同時スケールの上限として扱い、費用の異常は予算アラートで検知する |
+
 ---
 
 ## 7. 完了確認
 
 - 各 Phase 後に `plan/scripts/collect-azure-state.ps1` を再実行し、`az resource list` の差分と Cost Management の日次コストを確認。
-- 翌月の請求で ComiCal 関連が目標（約 2,500 円以下）に収まっていること。
+- 翌月の請求で ComiCal 関連が目標（約 2,500 円以下。見込みは約 1,600〜2,300 円）に収まっていること。
 - 機能確認: カレンダー / 購読 / 購入状態 / 検索（DB）/ ログイン / 管理画面のバッチ履歴。
 
 ---
