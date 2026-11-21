@@ -13,8 +13,9 @@
 |---|---|
 | API の楽天連携 | D-1（無効化。コード変更なし、設定を外して `NullRakutenBookSearchService` を使う） |
 | Batch の実行場所 | メンテナーの PC（Windows） |
+| **Batch の起動方法** | **Windows タスク スケジューラから exe を直接起動する**（PowerShell ラッパーや常駐プロセスを必須にしない）。運用構造は §2.7 |
 | **Batch の実装方式** | **Azure Functions をやめ、Durable Task SDK（`Microsoft.DurableTask.*`）を使う .NET コンソールアプリにする**。Orchestrator / Activity の構造とロジックは維持する |
-| Durable のバックエンド | **Durable Task Scheduler エミュレーター（Docker）を推奨**（§2.1 で比較。DTS Consumption を代替案として残す） |
+| Durable のバックエンド | **定期実行（本番）: Durable Task Scheduler の Consumption SKU（Azure）**／開発・テスト: DTS エミュレーター（Docker）。§2.1 で比較 |
 | プロジェクト構成 | `src/backend/batch/ComiCal.Batch` のパス・名前空間・クラス名を維持（テストプロジェクトもそのまま） |
 
 ### 現在のブランチの状態
@@ -49,17 +50,20 @@
 
 ### 2.1 方式比較
 
-| 案 | 内容 | Azure 費用 | 構造変更 | 評価 |
+タスク スケジューラで無人実行することを前提に比較する（深夜 03:00、画面ロック中、場合によってはサインアウト中）。
+
+| 案 | 内容 | 定期実行時に必要なもの | Azure 費用 | 評価 |
 |---|---|---|---|---|
-| A | Durable Functions のまま `func start` でローカル実行（現ブランチの実装） | 0 | なし | Functions ホスト・Core Tools・Azurite・HTTP トリガー経由の起動とポーリングが必要で、実行系が重い |
-| **B（採用）** | **Durable Task SDK + DTS エミュレーター（Docker）** | 0 | 小（ホストと登録部分のみ） | 普通の .NET コンソールアプリとして `dotnet run` で完結。Orchestrator/Activity の API（`TaskOrchestrationContext` 等）は同じ |
-| C | Durable Task SDK + Durable Task Scheduler（Azure, Consumption SKU） | 少額（アクション課金） | B と同じ（接続文字列のみ違う） | 状態が永続化されダッシュボードも使えるが、Azure リソースと権限が増える |
+| A | Durable Functions のまま `func start`（現ブランチの実装） | Core Tools、Azurite、PowerShell ラッパー（HTTP 起動とポーリング） | 0 | 実行系が重く、タスクから直接起動できない |
+| B | Durable Task SDK + DTS エミュレーター（Docker） | Docker Desktop の起動（ユーザーセッション必須・起動に数十秒〜分）とコンテナ起動 | 0 | エミュレーターは状態をメモリに保持し本番非推奨。深夜の Docker Desktop 起動待ちが運用上の弱点 |
+| **C（採用）** | **Durable Task SDK + Durable Task Scheduler（Azure, Consumption SKU）** | **exe のみ**（インターネット接続と Entra 資格情報） | 小（アクション課金、§2.8） | 状態が永続化されるため、PC が途中で落ちても次回起動時に**続きから再開**できる。ダッシュボードで履歴も見られる |
+| D | Durable Task SDK + `Microsoft.DurableTask.InProcessTestHost`（インメモリ） | exe のみ | 0 | 外部依存なしで動くが、テスト用途のプレビューパッケージなので本番運用には使わない（テストでは利用を検討） |
 
-**B を採用する理由と注意点**
+**C を採用する理由**
 
-- Durable Task SDK は Durable Task Scheduler をバックエンドとして使う前提で、ローカル開発用にエミュレーター（`mcr.microsoft.com/dts/dts-emulator`、gRPC 8080 / ダッシュボード 8082）が提供されている。
-- エミュレーターは状態をメモリ上に保持するため、公式には本番用途に適さないとされている。本アプリでは「1 回の実行の間だけ耐久性があればよい」「Activity は UPSERT でべき等」「失敗したら最初からやり直せばよい」ので許容する。PC がクラッシュした場合は再実行で回復する（§2.6）。
-- 将来、実行途中からの再開や履歴の永続化が必要になったら、**接続文字列を差し替えるだけで C に移行できる**ようにしておく（コードは B と共通）。
+- Durable Task SDK は Durable Task Scheduler をバックエンドとする作りで、エミュレーター（B）は開発用。エミュレーターは状態をメモリに保持するため本番用途に適さないとされている。
+- タスク スケジューラからは「exe を 1 本起動して終了コードで成否が分かる」形が最も壊れにくい。C なら Docker もラッパースクリプトも要らない。
+- コードは B/C 共通（接続文字列だけが違う）。開発・CI では B（エミュレーター）を使う。
 
 ### 2.2 変更前後の構成
 
@@ -73,7 +77,9 @@ src/backend/batch/ComiCal.Batch/
 ├── Orchestrators/              … クラス名・ロジック維持。属性を外し TaskOrchestrator<,> 化
 ├── Activities/                 … クラス名・ロジック維持。属性を外し TaskActivity<,> 化
 ├── Models/                     … 変更なし
-├── Hosting/                    … 新規: BatchRunner（起動→完了待ち→終了コード）, SqlWarmup, StaleBatchRunCleaner
+├── Hosting/                    … 新規: BatchRunner（起動→完了待ち→終了コード）, Preflight（事前チェック）,
+│                                  SingleInstanceGuard（多重起動防止）, SqlWarmup, StaleBatchRunCleaner, FailureNotifier
+├── Configuration/              … 新規: BatchOptions（appsettings のバインド）, KeyVault からのシークレット読み込み
 └── Triggers/                   … 削除（Timer / HTTP トリガーは不要。Warmup のロジックは Hosting/SqlWarmup へ移す）
 ```
 
@@ -119,14 +125,24 @@ public partial class FetchPageActivity(RakutenBooksApiClient rakutenClient, ILog
 **Program.cs（骨子）**
 
 ```csharp
-var builder = Host.CreateApplicationBuilder(args);
-builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true).AddEnvironmentVariables();
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,   // タスク スケジューラの作業フォルダに依存しない
+});
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true)
+    .AddEnvironmentVariables(prefix: "COMICAL_");
+builder.Configuration.AddComiCalKeyVaultSecrets();   // Key Vault から楽天の認証情報等を読む（§2.7）
+builder.Logging.AddComiCalFileLogging();             // ローテーション付きファイルログ（§2.7）
 
 // 既存と同じ DI（Application / Sql(BatchDefaults) / Blob / Rakuten / App Insights 任意）
 builder.Services.AddBatchInfrastructure(builder.Configuration);
 
+// 本番: "Endpoint=https://<scheduler>.<region>.durabletask.io;TaskHub=comical;Authentication=DefaultAzure"
+// 開発: "Endpoint=http://localhost:8080;TaskHub=default;Authentication=None"（エミュレーター）
 var dts = builder.Configuration["DurableTask:ConnectionString"]
-          ?? "Endpoint=http://localhost:8080;TaskHub=default;Authentication=None";
+          ?? throw new InvalidOperationException("DurableTask:ConnectionString is required");
 builder.Services.AddDurableTaskWorker()
     .AddTasks(r =>
     {
@@ -142,14 +158,29 @@ builder.Services.AddDurableTaskWorker()
     .UseDurableTaskScheduler(dts);
 builder.Services.AddDurableTaskClient().UseDurableTaskScheduler(dts);
 
+using var guard = SingleInstanceGuard.TryAcquire("Global\\ComiCal.Batch");   // 取れなければ終了コード 4
+if (guard is null) return ExitCodes.AlreadyRunning;
+
 using var host = builder.Build();
+var preflight = await host.Services.GetRequiredService<Preflight>().RunAsync();  // 失敗なら終了コード 2
+if (preflight != ExitCodes.Success) return preflight;
+
 await host.StartAsync();
-var exitCode = await host.Services.GetRequiredService<BatchRunner>().RunOnceAsync(lifetimeToken);
+var exitCode = await host.Services.GetRequiredService<BatchRunner>().RunOnceAsync(ct);
 await host.StopAsync();
 return exitCode;
 ```
 
-**BatchRunner（新規）**: ① 古い Running 状態の BatchRun を失敗扱いに更新（§2.6）、② SQL の事前 resume（`WarmupTrigger` のクエリを移植）、③ `ScheduleNewOrchestrationInstanceAsync("DailyFetchOrchestrator")`、④ `WaitForInstanceCompletionAsync(id, getInputsAndOutputs: true, timeout)`、⑤ `Completed` なら 0、それ以外は 1 を返し、失敗詳細（`FailureDetails`）をログに出す。
+**BatchRunner（新規）**:
+1. インスタンス ID を **日付で決める**（`daily-yyyyMMdd`、JST）。同じ日の 2 回目の起動はその ID の状態を見て判断する:
+   - 実行中 / 保留中 → 新規開始せず完了を待つ（前回 PC が落ちた場合、ワーカーが起動すれば Scheduler 側の状態から**続きを再開**する）
+   - 完了済み → 何もしないで終了コード 0（`--force` 指定時は `daily-yyyyMMdd-2` などで再実行）
+   - 失敗 / 終了済み → `--force` なしでも再実行（新 ID）
+2. 古い Running 状態の BatchRun を Failed に更新（§2.6）
+3. SQL の事前 resume（`WarmupTrigger` のクエリを移植）
+4. `ScheduleNewOrchestrationInstanceAsync("DailyFetchOrchestrator", new StartOrchestrationOptions { InstanceId = id })`
+5. `WaitForInstanceCompletionAsync(id, getInputsAndOutputs: true, timeout)`
+6. 結果を終了コードに変換（§2.7）、失敗時は `FailureDetails` をログと Webhook に出す
 
 **DI の共通化**: API の `Program.cs` と Batch の登録処理で重複している Sql / Blob / Rakuten の登録は、Batch 側に `AddBatchInfrastructure` 拡張メソッドとして切り出す（API 側は触らない）。
 
@@ -164,16 +195,21 @@ return exitCode;
 
 ### 2.5 設定項目
 
-| キー | 既定値 / 供給元 | 備考 |
-|---|---|---|
-| `DurableTask:ConnectionString` | `Endpoint=http://localhost:8080;TaskHub=default;Authentication=None` | 案 C では `Endpoint=https://<scheduler>.<region>.durabletask.io;TaskHub=comical;Authentication=DefaultAzure` を想定（実装時に SDK のドキュメントで書式を確認） |
-| `SqlConnectionString` | 実行スクリプトが組み立てて環境変数で渡す | `Authentication=Active Directory Default`（az login） |
-| `StorageAccountUri` / `BlobBaseUrl` | 同上 | |
-| `RakutenApplicationId` / `RakutenAccessKey` / `RakutenAffiliateId` | 実行スクリプトが Key Vault から取得して環境変数で渡す | ディスクに平文で置かない |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | 任意 | 指定時のみ App Insights へ送信 |
-| `Batch:TimeoutMinutes` | 240 | `WaitForInstanceCompletionAsync` のタイムアウト |
+設定は exe と同じフォルダの `appsettings.json`（リポジトリ管理・非シークレット）と `appsettings.Local.json`（PC 固有・gitignore）に置き、**シークレットは Key Vault から実行時に読む**。環境変数（`COMICAL_` 接頭辞）で上書き可能。
 
-`DailyBatchCronExpression` / `WarmupBatchCronExpression` / `AzureWebJobs*` は不要になる。
+| キー | 例 / 供給元 | 備考 |
+|---|---|---|
+| `DurableTask:ConnectionString` | `Endpoint=https://cmcl-prod-jpe-dts.japaneast.durabletask.io;TaskHub=comical;Authentication=DefaultAzure` | 開発時はエミュレーター用に上書き |
+| `Azure:KeyVaultUri` | `https://cmcl-prod-jpe-kv.vault.azure.net/` | `RakutenAppId` → `RakutenApplicationId` 等の名前対応はコードで持つ |
+| `SqlConnectionString` | `Server=tcp:cmcl-prod-jpe-sql.database.windows.net,1433;Initial Catalog=cmcl-prod-jpe-sqldb;Authentication=Active Directory Default;...` | 非シークレット（Entra 認証） |
+| `StorageAccountUri` / `BlobBaseUrl` | `https://cmclprodjpest.blob.core.windows.net` | |
+| `Batch:ExpectedPublicIp` | 楽天に登録した自宅 IP（`appsettings.Local.json`） | Preflight で照合。不一致なら楽天を呼ぶ前に終了コード 2 |
+| `Batch:TimeoutMinutes` | 240 | 完了待ちのタイムアウト |
+| `Batch:LogDirectory` | `%LOCALAPPDATA%\ComiCal\Batch\logs` | 30 日分保持 |
+| `Batch:FailureWebhookUrl` | 任意（`appsettings.Local.json`） | 失敗時に通知 |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | 任意（Key Vault の `AppInsightsConnectionString`） | 指定時のみ App Insights へ送信 |
+
+`DailyBatchCronExpression` / `WarmupBatchCronExpression` / `AzureWebJobs*` は不要になる（スケジュールはタスク スケジューラ側で持つ）。
 
 ### 2.6 設計上の留意点
 
@@ -181,10 +217,81 @@ return exitCode;
 |---|---|---|
 | **ペイロード 1 MB 制限** | Durable Task Scheduler はオーケストレーター / アクティビティの入出力をそれぞれ 1 MB までに制限している。現行の `FetchOrchestrator` は `ContinueAsNew` の入力に全ページ分の `AccumThumbnails` を積み上げ、`FetchSummary` → `ThumbnailInput` にも同じリストを渡す。楽天の上限 100 ページ × 30 件 = 最大 3,000 件 × 約 230 バイト ≒ 0.7 MB で、上限に近い | **T2-6** で実測（シリアライズ後サイズをログ出力）。0.5 MB を超えるなら案 (b) を実施: ページごとに `ThumbnailOrchestrator` をサブオーケストレーションで呼び、`ContinueAsNew` には件数だけを持ち回す（`FetchSummary` から `ThumbnailPending` を除き、サムネイル件数を追加）。Durable Functions（Azure Storage）は大きいメッセージを自動で Blob に逃がしていたため顕在化していなかった |
 | DI スコープ | `ComiCalDbContext` は Scoped。Activity 実行ごとにスコープが切られるか（SDK の実装依存） | **T2-3** で確認。切られない場合は Activity 内で `IServiceScopeFactory` からスコープを作るラッパーを用意 |
-| エミュレーターの状態消失 | 実行中にエミュレーター / PC が落ちると履歴が消える | 再実行で回復（UPSERT でべき等）。孤立した `BatchRuns`（Status=Running）は次回起動時に `StaleBatchRunCleaner` が Failed に更新 |
-| 楽天レート制限（1 req / 5 秒） | `SlidingWindowRateLimiter` はシングルトンで同一プロセス内に効く | 変更なし。同時に 2 プロセス起動しないよう実行スクリプトのロックを維持 |
+| 実行途中での PC 停止 | 処理が中断する | Scheduler（C）に状態が残るため、同日中の次回起動で同じインスタンス ID の続きから再開。日をまたいだ場合は新しいインスタンスで最初から（UPSERT でべき等）。孤立した `BatchRuns`（Status=Running）は `StaleBatchRunCleaner` が Failed に更新 |
+| 楽天レート制限（1 req / 5 秒） | `SlidingWindowRateLimiter` はシングルトンで同一プロセス内に効く | 変更なし。名前付き Mutex で多重起動を防ぐ（手動実行とタスク実行の衝突も防止） |
 | オーケストレーターの決定性 | ルールは Durable Functions と同じ | 本体ロジックは変更しない |
 | ログ / テレメトリ | Functions のホストログがなくなる | コンソール + ファイル（実行スクリプトがリダイレクト）、App Insights は任意 |
+
+### 2.7 タスク スケジューラ運用のための構造
+
+**配置**: リポジトリの作業ツリーから直接実行しない（ブランチ切り替えやビルド中に定期実行が壊れるため）。`dotnet publish` した成果物を固定の場所に置き、タスクはそこを指す。
+
+```
+%LOCALAPPDATA%\ComiCal\Batch\
+├── releases\
+│   ├── 20261201-a1b2c3d\        … publish 結果（コミット SHA 付き）。直近 3 世代を保持
+│   └── 20261215-e4f5a6b\
+├── current  → releases\20261215-e4f5a6b   … ジャンクション。タスクはここの exe を起動
+├── appsettings.Local.json       … PC 固有設定（current 側からはシンボリック参照せず、exe が起動時にここも読む）
+└── logs\batch-20261215.log      … 日次ローテーション、30 日保持
+```
+
+- `tools/publish-batch.ps1`: テスト → `dotnet publish -c Release -r win-x64 --self-contained false` → `releases\<日付>-<SHA>` に出力 → `current` を張り替え → 古い世代を削除。**ロールバックは `current` を前の世代に戻すだけ**。
+- 実行中に張り替えても、起動済みのプロセスは古い世代のファイルを使い続けるので安全（次回起動から新版）。
+
+**起動**: タスクの操作は `ComiCal.Batch.exe run`（作業フォルダ = `current`）。ラッパーの PowerShell は使わない。
+
+| コマンド | 用途 |
+|---|---|
+| `ComiCal.Batch.exe run` | 定期実行（既定）。当日分が完了済みなら何もしない |
+| `ComiCal.Batch.exe run --force` | 当日分を再実行 |
+| `ComiCal.Batch.exe status [--date yyyy-MM-dd]` | 当日（指定日）のインスタンス状態と BatchRun の結果を表示 |
+| `ComiCal.Batch.exe preflight` | 事前チェックだけ行う（設定確認用） |
+
+**終了コード**（タスク スケジューラの「前回の実行結果」に出る）
+
+| コード | 意味 | 主な原因 |
+|---|---|---|
+| 0 | 成功（または当日分は完了済み） | |
+| 1 | オーケストレーション失敗 | 楽天 API / SQL / Blob の障害 |
+| 2 | 事前チェック失敗 | `az login` の期限切れ、IP 不一致、Key Vault / SQL / Scheduler に接続できない |
+| 3 | タイムアウト | 処理が `Batch:TimeoutMinutes` 内に終わらない（インスタンスは Scheduler に残り、次回起動で続きを待つ） |
+| 4 | 多重起動 | 前回の実行がまだ動いている |
+
+**Preflight（事前チェック）**: ① Entra のトークン取得（`DefaultAzureCredential`）、② グローバル IP と `Batch:ExpectedPublicIp` の照合、③ Key Vault からのシークレット取得、④ SQL への接続（ここで auto-pause からの resume も兼ねる）、⑤ Scheduler への接続。どれかが失敗したら楽天を呼ぶ前に終了する。
+
+**資格情報**: `DefaultAzureCredential` の Azure CLI 資格情報（`az login` 済みのユーザー）を使う。Azure CLI のトークンキャッシュはユーザー単位で暗号化されているため、タスクは**そのユーザーのプロファイルで**動かす必要がある。
+
+| タスクの「セキュリティ オプション」 | 動作 | 推奨 |
+|---|---|---|
+| ユーザーがログオンしているときのみ実行する | 画面ロック中は動く。サインアウト中は動かない | 既定（パスワード保存不要） |
+| ユーザーがログオンしているかどうかにかかわらず実行する（パスワードを保存） | サインアウト中も動く（プロファイルが読み込まれる） | PC をサインアウトして使う場合 |
+| 同上（パスワードを保存しない = S4U） | 暗号化されたトークンキャッシュを読めないため**失敗する** | 使わない |
+
+`az login` のリフレッシュトークンは毎日使われるため通常は失効しないが、失効すると終了コード 2 になる（Webhook で通知 → `az login` し直す）。
+
+**Azure 側で事前に固定しておくもの**（毎回の実行で Azure の設定を変えない）
+
+- SQL Server のファイアウォールに自宅 IP の規則を**常設**（Bicep の `batchOperatorIpAddress` パラメーター）。楽天の許可 IP と同じ値を管理するので、IP が変わったら両方を同時に更新する運用にする。現在の `run-batch-local.ps1` が毎回規則を追加・削除している方式はやめる。
+- Durable Task Scheduler の `ipAllowlist` も同じ IP に絞る。
+- 実行ユーザーへのロール: Storage Blob Data Contributor、Key Vault Secrets User（実装済み `batch-operator.bicep`）に **Durable Task Data Contributor** を追加。
+
+**タスク登録**（`tools/register-batch-task.ps1` を更新）: トリガー毎日 03:00、操作 `current\ComiCal.Batch.exe run`、「スケジュールされた時刻に開始できなかった場合すぐに実行」「スリープを解除して実行」（電源オプションの「スリープ解除タイマーの許可」も有効化が必要）、「新しいインスタンスを開始しない」、実行時間の上限 5 時間。
+
+**ログと通知**: ファイルログ（`Serilog.Extensions.Hosting` + `Serilog.Sinks.File`、もしくは軽量な自前 `ILoggerProvider`。§8 で決定）を `logs\` に日次出力。失敗（終了コード 1〜3）時は `Batch:FailureWebhookUrl` に通知。成功・失敗の履歴は従来どおり `BatchRuns` と管理画面でも確認できる。
+
+### 2.8 Durable Task Scheduler（Consumption）の費用見積り
+
+課金は「アクション」単位で、オーケストレーション開始が 1、アクティビティ呼び出しが 2（スケジュールと結果処理）と数える。1 回の実行あたりの概算:
+
+| 内訳 | アクション |
+|---|---:|
+| DailyFetch 開始・CreateBatchRun・Finalize | 約 5 |
+| ページ処理 100 ページ ×（FetchPage 2 + Upsert 2 + ContinueAsNew による再開 1） | 約 500 |
+| サムネイル最大 3,000 件 × 2 | 約 6,000 |
+| 合計 | **約 6,500 / 日 → 約 20 万 / 月** |
+
+Japan East の小売価格 API ではメーター「Consumption Action」が 0.00435 USD と表示されるが、単位の表記が曖昧（1,000 アクションあたりなら月 0.9 USD ≒ 140 円）。**T1-6 で料金計算ツールにより確定**し、上位計画の見込み額に反映する。想定より高い場合は、サムネイルの差分判定を Upsert 側に寄せて Activity 呼び出しを減らす（変更なし画像は呼ばない）か、B（エミュレーター）に切り替える。
 
 ---
 
