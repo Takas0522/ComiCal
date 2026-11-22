@@ -38,7 +38,7 @@
 ## 実施状況と手順（2026-11-21 時点）
 
 コード（IaC・CI/CD・ローカル Batch）は本ブランチで**最終形まで変更済み**。Azure の実体はまだ変わっていないので、下のスクリプトを**この順で**実行すると IaC と一致する。
-すべて確認プロンプト付き（`-Yes` で省略）で、ログは `.secrets\apply-logs\` に保存される。
+各スクリプトに確認プロンプトがある（通常は `-Yes` で省略可。手順 4 の楽天 IP 登録は人が確認）。ログは `.secrets\apply-logs\` に保存される。
 
 | 順 | スクリプト | 実体に対する変更 | 対応する IaC / コード変更 |
 |---|---|---|---|
@@ -46,7 +46,7 @@
 | 2 | `plan/scripts/apply-02-retire-stage.ps1` | `cmcl-dev-jpe-rg` 削除、dev KV / App Config purge、GitHub Environment dev 削除 | `dev.bicepparam`・`cd-dev.yml`・`dev-sql-nightly-pause.yml`・`pr-preview.yml` 削除、`main.bicep` の env を prod のみに |
 | 3 | `plan/scripts/apply-03-remove-appconfig.ps1` | App Configuration (prod) 削除・purge | `app.bicep` から appConfig / FF / `AppConfiguration__Endpoint` 削除 |
 | — | （手作業）楽天アプリの許可 IP に自宅 IP を追加 | | |
-| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | 実行ユーザーへの RBAC・DB ユーザー作成 → （楽天 IP 登録の確認後）Azure Batch 停止 → ローカル試走 → タスク登録。試走失敗時は Azure Batch を自動で再開 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/run-batch-local.ps1`, `tools/register-batch-task.ps1`。※ development-plan.md PR-3（T3-5）で exe 方式に更新予定 |
+| 4 | `plan/scripts/apply-04-batch-local-setup.ps1` | RBAC・DB ユーザー・SQL 常設規則・GitHub 変数・ローカル設定 → publish → preflight → 楽天 IP 登録の確認（`-Yes` でも必須）→ Azure Batch 停止 → ローカル試走 → タスク登録。試走失敗・登録見送り・登録失敗時は、停止した Azure Batch を自動で再開 | `batch-operator.bicep`, `cd-prod.yml`（Grant）, `tools/publish-batch.ps1`, `tools/register-batch-task.ps1` |
 | 5 | `plan/scripts/apply-05-retire-azure-batch.ps1` | Batch Function App / プラン / 失敗アラート / Durable タスクハブ / DB ユーザー削除 | `app.bicep`・`observability.bicep`・`data.bicep`・`cd-prod.yml` から Batch 関連を削除 |
 | 6 | `plan/scripts/apply-06-remove-network.ps1` | API の楽天設定・VNet 統合を解除 → VNet / NAT / PIP 削除 | `network.bicep` 削除、`main.bicep`・`app.bicep`・`cd-prod.yml`（検証ステップ） |
 | — | （手作業）楽天アプリの許可 IP から旧 Azure の IP を削除 | | |
@@ -60,9 +60,9 @@
 - 手順 6 は手順 5 の後に行う（Batch が同じサブネットを使っているため。スクリプト側でもチェックしている）。
 - Bicep は Incremental デプロイなので、IaC から消したリソースはデプロイしても消えない。削除はスクリプトで明示的に行う。
 - 手順 4・5・7 は SQL Server の Entra 管理者を一時的に実行ユーザーに切り替えるが、スクリプト終了時に元の管理者（CI の SP）へ戻す。戻せなかった場合は警告に表示されるコマンドを手動で実行する。
-- GitHub（environment: prod）に変数 `BATCH_OPERATOR_PRINCIPAL_ID` を設定する（手順 4 で gh CLI があれば自動）。未設定でも動くが、その場合 CD はローカル Batch 用の権限を管理しない。
+- GitHub（environment: prod）に変数 `BATCH_OPERATOR_PRINCIPAL_ID` と `BATCH_OPERATOR_IP_ADDRESS` を設定する（手順 4 で gh CLI があれば自動）。CD はこれらの値を使ってローカル Batch 用の権限と SQL 常設規則を管理する。
 
-**前提ツール（実行する PC）**: Azure CLI、PowerShell、.NET 10 SDK、go-sqlcmd（`winget install sqlcmd`）、sqlpackage（`dotnet tool install -g microsoft.sqlpackage`, 手順 7）、（任意）gh CLI。現行の `apply-04` は暫定的に Azure Functions Core Tools v4 と Azurite（Docker Desktop または npm）も必要とする（PR-3 で不要になる）。
+**前提ツール（実行する PC）**: Azure CLI、PowerShell（手順 4 は Windows PC）、.NET 10 SDK、Git（手順 4）、go-sqlcmd（`winget install sqlcmd`）、sqlpackage（`dotnet tool install -g microsoft.sqlpackage`, 手順 7）、（任意）gh CLI。
 
 ---
 
