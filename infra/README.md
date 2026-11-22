@@ -1,7 +1,7 @@
 # ComiCal — Bicep IaC
 
 Azure インフラストラクチャを Bicep で管理します。環境は **prod のみ** です（Stage/dev は 2026-11 にコスト削減のため廃止。[ADR 0004](../docs/adr/0004-azure-cost-reduction.md)）。
-日次バッチは Azure にデプロイせず、メンテナー PC で実行します（`tools/run-batch-local.ps1`）。
+日次 Batch はメンテナーの Windows PC に `tools/publish-batch.ps1` で配置します。タスク スケジューラが `ComiCal.Batch.exe run` を毎日 03:00 に起動し、Azure SQL / Blob / Key Vault には実行ユーザーの資格情報で接続します。設定と障害対応は[運用手順](../docs/runbooks/batch-operations.md)を参照してください。
 
 ## ディレクトリ構成
 
@@ -67,7 +67,7 @@ az deployment sub what-if \
 | Blob Container | `covers` | public read (表紙画像直接配信) |
 | Blob Container | `sync-tmp` | private（1 日で自動削除） |
 | Blob Container | `app-package-api` | Flex Consumption のデプロイパッケージ |
-| Queue | `failed-items-dlq` | バッチ失敗キュー |
+| Queue | `failed-items-dlq` | IaC に残る旧構成のキュー。現行 Batch の失敗詳細は SQL の `FailedItems` に記録 |
 
 > 既存の有償 DB は無料オファーに変換できません。`sqlUseFreeLimit = true` の状態でデプロイする前に
 > `plan/scripts/apply-07-sql-free-offer.ps1` で DB を移行してください。

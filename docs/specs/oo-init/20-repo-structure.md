@@ -75,7 +75,7 @@ ComiCal/
 │   │           ├── shared/
 │   │           └── features/
 │   ├── backend/                   # .NET 10 ソリューション
-│   │   ├── ComiCal.sln
+│   │   ├── ComiCal.slnx
 │   │   ├── Directory.Build.props
 │   │   ├── Directory.Packages.props
 │   │   ├── api/
@@ -152,7 +152,7 @@ ComiCal.Infrastructure.Rakuten / Blob ─► ComiCal.Domain
 
 - ルート `pnpm-workspace.yaml` で `src/frontend`, `src/tests/e2e` を workspace 化。
 - ルート `package.json` には共通スクリプト（`pnpm test`, `pnpm lint`, `pnpm build`）を集約。
-- `dotnet` は `src/backend/ComiCal.sln` でまとめる。
+- `dotnet` は `src/backend/ComiCal.slnx` でまとめる。
 - `db` は別 `.sqlproj`（dotnet build 可能）。
 
 ## 20.5 関連ドキュメント / Skills

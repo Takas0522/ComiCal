@@ -1,6 +1,6 @@
 # 06. アーキテクチャ概要
 
-> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 以下の記述のうち、次の点は現行構成と異なります。
+> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 日次収集を Windows コンソールアプリに移行しました。
 >
 > - Batch は Azure にデプロイせずメンテナー PC で実行。API は楽天 API を呼ばない（検索は DB のみ）。VNet / NAT Gateway / App Configuration は廃止。
 
@@ -11,15 +11,14 @@
 | Frontend | **Angular v21** + Tailwind CSS **v4** + tailwindcss-typography + Angular CDK | Standalone Components / Signals / Zoneless / SSR (Hybrid) |
 | Frontend Hosting | **Azure Static Web Apps Standard** | Managed Functions で SSR 実行 |
 | Backend API | **Azure Functions (.NET 10 Isolated Worker)** | SWA-linked Functions |
-| Backend Batch | **Azure Functions (.NET 10 Isolated Worker, Consumption)** + **Durable Functions** | バッチは API と物理的に分離 |
+| Backend Batch | **.NET 10 Generic Host コンソールアプリ** | メンテナーの Windows PC で毎日 03:00 JST |
 | Database | **Azure SQL Database Serverless** (General Purpose, auto-pause) | Database First (SSDT/DACPAC が SoT) |
 | ORM | **EF Core 10** | DACPAC からの scaffold |
 | Storage | **Azure Blob Storage** | 表紙画像、CDN なし直接配信 |
 | Identity | **Entra External ID** (旧 AD B2C) | Microsoft / Google / X(Twitter) |
 | Secrets | **Key Vault** + **Managed Identity** | App Settings に KV 参照リンク |
-| IaC | **Bicep** | modules: network / data / app / observability |
+| IaC | **Bicep** | modules: data / app / observability / batch-operator / budget |
 | 監視 | **Application Insights + Log Analytics** | + Alert Rules |
-| Feature Flag | **Azure App Configuration** | Feature Manager 連携 |
 | 開発環境 | **DevContainer** | `devcontainers/dotnet` ベース |
 | テスト | **Jest** (FE) / **xUnit** (BE) / **Playwright + Testcontainers** (E2E) | カバレッジ ≥ 80% |
 | パッケージ管理 | **pnpm workspace**（FE / E2E）+ **dotnet (sln)**（BE）|  |
@@ -41,18 +40,17 @@ flowchart TB
         Api["HTTP Triggers<br/>Clean Architecture"]
     end
 
-    subgraph FuncBatch["Function App: Batch (Consumption)"]
-        Timer["Timer Trigger<br/>03:00 JST"]
-        Fetch["Fetch Orchestrator<br/>(chaining)"]
-        Thumb["Thumbnail Orchestrator<br/>(fan-out/in × 8)"]
+    subgraph LocalBatch["Windows PC: .NET Batch"]
+        Timer["Task Scheduler<br/>03:00 JST"]
+        Fetch["FetchPagesJob<br/>直列"]
+        Thumb["ThumbnailJob<br/>並列度 8"]
     end
 
     SQL[("Azure SQL DB<br/>Serverless / auto-pause")]
-    Blob[("Azure Blob Storage<br/>covers / sync-tmp / DLQ")]
+    Blob[("Azure Blob Storage<br/>covers / sync-tmp")]
     Rakuten[/"楽天 Books API<br/>1 req/5sec"/]
 
     KV[/"Key Vault"/]
-    AppCfg[/"App Configuration<br/>Feature Flag"/]
     AppInsights[/"Application Insights<br/>+ Log Analytics"/]
 
     Browser -- HTTPS --> SSR
@@ -67,19 +65,18 @@ flowchart TB
     Fetch -- UPSERT --> SQL
     Fetch --> Thumb
     Thumb --> Blob
+    Thumb --> SQL
 
     KV -. "Managed Identity" .-> FuncApi
-    KV -. "Managed Identity" .-> FuncBatch
+    KV -. "実行ユーザーの資格情報" .-> LocalBatch
     KV -. "Managed Identity" .-> SWA
-    AppCfg -.-> FuncApi
-    AppCfg -.-> SWA
 
     FuncApi -. telemetry .-> AppInsights
-    FuncBatch -. telemetry .-> AppInsights
+    LocalBatch -. 任意のテレメトリ .-> AppInsights
     SWA -. telemetry .-> AppInsights
 ```
 
-### 6.2.1 現在の Azure 物理構成（2026-09-21 確認時点）
+### 6.2.1 移行前の Azure 物理構成（2026-09-21 時点）
 
 ```mermaid
 flowchart TB
@@ -130,32 +127,24 @@ flowchart TB
     Log --> Alert --> ActionGroup
 ```
 
-> API とバッチは同じ `Microsoft.App/environments` 委任サブネットへ VNet 統合し、NAT Gateway の静的 Public IP を楽天 API の IP allowlist に登録します。これにより、バッチ収集とAPI検索フォールバックの送信元IPが一致します。
+> API とバッチは同じ `Microsoft.App/environments` 委任サブネットへ VNet 統合し、NAT Gateway の静的 Public IP を楽天 API の IP allowlist に登録していました。バッチ収集と API 検索フォールバックの送信元 IP を共通化していた構成です。
 
 ## 6.3 データフロー
 
-1. **収集フロー（バッチ）**: Timer (03:00 JST) → Fetch Orchestrator が楽天 Books API を 1req/5sec でページング → Series/Volumes を UPSERT → Thumbnail Orchestrator が新規 / 変更分のみ Blob にダウンロード（CoverHash で同一性判定）。
+1. **収集フロー（バッチ）**: Windows タスク スケジューラ (03:00 JST) → FetchPagesJob が楽天 Books API を 1req/5sec でページング → Series/Volumes を UPSERT → ThumbnailJob が画像を取得し、新規 / 変更分を Blob に保存（CoverHash で同一性判定）。
 2. **閲覧フロー**: Browser → SWA SSR → SWA-linked Functions API → SQL/Blob。SSR で Transfer State にデータを埋め込み、ハイドレーション時の再取得を抑制。
 3. **書き込みフロー**: ユーザー操作 → SSR を介して Functions に POST/PUT/DELETE。匿名はローカル IndexedDB に書き込みのみ。
 
 ## 6.4 環境
 
-| 環境 | 用途 | リソース命名 prefix | コスト最適化 |
-|---|---|---|---|
-| **dev** | 開発・QA | `cmcl-dev-jpe-*` | SQL auto-pause 60min |
-| **prod** | 本番 | `cmcl-prod-jpe-*` | SQL auto-pause 60min |
-| **PR Preview** | PR ごと | SWA Preview Environment 自動生成 | dev SQL/Storage を共有 |
-
-- **リージョン: Japan East のみ**（DR 不要）。
-- 命名規則: **CAF 推奨** `{prefix}-{env}-{region}-{resource}`。
-- 環境差分は `infra/params/{env}.bicepparam` で管理。
+Azure は prod（`cmcl-prod-jpe-*`）を運用する。開発・確認は DevContainer 内で行う。本番の設定は [prod.bicepparam](../../../infra/params/prod.bicepparam) で管理する。
 
 ## 6.5 トポロジ原則
 
-- **API と Batch は物理的に別 Function App** に分離（スケール特性とデプロイ独立性のため）。
+- API は Azure Functions、Batch はメンテナーの Windows PC で実行する。
 - API は SWA-linked（SWA からのトラフィックのみ受信）。`Authorization=function` + SWA Auth ヘッダで二重防御。
-- Batch は HTTP Trigger を Admin 用に 1 つだけ持ち、それ以外はすべて Timer / Durable Activity。
-- DB / Storage は両 Function App から同一インスタンスを共有。
+- Batch の手動起動は配置済みの `ComiCal.Batch.exe run` を使う。
+- DB / Storage はAPI と Batch で共有する。
 
 ## 6.6 可用性 / SLA
 

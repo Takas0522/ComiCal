@@ -23,7 +23,7 @@
 | 06 | [06-architecture-overview.md](./06-architecture-overview.md) | 技術スタック・論理構成図・環境 |
 | 07 | [07-domain-model.md](./07-domain-model.md) | ドメインモデル / 集約ルール |
 | 08 | [08-database-spec.md](./08-database-spec.md) | DB スキーマ / 検索 / SSDT |
-| 09 | [09-rakuten-and-batch.md](./09-rakuten-and-batch.md) | 楽天 Books API 連携 / Durable Functions バッチ |
+| 09 | [09-rakuten-and-batch.md](./09-rakuten-and-batch.md) | 楽天 Books API 連携 / 日次 Batch |
 | 10 | [10-frontend-spec.md](./10-frontend-spec.md) | Angular v21 / Tailwind v4 / SSR |
 | 11 | [11-auth-session.md](./11-auth-session.md) | 認証 / セッション / 匿名 ⇄ ログイン |
 | 12 | [12-backend-api.md](./12-backend-api.md) | Azure Functions API（Clean Architecture）|

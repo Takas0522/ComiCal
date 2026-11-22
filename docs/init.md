@@ -40,7 +40,7 @@
 | Frontend         | Angular **v21** + Tailwind CSS **v4** + tailwindcss-typography + Angular CDK / SSR (Hybrid Rendering) |
 | Frontend Hosting | Azure Static Web Apps Standard（Managed Functions で SSR 実行）                                       |
 | Backend (API)    | Azure Functions (.NET **10** Isolated Worker) — SWA 付属の Functions を使用                           |
-| Backend (Batch)  | Azure Functions (.NET **10** Isolated Worker, **Consumption Plan**) + **Durable Functions**           |
+| Backend (Batch) | .NET 10 Generic Host コンソールアプリ（Windows タスク スケジューラ） |
 | Database         | Azure SQL Database (Serverless / General Purpose, auto-pause 有効) — **Database First**               |
 | Storage / 表紙   | Azure Blob Storage（直接配信、CDN なし）                                                              |
 | Identity         | **Entra External ID (旧 AD B2C)**（Microsoft / Google / X(Twitter)）                                  |
@@ -65,10 +65,10 @@
    │       ├── EF Core 10 ──► [Azure SQL Database]
    │       └── Blob SDK  ──► [Azure Blob Storage (cover images)]
    │
-[Durable Functions Batch (Consumption)]
-   │  Timer (毎日 03:00 JST)
-   ├── Fetch (chaining: page-by-page) ─► 楽天 Books API
-   └── Thumbnail (fan-out/in, 並列度 8) ─► Blob Storage
+[Windows PC: .NET Batch]
+   │  Windows タスク スケジューラ (毎日 03:00 JST)
+   ├── FetchPagesJob (直列) ─► 楽天 Books API
+   └── ThumbnailJob (並列度 8) ─► Blob Storage
 
 [Key Vault] ◄── Managed Identity ◄── Functions / SWA
 [App Configuration] ── Feature Flag
@@ -99,7 +99,7 @@
 | `Subscriptions`             | (UserId, SeriesId) ユニーク制約。論理削除                                                                                       |
 | `Purchases`                 | (UserId, VolumeId) と State（未購入 / 購入済 / 読了 / 予約中）。電子/紙の区別はしない                                           |
 | `ThumbnailAssets`           | Blob 上のオブジェクトキー、サイズ、Hash                                                                                         |
-| `BatchRuns` / `FailedItems` | バッチ実行履歴と失敗アイテム（DLQ 連携用）                                                                                      |
+| `BatchRuns` / `FailedItems` | バッチ実行履歴と失敗アイテム                                                                                      |
 
 ### 3.2 設計ポリシー
 
@@ -126,17 +126,14 @@
 
 - エンドポイント: **BooksBookSearch / 20170404**。
 - ジャンル: `booksGenreId = 001001`（コミック）に限定。
-- 認証情報: `applicationId` を **App Settings → Key Vault 参照** で注入。Functions は Managed Identity で取得。
-- レートリミット: **1 秒 1 リクエスト以下**（クライアント側にレートリミッターポリシー）。
+- 認証情報は Batch の実行ユーザーが Key Vault から取得。
+- レートリミット: **5 秒に 1 リクエスト**（クライアント側のレートリミッターで制御）。
 
-### 4.2 バッチ仕様（Durable Functions）
+### 4.2 日次 Batch
 
-- スケジュール: **毎日 03:00 JST フル収集**（Timer Trigger）。
-- スキャン期間: **これから 6 ヶ月先まで**。**初回投入時は 6 ヶ月前も含む**。
-- パターン: **Function chaining**（ページ収集を直列）→ **Fan-out / Fan-in**（サムネイル取得を並列）。
-- サムネイル並列度: **8**（セマフォと反応を見て調整）。
-- 失敗時: **リトライポリシー + DLQ (Storage Queue)** + Application Insights アラート。
-- 手動起動: 管理者用 HTTP Trigger（Function Key + Entra 保護）を提供。
+- Windows タスク スケジューラが毎日 03:00 JST に `ComiCal.Batch.exe run` を起動する。手動でも同じ exe を使う。
+- ページ取得は直列、サムネイル取得は最大 8 並列で実行する。中断時は次回の実行で先頭から処理する。
+- 終了コード、ローカルログ、外部ハートビートで結果を確認する。設定と障害対応は[運用手順](runbooks/batch-operations.md)を参照。
 
 ---
 
@@ -260,7 +257,7 @@ src/app/
 | ---------- | ------------------ | ------------------------------------------------------------------ |
 | 単体（FE） | **Jest**           | Angular コンポーネント / Service / Pipe / Directive                |
 | 単体（BE） | **xUnit**          | Domain / Application 層                                            |
-| 統合（BE） | **xUnit**          | Functions エンドポイント / Durable orchestration（Testcontainers） |
+| 統合（BE） | **xUnit**          | Functions エンドポイント / BatchRunner（Testcontainers） |
 | E2E        | **Playwright**     | 主要シナリオ：購読追加 / 検索 / 購入チェック / ログイン            |
 | 安定化     | **Testcontainers** | MSSQL コンテナ + Azurite (Blob/Queue) でシードデータ投入           |
 
@@ -310,7 +307,7 @@ src/app/
 - .NET 10 SDK
 - Node 22 LTS / pnpm
 - **Angular CLI**
-- Azure Functions Core Tools / Azurite
+- ローカル API 用の Azure Functions Core Tools / Azurite
 - SQL Server Tools (sqlcmd, sqlpackage)
 - Bicep CLI
 - **GitHub CLI / GitHub Copilot CLI**
@@ -333,7 +330,7 @@ src/app/
 - フロントから直接呼ばれる WebAPI は SSR 経由に隠蔽し、**Functions は SWA 連携トークンが付いたリクエストのみ受け付ける**。
 - OSS 情報・楽天クレジット・ライセンス確認用ダイアログを画面から開けるようにする。
 - 漫画情報はカードグリッドで密度高く表示する。
-- バッチは Durable Functions（**chaining → fan-out/in**）で長時間処理に耐える設計とする。
+- 日次 Batch は Activity 単位のスコープとリトライを使い、再実行可能な収集処理とする。
 - Bicep で IaC を完結させる。Playwright の Flaky 対策に Testcontainers を活用。
 - 開発は DevContainer 上で行う。
 
@@ -404,7 +401,7 @@ ComiCal/
 │   │           ├── shared/        # pipes, directives, design tokens
 │   │           └── features/      # 機能横断ロジック / signal stores
 │   ├── backend/                   # .NET 10 ソリューション
-│   │   ├── ComiCal.sln
+│   │   ├── ComiCal.slnx
 │   │   ├── Directory.Build.props
 │   │   ├── Directory.Packages.props
 │   │   ├── api/                   # SWA-linked Functions API
@@ -416,13 +413,13 @@ ComiCal/
 │   │   │       ├── Functions/     # HTTP triggers
 │   │   │       ├── Middlewares/   # Auth / RateLimit / ProblemDetails
 │   │   │       └── Models/        # Request/Response DTO
-│   │   ├── batch/                 # Durable Functions バッチ
+│   │   ├── batch/                 # .NET コンソール Batch
 │   │   │   └── ComiCal.Batch/
 │   │   │       ├── ComiCal.Batch.csproj
 │   │   │       ├── Program.cs
-│   │   │       ├── host.json
-│   │   │       ├── Triggers/      # Timer / HTTP (manual)
-│   │   │       ├── Orchestrators/ # Fetch chaining + Thumbnail fan-out
+│   │   │       ├── appsettings.json
+│   │   │       ├── Hosting/      # BatchRunner / ActivityInvoker
+│   │   │       ├── Jobs/
 │   │   │       └── Activities/
 │   │   ├── application/
 │   │   │   └── ComiCal.Application/   # UseCases / Validators / Mappings
@@ -467,7 +464,7 @@ ComiCal/
 │       │   ├── ComiCal.Domain.Tests/
 │       │   ├── ComiCal.Application.Tests/
 │       │   ├── ComiCal.Api.Tests/         # 統合 (WebApplicationFactory)
-│       │   ├── ComiCal.Batch.Tests/       # Durable + Testcontainers
+│       │   ├── ComiCal.Batch.Tests/       # BatchRunner / Job / Activity + Testcontainers
 │       │   └── ComiCal.Infrastructure.Tests/
 │       └── e2e/                           # Playwright (Page Object Model)
 │           ├── package.json

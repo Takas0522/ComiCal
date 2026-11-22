@@ -25,7 +25,7 @@
 | `dbo.Purchases` | 購入 (UserId, VolumeId, State) |
 | `dbo.ThumbnailAssets` | Blob 表紙画像メタ |
 | `dbo.BatchRuns` | バッチ実行履歴 |
-| `dbo.FailedItems` | バッチ失敗アイテム（DLQ 連携）|
+| `dbo.FailedItems` | Batch の項目別の失敗理由|
 
 ## 8.3 共通カラム
 

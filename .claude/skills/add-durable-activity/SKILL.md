@@ -1,80 +1,23 @@
 ---
 name: add-durable-activity
-description: 'Use when adding a new Durable Functions Activity (I/O step called from an Orchestrator: DB writes, Rakuten Books API calls, Blob uploads, etc.) under src/backend/batch/. Enforces idempotency (UPSERT by ISBN / CoverHash), CancellationToken propagation, structured logging, and retry policy on the orchestrator side.'
+description: 'Use when adding a Batch Activity to the .NET console app under src/backend/batch/. Covers scoped DI registration, IActivityInvoker, idempotent writes, cancellation and retry.'
 argument-hint: '<ActivityName> <description>'
 allowed-tools: Read, Write, Edit, Bash
 ---
 
 # add-durable-activity
 
-## 配置
-
-- `src/backend/batch/ComiCal.Batch/Activities/<Name>Activity.cs`
-
-## 必須要件
-
-1. **べき等性**：再実行で副作用が増えないこと
-   - INSERT は ISBN/CoverHash で UPSERT
-   - 楽天 API は同じパラメータで再呼出可
-
-2. **入出力は単純な DTO**：複雑な参照型は serializable に
-3. **例外伝播**：リトライ可能なものはそのまま throw、致命的なものはカスタム例外で DLQ 行きにする
-4. **Logging**：`ILogger<T>` で構造化ログ、Application Insights カスタムプロパティを活用
-5. **Cancellation**：`CancellationToken` を必ず受け取り伝播
-
-## テンプレート
+1. `src/backend/batch/ComiCal.Batch/Activities/` に Activity クラスを追加する。コンストラクターで依存サービスを受け取り、`Task<XxxOutput> Run(XxxInput input, CancellationToken ct)` を用意する。入出力型は必要に応じて `Models/` に置く。
+2. `Hosting/BatchServiceCollectionExtensions.cs` の `AddBatchInfrastructure` に `services.AddScoped<XxxActivity>();` を追加する。
+3. `Jobs/` の呼び出し元へ `IActivityInvoker` を注入し、次の形で呼ぶ。呼び出しごと・試行ごとに DI スコープが作成される。
 
 ```csharp
-public sealed class FetchVolumeActivity
-{
-    private readonly IRakutenBooksClient _client;
-    private readonly ILogger<FetchVolumeActivity> _logger;
-
-    public FetchVolumeActivity(IRakutenBooksClient client, ILogger<FetchVolumeActivity> logger)
-    {
-        _client = client;
-        _logger = logger;
-    }
-
-    [Function(nameof(FetchVolumeActivity))]
-    public async Task<VolumeDto> Run([ActivityTrigger] FetchVolumeRequest req, CancellationToken ct)
-    {
-        _logger.LogInformation("Fetching volume {Isbn}", req.Isbn);
-        var volume = await _client.GetByIsbnAsync(req.Isbn, ct);
-        return volume.ToDto();
-    }
-}
+var result = await invoker.RunAsync<XxxActivity, XxxInput, XxxOutput>(
+    input, static (activity, request, token) => activity.Run(request, token), ct);
 ```
 
-## Orchestrator から呼び出し（参考）
-
-```csharp
-var retryOptions = TaskOptions.FromRetryPolicy(new RetryPolicy(
-    maxNumberOfAttempts: 5,
-    firstRetryInterval: TimeSpan.FromSeconds(5),
-    backoffCoefficient: 2.0));
-
-var dto = await context.CallActivityAsync<VolumeDto>(
-    nameof(FetchVolumeActivity), request, retryOptions);
-```
-
-## チェックリスト
-
-- [ ] `[ActivityTrigger]` が引数に付与
-- [ ] `CancellationToken` を受け取り、内部 await に渡している
-- [ ] べき等であること（再実行テスト）
-- [ ] 構造化ログ
-- [ ] Orchestrator 側にリトライポリシーが設定されている
-- [ ] 単体テストを `ComiCal.Batch.Tests` に追加
-
-## 関連
-
-- `.github/instructions/backend-batch.instructions.md`
-- テンプレート: `templates/activity.template.cs`
-
-## アンチパターン
-
-- ❌ Activity 内で別の Activity を直接呼ぶ（必ず Orchestrator 経由）
-- ❌ static state でデータを持ち回す
-- ❌ 致命的でないエラーで catch して swallow（リトライさせる）
-- ❌ CancellationToken 無視
+- **冪等性**を守る。ISBN 等の一意キーで UPSERT し、画像はハッシュで同一性を判定する。再実行は先頭から行うため、処理途中まで書き込まれた場合も考慮する。
+- `CancellationToken` を DB、HTTP、Blob 操作まで伝播し、呼び出し元のキャンセルを握りつぶさない。
+- リトライは ActivityInvoker の Polly ポリシーに従う。例外は最大 3 試行、指数バックオフで初回 5 秒（サムネイルの `thumbnail: true` は 3 秒）。呼び出し元のキャンセルはリトライ対象外。
+- 実行 ID・ページや ISBN を構造化ログに残す。個別項目の失敗を結果として継続する設計では、件数と失敗理由の記録を確認する。
+- 既存の `src/tests/backend/ComiCal.Batch.Tests/Activities/` に倣い、再実行、キャンセル、失敗の扱いをテストする。

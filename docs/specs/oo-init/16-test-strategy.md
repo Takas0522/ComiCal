@@ -6,7 +6,7 @@
 | ---------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------- |
 | Unit (FE)        | **Jest**                                                                | Angular Component / Service / Pipe / Directive / Signal store |
 | Unit (BE)        | **xUnit v3**                                                            | Domain / Application 層                                       |
-| Integration (BE) | **xUnit v3 + Testcontainers** (MSSQL / Azurite) + WebApplicationFactory | Functions エンドポイント、Durable orchestration               |
+| Integration (BE) | **xUnit v3 + Testcontainers** (MSSQL / Azurite) + WebApplicationFactory | Functions エンドポイント、BatchRunner の収集と保存               |
 | E2E              | **Playwright**                                                          | 主要シナリオ（購読追加 / 検索 / 購入チェック / ログイン）     |
 
 > Angular v21 の既定テストランナーは Vitest だが、本プロジェクトは **Jest を継続採用**。
@@ -37,11 +37,11 @@
 - シードデータは `IAsyncLifetime` の `InitializeAsync` で投入、テスト終了時にコンテナ破棄。
 - WebApplicationFactory で Functions Worker を in-process ホスト化し、HTTP エンドポイントを叩く。
 
-## 16.6 Durable Functions テスト
+## 16.6 Batch テスト
 
-- Orchestrator は **`DurableTaskClient` フェイク**で Activity をモック化し、決定論性を検証。
-- Activity 単体は通常の xUnit + Testcontainers で I/O ごと検証。
-- `ContinueAsNew` の境界、`RetryOptions` の動作を必ずテスト。
+- Job、Activity、ランナーの分岐を単体で検証する。
+- 統合テストは Testcontainers の SQL Server と Azurite Blob、楽天 HTTP スタブ、画像スタブで `run` の完走と当日成功済みのスキップを確認する。
+- DevContainer では `TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal` を指定する。
 
 ## 16.7 E2E (Playwright) ルール — Page Object Model 必須
 
@@ -88,6 +88,6 @@ src/tests/e2e/
 
 ```bash
 pnpm --filter frontend test           # Jest
-dotnet test src/backend/ComiCal.sln   # xUnit + Testcontainers
+dotnet test src/backend/ComiCal.slnx   # xUnit + Testcontainers
 pnpm --filter e2e test                # Playwright
 ```

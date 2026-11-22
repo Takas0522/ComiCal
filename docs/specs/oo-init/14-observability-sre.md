@@ -1,8 +1,8 @@
 # 14. 監視 / SRE
 
-> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 以下の記述のうち、次の点は現行構成と異なります。
+> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 日次 Batch の監視をローカルログと外部ハートビートに移行しました。
 >
-> - Batch 失敗のログアラートは廃止（Batch のローカル化に伴う）。失敗はスクリプトの終了コード / Webhook と `BatchRuns` で確認。Log Analytics は保持 30 日・日次上限 0.2 GB。
+> - Batch 失敗のログアラートは廃止（Batch のローカル化に伴う）。失敗は実行ファイルの終了コード / Webhook と `BatchRuns` で確認。Log Analytics は保持 30 日・日次上限 0.2 GB。
 
 ## 14.1 KPI / メトリクス
 
@@ -31,7 +31,8 @@
 
 | ルール | 条件 | 通知先 |
 |---|---|---|
-| バッチ失敗 | `BatchRuns.Status = Failed` または `failedItemCount >= 5` | Slack / Teams Webhook（Action Group）|
+| バッチ失敗 | `run` の終了コード 1〜3 | Slack / Teams 互換 Webhook（設定時）|
+| バッチ未実行 | ハートビートが期限までに未着 | 外部監視サービスのメール等|
 | API エラー率 | 5 分窓で `4xx + 5xx` 比率 > **1%** | Slack / Teams Webhook |
 | SQL auto-pause 中の失敗増 | DB 接続失敗 5 件 / 5 分 | Slack / Teams Webhook |
 | Application Insights 例外バースト | 30 件 / 5 分 | Slack / Teams Webhook |
@@ -39,15 +40,14 @@
 
 ## 14.3 ログ / トレース
 
-- すべてのコンポーネントを **Application Insights + Log Analytics Workspace** に集約。
-- W3C Trace Context (`traceparent`) を SSR → API → Batch → DB クエリまで伝播。
+- API のログは Application Insights / Log Analytics、Batch はローカルの日次ログで確認する。Batch の Application Insights 送信は任意。
+- W3C Trace Context (`traceparent`) を SSR → API → DB クエリまで伝播。
 - 構造化ログのキー命名は `camelCase`（例: `volumeId`, `seriesId`）で統一。
 - PII は記録しない（IdP Subject はハッシュ化）。
 
 ## 14.4 ダッシュボード
 
 - Azure Workbook で以下を初期同梱:
-  - **Daily Batch** Workbook: BatchRuns 履歴 / 取得件数推移 / FailedItems。
   - **API Health** Workbook: p50/p95/p99 / エラー率 / トップエンドポイント。
   - **User Activity** Workbook: DAU/WAU / 購読作成数 / 検索数。
 
@@ -60,7 +60,6 @@
 | CLS | < 0.1 |
 
 - Web Vitals を `web-vitals` ライブラリで測定し、`pageView` カスタムプロパティとして送信。
-- Lighthouse CI を `pr-preview.yml` で実行し回帰検知。
 
 ## 14.6 キャッシュ戦略
 
@@ -71,9 +70,9 @@
 ## 14.7 オンコール / 運用
 
 - 個人 OSS のためオンコール体制は持たないが、アラート Webhook を Slack/Teams のオプトインチャネルに配送する想定。
-- ランブック（バッチ失敗時の対応）は `.claude/skills/troubleshoot-batch` にテンプレート化。
+- Batch の障害対応は[運用手順](../../runbooks/batch-operations.md)を参照。
 
 ## 14.8 サンプリング
 
 - App Insights サンプリングは **既定 (適応サンプリング)**。
-- 重要イベント (`subscription.created`, `purchase.updated`, `batch.*`) は `[Telemetry: Always]` 相当のフィルタで sampled-out させない。
+- 重要イベント (`subscription.created`, `purchase.updated`) は `[Telemetry: Always]` 相当のフィルタで sampled-out させない。

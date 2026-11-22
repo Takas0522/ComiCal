@@ -23,7 +23,7 @@
 | フロントエンド | Angular v21 (Standalone / Signals / Zoneless / SSR) + Tailwind CSS v4 |
 | ホスティング | Azure Static Web Apps Standard |
 | バックエンド API | Azure Functions .NET 10 Isolated Worker |
-| バックエンドバッチ | Durable Functions .NET 10（メンテナー PC でローカル実行。`tools/run-batch-local.ps1`） |
+| バックエンドバッチ | .NET 10 Generic Host コンソールアプリ（メンテナーの Windows PC で実行） |
 | データベース | Azure SQL Database Serverless (EF Core 10 Database First) |
 | ストレージ | Azure Blob Storage |
 | 認証 | Entra External ID (Microsoft / Google / X) |
@@ -64,24 +64,28 @@ codex
 ```bash
 # 依存関係のインストール
 pnpm install
-dotnet restore src/backend/ComiCal.sln
+dotnet restore src/backend/ComiCal.slnx
 
 # フロントエンド開発サーバー
 pnpm --filter frontend dev
 
 # バックエンド API (別ターミナル)
 func start --csharp --port 7071 --prefix src/backend/api/ComiCal.Api
-
-# バックエンドバッチ (別ターミナル)
-func start --csharp --port 7072 --prefix src/backend/batch/ComiCal.Batch
 ```
 
-本番データに対する日次バッチはローカル PC から実行します（Azure には Batch をデプロイしません）。
-`tools/run-batch-local.ps1` で 1 回実行、`tools/register-batch-task.ps1` で毎日 03:00 に登録します（[ADR 0004](docs/adr/0004-azure-cost-reduction.md)）。
+### 日次 Batch（Windows）
+
+[運用手順](docs/runbooks/batch-operations.md)に従って本番 SQL / Blob と楽天 API への接続を設定します。配置、毎日 03:00 のタスク登録、手動実行はリポジトリルートから次のコマンドで行います。
+
+```powershell
+./tools/publish-batch.ps1
+./tools/register-batch-task.ps1
+& "$env:LOCALAPPDATA\ComiCal\Batch\current\ComiCal.Batch.exe" run
+```
 
 ### 環境変数
 
-`local.settings.json.sample` を参考に `local.settings.json` を作成してください。
+[API の設定サンプル](src/backend/api/ComiCal.Api/local.settings.json.sample)を参考に、API プロジェクトに `local.settings.json` を作成してください。
 
 > ⚠️ `local.settings.json` は `.gitignore` 対象です。シークレットをコミットしないでください。
 
@@ -92,7 +96,7 @@ func start --csharp --port 7072 --prefix src/backend/batch/ComiCal.Batch
 pnpm --filter frontend test
 
 # バックエンド (xUnit + Testcontainers)
-dotnet test src/backend/ComiCal.sln
+TESTCONTAINERS_HOST_OVERRIDE=host.docker.internal dotnet test src/backend/ComiCal.slnx
 
 # E2E (Playwright)
 pnpm --filter e2e test
@@ -105,7 +109,7 @@ pnpm --filter e2e test
 dotnet build src/db/ComiCal.Database.sqlproj
 
 # バックエンド
-dotnet build src/backend/ComiCal.sln
+dotnet build src/backend/ComiCal.slnx
 
 # フロントエンド (SSR)
 pnpm --filter frontend build
@@ -117,7 +121,7 @@ pnpm --filter frontend build
 src/frontend/         Angular v21 + SSR
 src/backend/          .NET 10 Clean Architecture
   ├─ api/             SWA-linked Functions API
-  ├─ batch/           Durable Functions バッチ
+  ├─ batch/           .NET コンソール Batch
   ├─ application/     UseCases / Validators / Mappings
   ├─ domain/          Entities / ValueObjects / DomainServices
   ├─ infrastructure/  EF Core / Blob / Rakuten API

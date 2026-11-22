@@ -1,9 +1,9 @@
 # 13. インフラ仕様 (Azure / Bicep)
 
-> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: 以下の記述のうち、次の点は現行構成と異なります。
+> **2026-11 改訂（[ADR 0004](../../adr/0004-azure-cost-reduction.md)）**: Azure を単一環境に整理し、Batch を Windows PC で実行します。
 >
 > - 環境は prod のみ（Stage/dev 廃止）。`network.bicep` / `dev.bicepparam` / App Configuration / Batch Function App は削除。
-> - SQL は無料オファー（min 0.5 vCore / auto-pause 15 分）、月次予算 `cmcl-prod-jpe-budget` を追加。最新の構成は `infra/README.md` を参照。
+> - SQL は無料オファー（min 0.5 vCore / auto-pause 15 分）、月次予算 `cmcl-prod-jpe-budget` を追加。最新の構成は [インフラ README](../../../infra/README.md) を参照。
 
 ## 13.1 IaC ポリシー
 
@@ -13,12 +13,12 @@
   infra/
     main.bicep
     modules/
-      network.bicep        # 仮想ネットワークを使う場合のみ。MVP は省略可
       data.bicep           # SQL / Storage
-      app.bicep            # SWA / Functions / KV / AppConfig
-      observability.bicep  # App Insights / Log Analytics / Alerts
+      app.bicep            # SWA / API Functions / Key Vault
+      observability.bicep  # App Insights / Log Analytics
+      batch-operator.bicep # Batch 実行ユーザーの RBAC
+      budget.bicep         # 予算
     params/
-      dev.bicepparam
       prod.bicepparam
   ```
 - **Azure Verified Modules (AVM)** を優先採用。独自モジュールはやむを得ない場合のみ。
@@ -32,12 +32,10 @@
 | Resource Group | `cmcl-prod-jpe-rg` |
 | Static Web App | `cmcl-prod-jpe-swa` |
 | Function App (API) | `cmcl-prod-jpe-func-api` |
-| Function App (Batch) | `cmcl-prod-jpe-func-batch` |
 | SQL Server | `cmcl-prod-jpe-sql` |
 | SQL Database | `cmcl-prod-jpe-sqldb` |
 | Storage Account | `cmclprodjpest`（- 不可、24 文字制限）|
 | Key Vault | `cmcl-prod-jpe-kv` |
-| App Configuration | `cmcl-prod-jpe-appcfg` |
 | Application Insights | `cmcl-prod-jpe-appi` |
 | Log Analytics | `cmcl-prod-jpe-log` |
 
@@ -46,14 +44,13 @@
 | カテゴリ | リソース | 備考 |
 |---|---|---|
 | Hosting | Static Web Apps Standard | Managed Functions で SSR 実行 |
-| Compute | Function App (Consumption) ×2 | API / Batch を分離 |
-| Data | Azure SQL Database Serverless | GP_S_Gen5 1vCore, auto-pause 60min |
-| Data | Storage Account (StorageV2) | Blob (covers, sync-tmp), Queue (DLQ) |
+| Compute | Function App (Flex Consumption) | API 用 |
+| Data | Azure SQL Database Serverless | min 0.5 vCore、auto-pause 15 分 |
+| Data | Storage Account (StorageV2) | Blob (covers, sync-tmp) |
 | Identity | Managed Identity (System assigned) | 各 Function App / SWA |
 | Secrets | Key Vault | RBAC モード, soft-delete + purge protection |
-| Config | App Configuration Standard | Feature Flag 用 |
 | Observability | Application Insights (Workspace-based) | Workspace = Log Analytics |
-| Observability | Log Analytics Workspace | 30 日保持 (dev) / 90 日 (prod) |
+| Observability | Log Analytics Workspace | 30 日保持 |
 | Observability | Action Group + Alert Rules | Slack/Teams Webhook |
 
 ## 13.4 Bicep モジュール内ルール
@@ -64,23 +61,14 @@
 - **Managed Identity を必須**。Functions / SWA は System Assigned で発行し、KV へは RBAC ロール `Key Vault Secrets User` を割当。
 - App Settings に **Key Vault 参照** (`@Microsoft.KeyVault(SecretUri=...)`) でシークレットを注入。
 
-## 13.5 環境差分（params）
+## 13.5 本番環境の設定
 
-| Param | dev | prod |
-|---|---|---|
-| `sql.tier` | `GP_S_Gen5_1` | `GP_S_Gen5_2` |
-| `sql.autoPauseDelay` | 60 | 60 |
-| `log.retentionDays` | 30 | 90 |
-| `swa.sku` | Standard | Standard |
-| `appConfig.featureFlags.discovery_recommend` | false | false |
+設定値は [prod.bicepparam](../../../infra/params/prod.bicepparam) を参照。Batch 実行ユーザーと IP は GitHub の `prod` 環境変数 `BATCH_OPERATOR_PRINCIPAL_ID` / `BATCH_OPERATOR_IP_ADDRESS` で指定する。
 
 ## 13.6 ネットワーク
 
-- 楽天 Books API の IP allowlist 要件に対応するため、Flex Consumption の API / バッチ Function は `Microsoft.App/environments` に委任した専用サブネットに VNet 統合する。
-- サブネットに Standard NAT Gateway と静的 Standard Public IP を関連付け、API / バッチのインターネット送信元を共通の固定 IP にする。
-- デプロイ出力 `batchEgressPublicIpAddress` を楽天 API アプリケーションの IP allowlist に登録する。
-- Functions → SQL は SQL の **Allow Azure Services** + Managed Identity 認証で接続。
-- Private Endpoint 化は必要になった時点で別途追加する。
+- Windows PC の送信元 IP を楽天の許可 IP と SQL の `batch-operator` 規則に登録する。Batch は同じ IP を `Batch:ExpectedPublicIp` で照合する。
+- API → SQL は Allow Azure Services 規則と Managed Identity で接続する。Batch → SQL は登録した IP と実行ユーザーの Entra 認証で接続する。
 
 ## 13.7 バックアップ / DR
 
@@ -104,7 +92,8 @@
 ## 13.10 デプロイフロー
 
 - GitHub Actions OIDC で各環境にログイン。
-- 順序: `db` (sqlpackage publish) → `infra` (bicep deploy) → `backend` (func publish) → `frontend` (swa deploy)。
+- 順序: `db` (sqlpackage publish) → `infra` (bicep deploy) → `backend` (API の zip デプロイ) → `frontend` (swa deploy)。
+- 日次 Batch は [Windows PC 上で更新](../../runbooks/batch-operations.md)する。
 - ロールバック: Bicep の前バージョンを再デプロイ + DB は失敗時自動で前 publish profile を流す。
 
 ## 13.11 コスト最小化
