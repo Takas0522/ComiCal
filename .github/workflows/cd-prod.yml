@@ -270,7 +270,7 @@ jobs:
           cp staticwebapp.config.json src/frontend/dist/frontend/browser/staticwebapp.config.json
 
       # The batch (src/backend/batch) is not deployed to Azure; it runs locally via
-      # tools/run-batch-local.ps1 (see ADR 0004).
+      # ComiCal.Batch.exe, installed by tools/publish-batch.ps1.
       - name: Publish API Functions
         run: |
           dotnet publish src/backend/api/ComiCal.Api/ComiCal.Api.csproj -c Release -o ./publish/api

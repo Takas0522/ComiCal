@@ -1,4 +1,7 @@
 ﻿# ComiCal コスト削減: apply-*.ps1 共通ヘルパー（dot-source して使う）
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingWriteHost', '',
+  Justification = 'Shared apply console messages use colors and are included in the operator transcript.')]
+param()
 $ErrorActionPreference = 'Stop'
 
 $Script:RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -75,12 +78,13 @@ function Use-SqlEntraAdmin {
   return $prev
 }
 
-function Restore-SqlEntraAdmin($prev) {
+function Restore-SqlEntraAdmin($prev, [switch]$RequireSuccess) {
   if (-not $prev) { return }
   Write-Step "SQL Server の Entra 管理者を $($prev.login) に戻す"
   & az sql server ad-admin create -g $Names.Rg -s $Names.SqlServer --display-name $prev.login --object-id $prev.sid -o none 2>&1 | Out-Host
   if ($LASTEXITCODE -ne 0) {
     Write-Warning "Entra 管理者の復元に失敗しました。手動で実行してください: az sql server ad-admin create -g $($Names.Rg) -s $($Names.SqlServer) --display-name '$($prev.login)' --object-id $($prev.sid)"
+    if ($RequireSuccess) { throw 'SQL Server の Entra 管理者を復元できないため、切り替えを中止します。' }
   }
 }
 
@@ -96,8 +100,8 @@ function Disable-BatchTask {
   }
   $running = @()
   if ($t -and (Get-ScheduledTask -TaskName $Names.BatchTask).State -eq 'Running') { $running += "タスク $($Names.BatchTask)" }
-  # 現行の暫定実装は func ホスト（tools/run-batch-local.ps1）、PR-3 以降は ComiCal.Batch.exe
-  $procs = Get-Process -Name 'ComiCal.Batch', 'func' -ErrorAction SilentlyContinue
+  # タスクと手動実行はどちらも ComiCal.Batch.exe を直接起動する。
+  $procs = Get-Process -Name 'ComiCal.Batch' -ErrorAction SilentlyContinue
   if ($procs) { $running += "プロセス $(($procs.Name | Sort-Object -Unique) -join ', ')" }
   if ($running) {
     if ($disabledHere) { $null = Enable-ScheduledTask -TaskName $Names.BatchTask -ErrorAction Continue }
@@ -117,7 +121,10 @@ function Add-TempFirewallRule([string]$ip) {
   $null = Invoke-Az sql server firewall-rule create -g $Names.Rg -s $Names.SqlServer -n $rule --start-ip-address $ip --end-ip-address $ip -o none
   return $rule
 }
-function Remove-TempFirewallRule([string]$rule) {
+function Remove-TempFirewallRule {
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+    Justification = 'Cleanup of a temporary rule in the caller finally block.')]
+  param([string]$rule)
   & az sql server firewall-rule delete -g $Names.Rg -s $Names.SqlServer -n $rule -o none 2>&1 | Out-Null
 }
 
@@ -169,7 +176,10 @@ EXEC sp_executesql @x;
 "@
 }
 
-function Start-ApplyLog([string]$name) {
+function Start-ApplyLog {
+  [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '',
+    Justification = 'Sets up the transcript used by the apply script and its confirmation prompts.')]
+  param([string]$name)
   $f = Join-Path $logDir ("{0}-{1:yyyyMMdd-HHmmss}.log" -f $name, (Get-Date))
   Start-Transcript -Path $f | Out-Null
   return $f

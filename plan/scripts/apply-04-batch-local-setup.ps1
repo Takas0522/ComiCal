@@ -1,34 +1,32 @@
 ﻿<#
 .SYNOPSIS
-  Phase 3a: バッチをローカル実行に切り替える準備。Azure の Batch Function App は「停止」するだけ（削除は apply-05）。
+  Phase 3a: Windows のコンソール版 Batch に切り替える。Azure Batch の削除は apply-05 で行う。
 
-  1. 実行ユーザーに Storage Blob Data Contributor / Key Vault Secrets User を付与
-     （infra/modules/batch-operator.bicep をそのままデプロイ。main.bicep と同じロール割り当て名になる）
-  2. 実行ユーザーを DB ユーザー comical-batch-operator として作成（cd-prod.yml の Grant と同じ T-SQL）
-  3. GitHub 変数 BATCH_OPERATOR_PRINCIPAL_ID を設定（gh CLI がある場合。次回以降の本番デプロイで維持される）
-  4. 楽天ウェブサービスのアプリ設定に登録する自宅のグローバル IP を表示
-  5. ローカルで 1 回試走（この間だけ Azure 側 Batch を停止して楽天 API の二重呼び出しを防ぐ）
-  6. 試走成功 → タスク スケジューラ登録 → 登録成功で Azure 側 Batch は停止したまま
-     試走失敗・登録しない・登録失敗 → Azure 側 Batch を再開して終了（定期実行が 1 本もない状態を残さない）
-  -SkipTestRun のときは Azure 側 Batch を停止しない（準備だけ行う）。
-  SQL の Entra 管理者は一時的に実行ユーザーに切り替え、終了時に元へ戻す。
+  1. 実行ユーザーに RBAC を付与し、SQL の常設規則 batch-operator を現在の IP で作成する。
+  2. DB ユーザー comical-batch-operator を作成し、SQL の Entra 管理者を元に戻す。
+  3. GitHub の prod 環境変数を設定し、ローカル設定の雛形を作る（既存設定は維持）。
+  4. publish → preflight → 楽天の許可 IP 登録を人が確認 → Azure Batch 停止 → run --force。
+  5. タスク登録成功で切り替え完了。試走失敗・登録しない・登録失敗時は停止した Azure Batch を再開する。
+  -SkipTestRun は手順 3 まで実行する。楽天 IP の確認は -Yes でも省略しない。
 #>
 [CmdletBinding()]
-param([switch]$Yes, [switch]$SkipTestRun)
+param([switch]$Yes, [switch]$SkipTestRun, [switch]$AllowDirty)
 . (Join-Path $PSScriptRoot '_common.ps1')
 $Script:AssumeYes = [bool]$Yes
 $log = Start-ApplyLog 'apply-04'
-$rule = $null
 $prevAdmin = $null
 $batchStopped = $false
+$cutoverStarted = $false
 $cutoverDone = $false
 try {
   Assert-AzLogin
-  foreach ($c in 'func', 'dotnet') { Assert-Command $c 'ローカル実行には Azure Functions Core Tools v4 と .NET 10 SDK が必要です。' }
+  Assert-Command 'dotnet' 'Batch の publish には .NET 10 SDK が必要です。'
+  Assert-Command 'git' 'Batch の公開世代を識別するために Git が必要です。'
   Assert-Command 'sqlcmd' 'go-sqlcmd をインストールしてください: winget install sqlcmd'
 
   $oid = Get-SignedInObjectId
-  Write-Host "実行ユーザーの objectId: $oid"
+  $ip = Get-PublicIp
+  Write-Information -InformationAction Continue "実行ユーザーの objectId: $oid"
 
   Write-Step 'RBAC（infra/modules/batch-operator.bicep）'
   $null = Invoke-Az deployment group create -g $Names.Rg -n "batch-operator-$(Get-Date -Format yyyyMMddHHmmss)" `
@@ -36,59 +34,116 @@ try {
     -p storageAccountName=$($Names.Storage) keyVaultName=$($Names.Kv) principalId=$oid -o none
   Write-Done 'Storage Blob Data Contributor / Key Vault Secrets User'
 
+  Write-Step "SQL の常設ファイアウォール規則 batch-operator（$ip）"
+  $null = Invoke-Az sql server firewall-rule create -g $Names.Rg -s $Names.SqlServer -n batch-operator `
+    --start-ip-address $ip --end-ip-address $ip -o none
+
   Write-Step 'DB ユーザー comical-batch-operator'
   $prevAdmin = Use-SqlEntraAdmin
-  $rule = Add-TempFirewallRule (Get-PublicIp)
   Invoke-SqlAzCli $Names.SqlDb (Get-GrantSql 'comical-batch-operator' $oid)
   Write-Done 'db_datareader / db_datawriter / EXECUTE'
-
-  if (Get-Command gh -ErrorAction SilentlyContinue) {
-    & gh variable set BATCH_OPERATOR_PRINCIPAL_ID --env prod --body $oid -R $Names.GitHubRepo 2>&1 | Out-Host
-    Write-Done 'GitHub 変数 BATCH_OPERATOR_PRINCIPAL_ID（environment: prod）'
-  } else {
-    Write-Skip "gh CLI がありません。GitHub の Settings → Environments → prod → Variables に BATCH_OPERATOR_PRINCIPAL_ID=$oid を追加してください"
+  if ($prevAdmin) {
+    Restore-SqlEntraAdmin $prevAdmin -RequireSuccess
+    $prevAdmin = $null
   }
 
-  $ip = Get-PublicIp
-  Write-Host ''
-  Write-Host "★ 楽天ウェブサービスのアプリ設定で、許可 IP アドレスに $ip を追加してください。" -ForegroundColor Yellow
-  Write-Host "  （tools/run-batch-local.ps1 に照合させるなら: setx COMICAL_RAKUTEN_ALLOWED_IP $ip）" -ForegroundColor Yellow
-
-  if ($SkipTestRun) {
-    Write-Skip '試走を省略しました。Azure 側 Batch は稼働したままです（試走して切り替えるときは -SkipTestRun なしで再実行）。'
-    return
-  }
-  # -Yes でもここは必ず人の確認を取る（楽天側の IP 登録は手作業のため）
-  $Script:AssumeYes = $false
-  if (Confirm-Action '楽天の許可 IP 登録を終えましたか？ Azure 側 Batch を停止してローカルで 1 回試走します（数十分かかります）') {
-    if ($rule) { Remove-TempFirewallRule $rule; $rule = $null }
-    if (Test-AzResource 'Microsoft.Web/sites' $Names.Rg $Names.FuncBatch) {
-      $state = (Invoke-Az functionapp show -g $Names.Rg -n $Names.FuncBatch --query state -o tsv | Out-String).Trim()
-      if ($state -eq 'Running') {
-        Write-Step "Azure 側 $($Names.FuncBatch) を停止（試走が失敗したら再開します）"
-        $null = Invoke-Az functionapp stop -g $Names.Rg -n $Names.FuncBatch -o none
-        $batchStopped = $true
+  $variables = [ordered]@{ BATCH_OPERATOR_PRINCIPAL_ID = $oid; BATCH_OPERATOR_IP_ADDRESS = $ip }
+  $gh = Get-Command gh -ErrorAction SilentlyContinue
+  foreach ($variable in $variables.GetEnumerator()) {
+    if ($gh) {
+      & gh variable set $variable.Key --env prod --body $variable.Value -R $Names.GitHubRepo 2>&1 | Out-Host
+      if ($LASTEXITCODE -eq 0) {
+        Write-Done "GitHub 変数 $($variable.Key)（environment: prod）"
+        continue
       }
     }
-    & (Join-Path $RepoRoot 'tools\run-batch-local.ps1')
-    if ($LASTEXITCODE -ne 0) { throw 'ローカル試走が失敗しました。.dev-logs\batch のログを確認してください。' }
-    Write-Done 'ローカル試走成功（管理画面 /admin/batch-runs でも確認できます）'
-    # 定期実行の切り替えはタスク登録の成功をもって完了とする。登録しない・失敗した場合は
-    # finally で Azure 側 Batch を再開し、定期実行がどちらにもない状態を残さない。
-    if (Confirm-Action 'タスク スケジューラに毎日 03:00 で登録しますか？（登録しない場合は Azure 側 Batch を再開します）') {
-      & (Join-Path $RepoRoot 'tools\register-batch-task.ps1')
-      if (-not (Get-ScheduledTask -TaskName $Names.BatchTask -ErrorAction SilentlyContinue)) { throw "タスク $($Names.BatchTask) の登録を確認できません。" }
-      $cutoverDone = $true
-      Write-Done 'タスク登録済み。Azure 側 Batch は停止したまま（削除は apply-05 で）'
+    Write-Warning "GitHub の Settings → Environments → prod → Variables に $($variable.Key)=$($variable.Value) を設定してください。"
+  }
+
+  $root = Join-Path ([Environment]::GetFolderPath('LocalApplicationData')) 'ComiCal\Batch'
+  $settingsPath = Join-Path $root 'appsettings.Local.json'
+  if (-not (Test-Path -LiteralPath $settingsPath)) {
+    $sample = Join-Path $RepoRoot 'src/backend/batch/ComiCal.Batch/appsettings.Local.json.sample'
+    $template = Get-Content -LiteralPath $sample -Raw -Encoding UTF8 | ConvertFrom-Json
+    # Keep the Batch section and drop unset overrides so the published defaults apply.
+    foreach ($section in @($template, $template.Batch)) {
+      foreach ($property in @($section.PSObject.Properties)) {
+        if ($property.Value -eq '' -and $property.Name -ne 'ExpectedPublicIp') { $section.PSObject.Properties.Remove($property.Name) }
+      }
     }
+    $template.PSObject.Properties.Remove('Azure')
+    $template.Batch.ExpectedPublicIp = $ip
+    New-Item -ItemType Directory -Path $root -Force | Out-Null
+    $stream = [IO.File]::Open($settingsPath, 'CreateNew', 'Write')
+    try {
+      $json = [Text.Encoding]::UTF8.GetBytes(($template | ConvertTo-Json -Depth 5) + [Environment]::NewLine)
+      $stream.Write($json, 0, $json.Length)
+    } finally {
+      $stream.Dispose()
+    }
+    Write-Done "ローカル設定を作成しました。$settingsPath"
+    Write-Information -InformationAction Continue '必要に応じてローカル設定に通知先とハートビート URL を設定してください。'
+  }
+
+  Write-Information -InformationAction Continue "楽天ウェブサービスのアプリ設定で、許可 IP アドレスに $ip を追加してください。"
+  if ($SkipTestRun) {
+    Write-Skip '試走を省略しました。切り替えるときは -SkipTestRun なしで再実行してください。'
+    return
+  }
+
+  & (Join-Path $RepoRoot 'tools/publish-batch.ps1') -Root $root -TaskName $Names.BatchTask -AllowDirty:$AllowDirty
+  $exe = Join-Path $root 'current\ComiCal.Batch.exe'
+  & $exe preflight
+  if ($LASTEXITCODE -ne 0) { throw "preflight が失敗しました（終了コード $LASTEXITCODE）。設定と $root\logs を確認してください。" }
+
+  # 楽天側の IP 登録は手作業のため、-Yes でも人の確認を取る。
+  $Script:AssumeYes = $false
+  if (-not (Confirm-Action "楽天に $ip を登録しましたか？ Azure 側 Batch を停止し、ローカルで試走します")) { return }
+
+  # 再実行時に既存のローカルタスクが残っていると、切り替えに失敗して Azure Batch を再開したとき
+  # 両方のスケジューラが動いてしまう。切り替え中は無効化し、登録が成功したときだけ有効な状態にする。
+  $null = Disable-BatchTask
+  $cutoverStarted = $true
+
+  if (Test-AzResource 'Microsoft.Web/sites' $Names.Rg $Names.FuncBatch) {
+    $state = (Invoke-Az functionapp show -g $Names.Rg -n $Names.FuncBatch --query state -o tsv | Out-String).Trim()
+    if ($state -eq 'Running') {
+      Write-Step "Azure 側 $($Names.FuncBatch) を停止（切り替え未完了なら再開します）"
+      $null = Invoke-Az functionapp stop -g $Names.Rg -n $Names.FuncBatch -o none
+      $batchStopped = $true
+    }
+  }
+  & $exe run --force
+  if ($LASTEXITCODE -ne 0) { throw "ローカル試走が失敗しました（終了コード $LASTEXITCODE）。$root\logs を確認してください。" }
+  Write-Done 'ローカル試走成功（管理画面 /admin/batch-runs でも確認できます）'
+
+  if (Confirm-Action 'タスク スケジューラに毎日 03:00 で登録しますか？（登録しない場合は Azure 側 Batch を再開します）') {
+    & (Join-Path $RepoRoot 'tools/register-batch-task.ps1') -Root $root -TaskName $Names.BatchTask
+    $task = Get-ScheduledTask -TaskName $Names.BatchTask -TaskPath '\'
+    if ($task.State -eq 'Disabled') { $task = Enable-ScheduledTask -TaskName $Names.BatchTask -TaskPath '\' }
+    if ($task.State -eq 'Disabled' -or $task.Actions.Execute -ne $exe -or $task.Actions.Arguments -ne 'run') {
+      throw "タスク $($Names.BatchTask) の登録を確認できません。"
+    }
+    $cutoverDone = $true
+    Write-Done 'タスク登録済み。Azure 側 Batch は停止したまま（削除は apply-05 で）'
   }
 }
 finally {
-  if ($batchStopped -and -not $cutoverDone) {
-    Write-Step "ロールバック: Azure 側 $($Names.FuncBatch) を再開"
-    & az functionapp start -g $Names.Rg -n $Names.FuncBatch -o none 2>&1 | Out-Host
+  try {
+    if ($cutoverStarted -and -not $cutoverDone) {
+      # 切り替え未完了: ローカルタスクは無効のままにし（登録後に失敗した場合も含む）、Azure Batch だけを動かす。
+      if (Get-ScheduledTask -TaskName $Names.BatchTask -ErrorAction SilentlyContinue) {
+        $null = Disable-ScheduledTask -TaskName $Names.BatchTask -ErrorAction Continue
+        Write-Warning "ローカルタスク $($Names.BatchTask) は無効のままです（切り替え完了時に有効化されます）。"
+      }
+      if ($batchStopped) {
+        Write-Step "ロールバック: Azure 側 $($Names.FuncBatch) を再開"
+        $null = Invoke-Az functionapp start -g $Names.Rg -n $Names.FuncBatch -o none
+      }
+    }
+  } finally {
+    Restore-SqlEntraAdmin $prevAdmin
+    Stop-Transcript | Out-Null
+    Write-Information -InformationAction Continue "ログ: $log"
   }
-  if ($rule) { Remove-TempFirewallRule $rule }
-  Restore-SqlEntraAdmin $prevAdmin
-  Stop-Transcript | Out-Null; Write-Host "ログ: $log"
 }
