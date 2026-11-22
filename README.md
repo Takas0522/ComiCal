@@ -43,6 +43,22 @@
 code .
 ```
 
+DevContainer 作成・再ビルド時に、Claude Code (`claude`) と OpenAI Codex CLI (`codex`) も
+自動インストールされます。バージョンは [.devcontainer/post-create.sh](.devcontainer/post-create.sh)
+で固定し、更新時は公開から7日以上経過したものを選びます。
+
+```bash
+claude --version
+codex --version
+
+# 初回利用時は各 CLI の案内に従ってログイン
+claude
+codex
+```
+
+認証情報はリポジトリに保存しないでください。認証情報の永続化は設定していないため、
+コンテナを再ビルドした場合は再ログインが必要です。
+
 ### 手動セットアップ
 
 ```bash
