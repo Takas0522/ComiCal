@@ -11,6 +11,9 @@ using Xunit;
 
 namespace ComiCal.Infrastructure.Tests.Sql;
 
+[CollectionDefinition(nameof(SqlRepositoryFixtureGroup))]
+public sealed class SqlRepositoryFixtureGroup : ICollectionFixture<PrefixSearchFixture>;
+
 public sealed class PrefixSearchFixture : IAsyncLifetime
 {
     private IFutureDockerImage? image;
@@ -55,7 +58,7 @@ public sealed class PrefixSearchFixture : IAsyncLifetime
         var functionSql = await File.ReadAllTextAsync(
             Path.Combine(root, "src", "db", "Functions", "dbo.fnToHiragana.sql"));
         await db.Database.ExecuteSqlRawAsync(functionSql);
-        foreach (var table in new[] { "Publishers", "Authors", "Series", "SeriesAuthors", "Volumes", "ThumbnailAssets" })
+        foreach (var table in new[] { "Publishers", "Authors", "Series", "SeriesAuthors", "Volumes", "ThumbnailAssets", "BatchRuns" })
         {
             var tableSql = await File.ReadAllTextAsync(
                 Path.Combine(root, "src", "db", "Tables", $"dbo.{table}.sql"));

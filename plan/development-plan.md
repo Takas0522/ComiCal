@@ -209,7 +209,7 @@ public sealed class DailyFetchJob(ActivityInvoker invoker, FetchPagesJob fetch, 
 
 | コード | 意味 | 主な原因 |
 |---|---|---|
-| 0 | 成功（または当日分は完了済み） | |
+| 0 | 成功（または当日分は完了済み） | 処理が最後まで完了していれば、一部の項目（例: サムネイル 1 件）の失敗も 0 とし、警告ログに件数を出す（`BatchRuns` の Status はドメインの規則どおり Failed。2026-11-22 決定） |
 | 1 | 処理失敗 | 楽天 API / SQL / Blob の障害 |
 | 2 | 事前チェック失敗 | `az login` の期限切れ、IP 不一致、Key Vault / SQL に接続できない |
 | 3 | タイムアウト | 処理が `Batch:TimeoutMinutes` 内に終わらない（次回起動で最初から） |

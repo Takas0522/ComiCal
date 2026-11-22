@@ -26,6 +26,9 @@
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
   <ItemGroup Label="Hosting">
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.7" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
   </ItemGroup>
   <ItemGroup Label="Resilience">

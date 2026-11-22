@@ -64,12 +64,13 @@ public static class ServiceCollectionExtensions
     {
         // Azure SQL Serverless の自動一時停止からの復旧に備え ConnectTimeout を設定する。
         // API は短め（フェイルファスト）、Batch は長め（吸収優先）に呼び出し元で使い分ける。
-        var csb = new SqlConnectionStringBuilder(connectionString)
-        {
-            ConnectTimeout = options.ConnectTimeoutSeconds,
-        };
-
         services.AddDbContext<ComiCalDbContext>(opt =>
+        {
+            var csb = new SqlConnectionStringBuilder(connectionString)
+            {
+                ConnectTimeout = options.ConnectTimeoutSeconds,
+            };
+
             opt.UseSqlServer(csb.ConnectionString, sqlOptions =>
             {
                 sqlOptions.EnableRetryOnFailure(
@@ -77,7 +78,8 @@ public static class ServiceCollectionExtensions
                     maxRetryDelay: options.MaxRetryDelay,
                     errorNumbersToAdd: null);
                 sqlOptions.CommandTimeout(options.CommandTimeoutSeconds);
-            }));
+            });
+        });
 
         services.AddScoped<ISeriesRepository, SeriesRepository>();
         services.AddScoped<IVolumeRepository, VolumeRepository>();

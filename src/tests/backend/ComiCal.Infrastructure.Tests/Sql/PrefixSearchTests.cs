@@ -4,7 +4,8 @@ using Xunit;
 
 namespace ComiCal.Infrastructure.Tests.Sql;
 
-public sealed class PrefixSearchTests(PrefixSearchFixture fixture) : IClassFixture<PrefixSearchFixture>
+[Collection(nameof(SqlRepositoryFixtureGroup))]
+public sealed class PrefixSearchTests(PrefixSearchFixture fixture)
 {
     [Theory]
     [InlineData("フランケン")]
