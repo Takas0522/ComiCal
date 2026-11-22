@@ -48,7 +48,7 @@ src/db/
 | `Volumes` | VolumeId GUID | ISBN-13 UNIQUE、ReleaseDate NULL 可、ReleaseDateIsMonthOnly bit、CoverHash |
 | `Subscriptions` | SubscriptionId GUID | (UserId, SeriesId) UNIQUE、IsDeleted |
 | `Purchases` | PurchaseId GUID | (UserId, VolumeId)、State enum |
-| `BatchRuns` / `FailedItems` | — | バッチ履歴・DLQ 連携 |
+| `BatchRuns` / `FailedItems` | — | バッチ履歴・項目別の失敗理由 |
 
 ## インデックス
 

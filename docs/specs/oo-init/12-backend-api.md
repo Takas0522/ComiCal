@@ -28,7 +28,7 @@
 | GET | `/api/v1/me/sync/qr/{token}` | QR 同期データ取得 | optional |
 | POST | `/api/v1/me/account/delete` | アカウントソフト削除 | required |
 | GET | `/api/v1/admin/batch-runs` | バッチ履歴 | Admin |
-| POST | `/api/v1/admin/batch/trigger` | バッチ手動起動（Batch Function App へ委譲）| Admin |
+| POST | `/api/v1/admin/batch/trigger` | 旧手動起動エンドポイント（202 Accepted を返す）。実際の起動には Windows 上の `ComiCal.Batch.exe run` を使う | Admin |
 
 ## 12.3 リクエスト / レスポンス
 
@@ -80,7 +80,7 @@ flowchart LR
 
 - `ILogger<T>` 構造化ログ。ログテンプレート文字列の補間禁止（`logger.LogInformation("got {Count} items", count)`）。
 - Application Insights へ送信。ペイロードは PII を含めない（IdP Subject の hash 表記のみ）。
-- `OperationId` を Activity 経由で伝播し、Functions API ↔ Batch ↔ DB 間で串刺し可能にする。
+- Batch のログと履歴は `BatchRunId` で照合する。
 
 ## 12.9 レートリミット
 

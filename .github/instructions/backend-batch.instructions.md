@@ -1,83 +1,29 @@
 ---
-description: 'Use when implementing or reviewing Durable Functions orchestrators/activities, scheduled batch jobs, Rakuten Books API rate limiting (1 req/5sec), retry policies, fan-out/fan-in patterns, or orchestrator determinism rules under src/backend/batch/.'
+description: 'Use when implementing or reviewing .NET batch jobs and activities, Rakuten Books API rate limiting (1 request per 5 seconds), or batch retry and cancellation under src/backend/batch/.'
 applyTo: 'src/backend/batch/**'
 ---
 
-# Backend Batch (Durable Functions) Instructions
+# Backend Batch Instructions
 
-## ランタイム
+## ランタイムと構成
 
-- **.NET 10 Isolated Worker** + **Durable Functions**
-- **Azure にはデプロイしない**。メンテナー PC で `tools/run-batch-local.ps1` から実行（タスクハブは Azurite、本番 SQL / Blob へは `az login` の資格情報で接続）。楽天 API の IP 許可は自宅のグローバル IP（ADR 0004）
-- スケジュール: **毎日 03:00 JST フル収集**（Windows タスク スケジューラ。`tools/register-batch-task.ps1`）。Timer Trigger はローカル実行では無効化
-- 手動起動: `tools/run-batch-local.ps1` を実行（内部で HTTP Trigger `POST /api/batch/trigger` を呼ぶ）
+- .NET 10 Generic Host のコンソールアプリ。メンテナーの Windows PC で `tools/publish-batch.ps1` により配置し、`tools/register-batch-task.ps1` で毎日 03:00 のタスクを登録する。手動起動は配置先の `ComiCal.Batch.exe run`。詳細は[運用手順](../../docs/runbooks/batch-operations.md)。
+- `Hosting/BatchRunner` が排他、事前チェック、Stale 掃除、JST 当日分の成功確認、ウォームアップ、終了コードと通知を扱う。
+- `Jobs/DailyFetchJob` が実行履歴を作り、`FetchPagesJob` の直列ページ収集と `ThumbnailJob` の並列取得（最大 8）を実行して結果を確定する。
+- `Activities/` は SQL、HTTP、Blob などの I/O を担う。各呼び出しは `Hosting/ActivityInvoker` が作る独立した DI スコープで実行する。
 
-## Determinism（Orchestrator のルール）
+## Activity の追加
 
-Orchestrator 関数は **決定的** であること:
+1. `Activities/` にクラスを追加し、依存サービスをコンストラクターで受け取る。入出力と `CancellationToken` を受ける `Run(input, ct)` を定義する。
+2. `Hosting/BatchServiceCollectionExtensions.cs` の `AddBatchInfrastructure` で `AddScoped<XxxActivity>()` を登録する。
+3. Job で `IActivityInvoker.RunAsync<XxxActivity, XxxInput, XxxOutput>(input, static (activity, args, token) => activity.Run(args, token), ct)` を呼ぶ。
+4. ISBN の UPSERT、画像ハッシュ比較など、再実行しても重複しない処理にする。トークンを I/O まで渡し、ログには実行 ID や対象キーを残す。資格情報はログに含めない。
 
-- ❌ `DateTime.Now` / `DateTimeOffset.Now` / `Random` / `Guid.NewGuid()` 使用禁止
-- ❌ 直接 I/O（HTTP 呼び出し、DB アクセス、ファイル I/O）禁止
-- ✅ 現在時刻が必要な場合は `context.CurrentUtcDateTime`
-- ✅ I/O は Activity 関数に委譲
+ActivityInvoker は例外を指数バックオフで合計最大 3 回試行する。初回の待機は通常 5 秒、サムネイル用の `thumbnail: true` は 3 秒。呼び出し元のキャンセルは再試行しない。
 
-## パターン
+## 収集と運用
 
-### Function Chaining（楽天 API ページ収集）
-- ページ単位で Activity を **直列に await**
-- スキャン期間: これから 6 ヶ月先まで（初回投入時は 6 ヶ月前も含む）
-
-### Fan-out / Fan-in（サムネイル取得）
-- `Task.WhenAll(...)` で並列実行
-- **並列度 8**（セマフォと反応を見て調整）
-- 大規模並列時は Sub-Orchestrator に分割
-
-```csharp
-[Function(nameof(ThumbnailOrchestrator))]
-public async Task RunOrchestrator([OrchestrationTrigger] TaskOrchestrationContext context)
-{
-    var volumeIds = await context.CallActivityAsync<List<Guid>>(nameof(GetPendingVolumesActivity), null);
-    var tasks = volumeIds.Select(id => context.CallActivityAsync(nameof(FetchThumbnailActivity), id));
-    await Task.WhenAll(tasks);
-}
-```
-
-## リトライ・冪等性
-
-- **Activity はべき等に設計**（再実行時の二重作成を防ぐ）
-- ISBN を主軸に **UPSERT**、表紙の **hash** で同一性判定し再ダウンロードスキップ
-- リトライポリシー:
-  ```csharp
-  var retryOptions = TaskOptions.FromRetryPolicy(new RetryPolicy(
-      maxNumberOfAttempts: 5,
-      firstRetryInterval: TimeSpan.FromSeconds(5),
-      backoffCoefficient: 2.0));
-  ```
-- 失敗時: **DLQ (Storage Queue)** + **Application Insights アラート**
-
-## 楽天 Books API 制約
-
-- エンドポイント: **BooksBookSearch / 20170404**
-- ジャンル: `booksGenreId = 001001`（コミック）
-- **レートリミット: 1 秒 1 リクエスト以下** — クライアント側に **RateLimiter ポリシー** 必須（`System.Threading.RateLimiting` または Polly）
-- `applicationId` は Key Vault 参照経由（Managed Identity）
-- 巻数は楽天 API のタイトルから正規表現抽出 → 管理画面で手動修正可
-
-## 発売日処理
-
-- 「月のみ」の場合は **その月の末日**を保存し `ReleaseDateIsMonthOnly = true` フラグを立てる
-- 「未定」は `null` を許容し UI で「未定」と表示
-
-## ロギング・監視
-
-- バッチ実行履歴は `BatchRuns` テーブル、失敗アイテムは `FailedItems` に記録
-- バッチ失敗 → **Slack / Teams Webhook 通知**
-- Application Insights のカスタムメトリクス: 取得件数 / サムネイルキャッシュヒット率 / バッチ成功率
-
-## アンチパターン
-
-- ❌ Orchestrator 内で `DateTime.Now` / `Random` / 直接 I/O
-- ❌ Activity が非べき等
-- ❌ 楽天 API レートリミットを無視（1 req/5sec 超過。楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味）
-- ❌ サムネイル並列度を 8 を大きく超える設定
-- ❌ Activity 関数間で状態を共有（Orchestrator 経由でデータを渡す）
+- 楽天 BooksBookSearch / 20170404 の `booksGenreId = 001001` を使う。楽天へのリクエストは既存の `SlidingWindowRateLimiter` で 5 秒に 1 回。資格情報は Key Vault から取得する。
+- 月のみの発売日はその月の末日と `ReleaseDateIsMonthOnly = true` を保存する。未定は `null`。
+- 中断時は次回最初から処理し、古い Running は Stale 掃除で Failed にする。一部失敗で完走した場合は警告と終了コード 0、`BatchRuns.Status` は Failed。当日の Succeeded がない場合、手動の `run` も全件処理する。
+- 実行履歴と失敗の詳細は `BatchRuns` / `FailedItems` とローカルログで確認する。通知は `run` の結果を対象とし、失敗 Webhook は Slack / Teams 互換の `text` を含む。

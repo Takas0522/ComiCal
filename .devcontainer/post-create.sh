@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ComiCal DevContainer post-create
-# - pnpm / Angular CLI / GitHub Copilot CLI / Playwright / Static Web Apps CLI / Azurite を導入
+# - pnpm / Angular CLI / GitHub Copilot CLI / Claude Code / Codex CLI / Playwright / Static Web Apps CLI / Azurite を導入
 # - フロント・E2E が pnpm workspace 化された段階で `pnpm install` も実行する
 set -euo pipefail
 
@@ -10,7 +10,7 @@ echo "==> corepack: enable pnpm"
 corepack enable
 corepack prepare pnpm@11.17.0 --activate
 
-echo "==> npm globals: Angular CLI / SWA CLI / Azurite / GitHub Copilot CLI / Playwright / Playwright CLI"
+echo "==> npm globals: Angular CLI / SWA CLI / Azurite / GitHub Copilot CLI / Claude Code / Codex CLI / Playwright / Playwright CLI"
 # GitHub Copilot CLI は npm パッケージ @github/copilot として提供される
 # (旧 `gh extension install github/gh-copilot` は別物の旧 gh 拡張で非推奨)
 # 参考: https://github.com/github/copilot-cli
@@ -23,8 +23,14 @@ npm install -g \
   @azure/static-web-apps-cli@2.0.10 \
   azurite@3.36.0 \
   @github/copilot@1.0.75 \
+  @anthropic-ai/claude-code@2.1.325 \
+  @openai/codex@0.169.0 \
   @playwright/test@1.62.0 \
   @playwright/cli@0.1.17
+
+echo "==> Claude Code / Codex CLI: verify installation"
+claude --version
+codex --version
 
 echo "==> Playwright browsers + OS dependencies (Ubuntu 24.04 / noble)"
 # ブラウザバイナリと apt 依存を一括取得 (root 権限が必要なため sudo を経由)

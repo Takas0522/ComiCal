@@ -79,3 +79,25 @@ showed that almost all of it was fixed cost unrelated to actual usage:
 - `plan/azure-cost-reduction.md` (analysis and phased plan)
 - `plan/scripts/apply-0*.ps1` (Azure-side changes matching this IaC)
 - Azure SQL Database free offer: https://learn.microsoft.com/azure/azure-sql/database/free-offer
+
+## Update (2026-11-22): Console Batch
+
+### Considered Options
+
+- Keep the original local Durable Functions arrangement. It requires Functions Core Tools, an Azurite task hub and a PowerShell launcher.
+- Use the Durable Task SDK with Durable Task Scheduler Consumption. The Japan East retail price reviewed for the decision could be read as **JPY 0.688 per action**. At roughly 200,000 actions per month, that interpretation implies about JPY 137,000 per month. The pricing risk ruled out this option.
+- Run a .NET 10 Generic Host console application directly from Windows Task Scheduler.
+
+### Decision Outcome
+
+Use the Generic Host console application. `tools/publish-batch.ps1` deploys the executable to the maintainer's PC, and `tools/register-batch-task.ps1` schedules `ComiCal.Batch.exe run` at 03:00 JST. Jobs use scoped Activities for SQL, Blob and Rakuten operations. Azure CLI credentials and Key Vault continue to supply access to production resources.
+
+### Consequences
+
+- After an interruption the next run starts from the beginning. ISBN upserts and cover hash comparisons support idempotent reprocessing. Stale cleanup marks abandoned Running records as Failed when they exceed the configured age.
+- A successful run for the same JST day skips collection unless forced. A run that reaches the end with item failures returns 0 and logs a warning while its database status is Failed. With no Succeeded record for the day, a manual `run` reprocesses the full collection.
+- Only `run` results can send a failure webhook or heartbeat. The webhook includes a Slack / Teams compatible `text` field. The external heartbeat also detects missed runs.
+
+### Validation
+
+Use `preflight` to verify connectivity and `status` to verify the recorded outcome. Confirm Windows task execution and receipt of the external heartbeat during rollout. See the [Batch operations runbook](../runbooks/batch-operations.md).

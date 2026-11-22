@@ -196,7 +196,7 @@ erDiagram
 
 ### BatchRun / FailedItems
 
-- バッチ実行のサマリ + アイテム単位の失敗詳細。DLQ (Storage Queue) 連携で再実行可能。
+- バッチ実行のサマリ + アイテム単位の失敗詳細。失敗詳細は `FailedItems` に記録する。同日の成功履歴がなければ次回の Batch は全件を再処理する。
 
 ## 7.3 集約 / 整合性ルール
 

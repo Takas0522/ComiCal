@@ -16,7 +16,7 @@ ComiCal（UI 表示名: **まんがリマインダー**）は、楽天 Books API
 | Frontend | Angular **v21**（Standalone, Signals, Zoneless）+ Tailwind CSS **v4** + SSR (Hybrid) |
 | Frontend Hosting | Azure Static Web Apps Standard（Managed Functions で SSR 実行）|
 | Backend API | Azure Functions（.NET **10** Isolated Worker、SWA-linked）|
-| Backend Batch | Azure Functions（.NET 10 Isolated Worker, Consumption）+ **Durable Functions** |
+| Backend Batch | .NET 10 Generic Host コンソールアプリ（Windows タスク スケジューラ） |
 | Database | Azure SQL Serverless（auto-pause）— **Database First (SSDT/DACPAC が SoT)**、EF Core **10** |
 | Storage | Azure Blob Storage（直接配信、CDN なし）|
 | Identity | Entra External ID（旧 AD B2C）|
@@ -35,7 +35,7 @@ ComiCal（UI 表示名: **まんがリマインダー**）は、楽天 Books API
 src/frontend/         Angular v21 + SSR
 src/backend/          .NET 10 Clean Architecture
   ├─ api/             SWA-linked Functions API
-  ├─ batch/           Durable Functions バッチ
+  ├─ batch/           .NET コンソール Batch
   ├─ application/     UseCases / Validators / Mappings
   ├─ domain/          Entities / ValueObjects / DomainServices
   ├─ infrastructure/  EF Core / Blob / Rakuten API クライアント
@@ -55,7 +55,7 @@ tools/                SBOM / OSS レポート / scripts
 ```bash
 # 依存解決
 pnpm install                                    # ルート（pnpm workspace）
-dotnet restore src/backend/ComiCal.sln
+dotnet restore src/backend/ComiCal.slnx
 
 # Frontend
 pnpm --filter frontend dev                      # 開発サーバー
@@ -64,9 +64,9 @@ pnpm --filter frontend build                    # SSR ビルド
 pnpm --filter frontend lint                     # ESLint + Prettier
 
 # Backend
-dotnet build src/backend/ComiCal.sln
-dotnet test src/backend/ComiCal.sln
-dotnet format src/backend/ComiCal.sln           # フォーマット
+dotnet build src/backend/ComiCal.slnx
+dotnet test src/backend/ComiCal.slnx
+dotnet format src/backend/ComiCal.slnx           # フォーマット
 
 # DB（SSDT/DACPAC）
 dotnet build src/db/ComiCal.Database.sqlproj

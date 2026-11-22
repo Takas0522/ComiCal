@@ -1,86 +1,17 @@
 ---
 name: troubleshoot-batch
-description: 'Use when diagnosing a Durable Functions batch incident: daily 03:00 JST collection failure, abnormal Rakuten Books API fetch counts, stalled thumbnail downloads, 429 rate-limit floods, non-deterministic orchestrator exceptions, or stuck instances. Walks through BatchRuns / FailedItems tables, Application Insights Kusto queries, Durable Functions instance state, and Storage Queue / DLQ inspection.'
+description: 'Use when diagnosing the Windows daily Batch using local logs, task results, status, BatchRuns and FailedItems, or external heartbeat alerts.'
 argument-hint: '<yyyy-mm-dd of failed run>'
 allowed-tools: Bash, Read
 ---
 
 # troubleshoot-batch
 
-## 診断フロー
+1. Windows タスク スケジューラの `ComiCal-DailyBatch` で有効状態、履歴、前回の実行結果を確認する。ログが無ければ PC の稼働、実行ユーザー、ログオン状態、スリープ解除設定を調べる。
+2. `%LOCALAPPDATA%\ComiCal\Batch\logs\batch-YYYYMMDD.log`（または `Batch:LogDirectory`）を確認する。配置済み exe で `status` または `status --date yyyy-MM-dd` を実行し、JST の対象日と照合する。
+3. `/admin/batch-runs` または SQL の `BatchRuns` で状態と件数を確認する。`FailedItems` を `BatchRunId` で絞り、`ItemKey` と `Reason` をログに突き合わせる。Running が残った場合はプロセスの有無を確認する。閾値を過ぎた記録は次回 `run` で Failed になる。
+4. 終了コードは 0 が成功・成功済み・一部失敗で完走、1 が処理失敗、2 が事前チェック失敗または引数不正、3 がタイムアウト、4 が多重起動。0 でも警告と Status が Failed なら項目別に調べる。2 は `preflight` とログで Entra トークン・IP・Key Vault・SQL のどこが失敗したかを特定する。楽天の 403 は許可 IP と資格情報、429 は同じ楽天アプリを使う他の実行も調べる。
+5. ハートビート期限切れ時はタスク履歴と監視サービスの受信履歴を確認する。実行済みなら `Heartbeat could not be delivered` をログで探す。通知は `run` の結果だけが対象。コード 0 は成功 ping、1〜3 は `/fail` と失敗 Webhook を送る。
+6. 原因解消後に `run` を実行して結果を確認する。途中再開はなく、同じ JST 日に Succeeded がなければ全件処理する。成功済みの日の明示的な再実行では `run --force` を使う。
 
-### 1. 直近の BatchRun を特定
-
-```sql
-SELECT TOP 5 *
-FROM dbo.BatchRuns
-ORDER BY StartedAt DESC;
-```
-
-- `Status`、`StartedAt`、`CompletedAt`、`ErrorSummary` を確認
-- 該当 RunId を控える
-
-### 2. FailedItems を確認
-
-```sql
-SELECT *
-FROM dbo.FailedItems
-WHERE BatchRunId = '<RunId>'
-ORDER BY FailedAt DESC;
-```
-
-- どのアイテム（ISBN / SeriesId）で失敗したか
-- 失敗理由が rate limit / 4xx / 5xx / parse error のいずれか
-
-### 3. Application Insights クエリ
-
-```kusto
-traces
-| where timestamp > ago(24h)
-| where customDimensions.RunId == "<RunId>"
-| order by timestamp asc
-| project timestamp, severityLevel, message, customDimensions
-```
-
-- Orchestrator → Activity の呼び出し系列を時系列で確認
-- リトライ回数、最終失敗時のスタックトレース
-
-### 4. Durable Functions の状態確認
-
-- Azure Portal の Durable Functions UI で Orchestrator instance の状態確認
-- 必要に応じて `Terminate` / `Rewind` / `Purge`
-- CLI:
-  ```bash
-  func durable get-instances --connection-string-setting AzureWebJobsStorage
-  ```
-
-### 5. Storage Queue / DLQ
-
-- `<taskhub>-control-XX` キューの滞留
-- DLQ Storage Queue（カスタム）の毒メッセージ確認
-
-## よくある原因と対処
-
-| 症状 | 原因 | 対処 |
-|------|------|------|
-| 取得件数が 0 | 楽天 API 仕様変更 / applicationId 失効 | Key Vault シークレット確認、API レスポンス手動再現 |
-| 大量 429 | RateLimiter 漏れ | `RakutenBooksClient` の RateLimitPolicy を確認、1 req/5sec（楽天アプリ設定の Expected QPS=5 は「5 秒に 1 回」の意味）を超えていないか |
-| サムネイル DL 停止 | 並列度過多 / Blob throttling | 並列度を 8 以下に、Blob のスケール確認 |
-| Orchestrator が deterministic でない例外 | Orchestrator 内で `DateTime.Now` 等使用 | コードレビュー、`context.CurrentUtcDateTime` 等に置換 |
-| 同じ ISBN で失敗継続 | データ異常（複数巻数表記等） | FailedItems の payload を確認、必要に応じ手動補正 |
-
-## エスカレーション
-
-- 復旧不能 / ユーザー影響あり → Slack #comical-alerts に Incident テンプレートで投稿
-- データ復旧が必要なら DBA レビュー必須
-
-## 関連
-
-- `.github/instructions/backend-batch.instructions.md`
-- `.github/instructions/backend-infrastructure.instructions.md`
-
-## アンチパターン
-
-- ❌ 失敗 instance を放置 (Purge せず制御キュー詰まり)
-- ❌ 楽天 API への手動リトライをループで叩く（RateLimit 違反）
-- ❌ 本番 DB を直接 UPDATE で修正（必ずスクリプト + レビュー）
+初期設定、IP 更新と終了コード別の対処は[運用手順](../../../docs/runbooks/batch-operations.md)を参照する。

@@ -142,7 +142,8 @@ try {
   Push-Location $repo
   try {
     if (-not $SkipTests) {
-      & dotnet test $testProject -p:RestoreLockedMode=true
+      # Integration tests need Docker (Testcontainers); CI runs them, the operator PC does not have to.
+      & dotnet test $testProject -p:RestoreLockedMode=true --filter 'Category!=Integration'
       if ($LASTEXITCODE -ne 0) { throw "dotnet test failed ($LASTEXITCODE)." }
     }
     $release = Format-BatchReleaseName (Get-Date) $sha

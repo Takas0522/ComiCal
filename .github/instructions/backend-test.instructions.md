@@ -18,7 +18,7 @@ applyTo: 'src/tests/backend/**'
 | `ComiCal.Domain.Tests` | Domain 層 純粋ロジック | 単体（モックなし） |
 | `ComiCal.Application.Tests` | Application 層 UseCase | モック使用 |
 | `ComiCal.Api.Tests` | API 統合 | `WebApplicationFactory` |
-| `ComiCal.Batch.Tests` | Durable orchestration | Testcontainers (MSSQL/Azurite) |
+| `ComiCal.Batch.Tests` | BatchRunner / Job / Activity | Testcontainers (MSSQL/Azurite) |
 | `ComiCal.Infrastructure.Tests` | EF Core / 外部 API | Testcontainers |
 
 ## 命名規約
