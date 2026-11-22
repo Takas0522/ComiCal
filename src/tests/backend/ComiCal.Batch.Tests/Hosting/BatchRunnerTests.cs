@@ -135,6 +135,20 @@ public sealed class BatchRunnerTests
         Assert.Equal(ExitCodes.Success, runner.Execute(new(BatchCommandKind.Status, Date: new(2026, 11, 22)), output, default));
         Assert.Contains("2026-11-22 (JST)", output.ToString(), StringComparison.Ordinal);
         Assert.Contains("status=Succeeded fetched=4 upserted=3 downloaded=2 skipped=1 failed=0", output.ToString(), StringComparison.Ordinal);
+        Assert.Empty(heartbeat.ReceivedCalls());
+        Assert.Empty(notifier.ReceivedCalls());
+    }
+
+    [Theory]
+    [InlineData(true, ExitCodes.Success)]
+    [InlineData(false, ExitCodes.PreflightFailure)]
+    public void Execute_Preflight_DoesNotSendHeartbeatOrNotification(bool passes, int expected)
+    {
+        preflight.RunAsync(Arg.Any<CancellationToken>()).Returns(passes);
+
+        Assert.Equal(expected, runner.Execute(new(BatchCommandKind.Preflight), TextWriter.Null, default));
+        Assert.Empty(heartbeat.ReceivedCalls());
+        Assert.Empty(notifier.ReceivedCalls());
     }
 
     private int Run(bool force = false, CancellationToken ct = default)

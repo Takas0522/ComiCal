@@ -40,7 +40,8 @@ public sealed class BatchResultNotificationsTests
             Assert.Equal(code, payload.RootElement.GetProperty("exitCode").GetInt32());
             Assert.Equal(ExitCodes.Summary(code), payload.RootElement.GetProperty("summary").GetString());
             Assert.True(payload.RootElement.GetProperty("timestamp").TryGetDateTimeOffset(out _));
-            Assert.Equal(3, payload.RootElement.EnumerateObject().Count());
+            Assert.Contains($"終了コード {code}", payload.RootElement.GetProperty("text").GetString(), StringComparison.Ordinal);
+            Assert.Equal(4, payload.RootElement.EnumerateObject().Count());
         }
         if (heartbeatPath is not null)
         {

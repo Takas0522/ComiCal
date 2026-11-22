@@ -38,6 +38,39 @@ public sealed class ThumbnailJobTests
     }
 
     [Fact]
+    public async Task RunAsync_ExhaustedTimeout_CountsItemAsFailedAndContinues()
+    {
+        var invoker = Substitute.For<IActivityInvoker>();
+        var job = new ThumbnailJob(invoker, NullLogger<ThumbnailJob>.Instance);
+        var runId = Guid.NewGuid();
+        ThumbnailPendingItem[] items =
+        [
+            new(Guid.NewGuid(), "https://img.example.com/slow.jpg", null),
+            new(Guid.NewGuid(), "https://img.example.com/ok.jpg", null)
+        ];
+        Download(invoker, new(runId, items[0].VolumeId, items[0].ImageUrl, items[0].ExistingHash))
+            .Returns(Task.FromException<DownloadThumbnailOutput>(new TaskCanceledException("HttpClient timeout")));
+        Download(invoker, new(runId, items[1].VolumeId, items[1].ImageUrl, items[1].ExistingHash))
+            .Returns(new DownloadThumbnailOutput(true, false, false, null));
+
+        var summary = await job.RunAsync(runId, items, CancellationToken.None);
+
+        Assert.Equal(new ThumbnailSummary(1, 0, 1), summary);
+    }
+
+    [Fact]
+    public async Task RunAsync_CallerCancellation_Propagates()
+    {
+        var invoker = Substitute.For<IActivityInvoker>();
+        var job = new ThumbnailJob(invoker, NullLogger<ThumbnailJob>.Instance);
+        using var cts = new CancellationTokenSource();
+        cts.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => job.RunAsync(Guid.NewGuid(),
+            [new(Guid.NewGuid(), "https://img.example.com/1.jpg", null)], cts.Token));
+    }
+
+    [Fact]
     public async Task RunAsync_EmptyItems_ReturnsZeroCounts()
     {
         var invoker = Substitute.For<IActivityInvoker>();

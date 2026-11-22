@@ -34,10 +34,15 @@ public sealed partial class BatchRunner(
 
         var summary = ExitCodes.Summary(result);
         LogResult(logger, result, summary);
-        if (ExitCodes.IsFailure(result))
-            notifier.SendAsync(result).GetAwaiter().GetResult();
-        if (result == ExitCodes.Success || ExitCodes.IsFailure(result))
-            heartbeat.SendAsync(result).GetAwaiter().GetResult();
+        // 通知とハートビートは定期実行（run）の結果だけを送る。status / preflight などの診断コマンドで
+        // 外部監視の期限がリセットされ、実行漏れが隠れるのを防ぐ。
+        if (command?.Kind == BatchCommandKind.Run)
+        {
+            if (ExitCodes.IsFailure(result))
+                notifier.SendAsync(result).GetAwaiter().GetResult();
+            if (result == ExitCodes.Success || ExitCodes.IsFailure(result))
+                heartbeat.SendAsync(result).GetAwaiter().GetResult();
+        }
 
         return result;
     }

@@ -28,7 +28,14 @@ public sealed partial class FailureNotifier(
         {
             using var client = clients.CreateClient("BatchOperations");
             using var response = await client.PostAsJsonAsync(url,
-                new { timestamp = clock.GetUtcNow(), exitCode, summary = ExitCodes.Summary(exitCode) });
+                new
+                {
+                    // Slack / Teams の Incoming Webhook はメッセージ本文として text を要求する（docs/init.md §9.2）。
+                    text = $"[ComiCal Batch] 失敗（終了コード {exitCode}）: {ExitCodes.Summary(exitCode)}",
+                    timestamp = clock.GetUtcNow(),
+                    exitCode,
+                    summary = ExitCodes.Summary(exitCode)
+                });
             response.EnsureSuccessStatusCode();
         }
         catch (Exception ex)
