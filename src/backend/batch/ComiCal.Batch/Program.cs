@@ -1,43 +1,82 @@
-using ComiCal.Application;
-using ComiCal.Infrastructure.Blob;
-using ComiCal.Infrastructure.Rakuten;
+using System.Globalization;
+using Azure.Core;
+using Azure.Identity;
+using ComiCal.Batch.Hosting;
+using ComiCal.Domain.Repositories;
 using ComiCal.Infrastructure.Sql;
-using Microsoft.Azure.Functions.Worker;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Serilog;
 
-var host = new HostBuilder()
-    .ConfigureFunctionsWorkerDefaults()
-    .ConfigureServices((ctx, services) =>
+var command = BatchCommand.Parse(args);
+try
+{
+    var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     {
-        // Application Insights: only enable when connection string is configured
-        if (!string.IsNullOrWhiteSpace(ctx.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-            services.AddApplicationInsightsTelemetryWorkerService();
+        ContentRootPath = AppContext.BaseDirectory
+    });
+    builder.Configuration.AddJsonFile(BatchPaths.LocalSettings, optional: true);
+    builder.Configuration.AddEnvironmentVariables(prefix: "COMICAL_");
 
-        services.AddApplicationServices();
+    var configuredLogDirectory = builder.Configuration["Batch:LogDirectory"];
+    var logDirectory = string.IsNullOrWhiteSpace(configuredLogDirectory)
+        ? BatchPaths.Logs : Path.GetFullPath(configuredLogDirectory, BatchPaths.Root);
+    using var logger = new LoggerConfiguration()
+        .Enrich.FromLogContext()
+        .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture)
+        .WriteTo.File(Path.Combine(logDirectory, "batch-.log"), formatProvider: CultureInfo.InvariantCulture,
+            rollingInterval: RollingInterval.Day, retainedFileCountLimit: 30, retainedFileTimeLimit: TimeSpan.FromDays(30),
+            shared: true)
+        .CreateLogger();
 
-        var connectionString = ctx.Configuration["SqlConnectionString"]
-            ?? throw new InvalidOperationException("SqlConnectionString is required");
-        // Batch はユーザーに直接見えない非同期処理のため、Serverless の auto-resume
-        // （60〜120 秒程度）を確実に吸収できるよう長めの ConnectTimeout / リトライを使う。
-        // WarmupBatchTimer による事前 resume が効いていれば通常はここまで待たない。
-        services.AddSqlInfrastructure(connectionString, SqlInfrastructureOptions.BatchDefaults);
+    builder.Logging.ClearProviders();
+    builder.Services.AddSerilog(logger);
+    builder.Services.AddSingleton<Serilog.ILogger>(logger);
+    builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
+    builder.Services.AddSingleton<TokenCredential, DefaultAzureCredential>();
+    builder.Services.AddHttpClient("BatchOperations", client => client.Timeout = TimeSpan.FromSeconds(5))
+        .RemoveAllLoggers()
+        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
+    builder.Services.AddSqlInfrastructure(builder.Configuration["SqlConnectionString"] ?? string.Empty,
+        SqlInfrastructureOptions.BatchDefaults);
+    builder.Services.AddSingleton<ISingleInstanceGuard, SingleInstanceGuard>();
+    builder.Services.AddSingleton<IBatchSecretSource, KeyVaultSecretSource>();
+    builder.Services.AddSingleton<KeyVaultSettings>();
+    builder.Services.AddSingleton<IPreflightChecks, PreflightChecks>();
+    builder.Services.AddSingleton<IPreflight, Preflight>();
+    builder.Services.AddSingleton<IFailureNotifier, FailureNotifier>();
+    builder.Services.AddSingleton<IHeartbeat, Heartbeat>();
+    builder.Services.AddScoped<SqlWarmup>();
+    builder.Services.AddScoped<IBatchWork, BatchWork>();
+    builder.Services.AddScoped<IStaleBatchRunCleaner, StaleBatchRunCleaner>();
+    builder.Services.AddScoped(sp => new Lazy<IBatchRunRepository>(sp.GetRequiredService<IBatchRunRepository>));
+    builder.Services.AddScoped(sp => new Lazy<IStaleBatchRunCleaner>(sp.GetRequiredService<IStaleBatchRunCleaner>));
+    builder.Services.AddScoped<BatchRunner>();
 
-        var storageUri = ctx.Configuration["StorageAccountUri"]
-            ?? throw new InvalidOperationException("StorageAccountUri is required");
-        services.AddBlobInfrastructure(storageUri);
+    using var host = builder.Build();
+    await host.StartAsync();
+    try
+    {
+        var ct = host.Services.GetRequiredService<IHostApplicationLifetime>().ApplicationStopping;
+        await using var scope = host.Services.CreateAsyncScope();
+        return scope.ServiceProvider.GetRequiredService<BatchRunner>()
+            .Execute(command, command is null ? Console.Error : Console.Out, ct);
+    }
+    finally
+    {
+        await host.StopAsync();
+    }
+}
+catch (Exception ex)
+{
+    Console.Error.WriteLine(ex);
+    if (command is null)
+    {
+        Console.Error.WriteLine(BatchCommand.Usage);
+        return ExitCodes.PreflightFailure;
+    }
 
-        var rakutenAppId = ctx.Configuration["RakutenApplicationId"]
-            ?? throw new InvalidOperationException("RakutenApplicationId is required");
-        var rakutenAccessKey = ctx.Configuration["RakutenAccessKey"]
-            ?? throw new InvalidOperationException("RakutenAccessKey is required");
-        var rakutenAffiliateId = ctx.Configuration["RakutenAffiliateId"]
-            ?? throw new InvalidOperationException("RakutenAffiliateId is required");
-        services.AddRakutenInfrastructure(rakutenAppId, rakutenAccessKey, rakutenAffiliateId);
-
-        // Durable Task orchestrators/activities are auto-discovered by
-        // Microsoft.Azure.Functions.Worker.Extensions.DurableTask — no manual registration needed.
-    })
-    .Build();
-
-await host.RunAsync();
+    return ExitCodes.Failure;
+}

@@ -1,4 +1,5 @@
 using ComiCal.Domain.Entities;
+using ComiCal.Domain.Enums;
 using ComiCal.Domain.Repositories;
 using Microsoft.EntityFrameworkCore;
 
@@ -30,6 +31,18 @@ public sealed class BatchRunRepository(ComiCalDbContext db) : IBatchRunRepositor
 
         return (items, nextCursor);
     }
+
+    public async Task<IReadOnlyList<BatchRun>> FindStaleAsync(DateTime startedBeforeUtc, CancellationToken ct = default)
+        => await db.BatchRuns.Where(b => b.Status == BatchRunStatus.Running && b.StartedAt < startedBeforeUtc)
+            .ToListAsync(ct);
+
+    public Task<bool> HasSucceededAsync(DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+        => db.BatchRuns.AnyAsync(b => b.Status == BatchRunStatus.Succeeded &&
+            b.CompletedAt >= startUtc && b.CompletedAt < endUtc, ct);
+
+    public async Task<IReadOnlyList<BatchRun>> ListStartedAsync(DateTime startUtc, DateTime endUtc, CancellationToken ct = default)
+        => await db.BatchRuns.AsNoTracking().Where(b => b.StartedAt >= startUtc && b.StartedAt < endUtc)
+            .OrderByDescending(b => b.StartedAt).ThenBy(b => b.BatchRunId).ToListAsync(ct);
 
     public async Task<Guid> CreateAsync(BatchRun batchRun, CancellationToken ct = default)
     {

@@ -3,7 +3,6 @@ using ComiCal.Domain.DomainServices;
 using ComiCal.Domain.Entities;
 using ComiCal.Domain.Enums;
 using ComiCal.Domain.Repositories;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.Extensions.Logging;
 
 namespace ComiCal.Batch.Activities;
@@ -16,8 +15,9 @@ public partial class UpsertVolumesActivity(
     IBatchRunRepository batchRunRepo,
     ILogger<UpsertVolumesActivity> logger)
 {
-    [Function("UpsertVolumesActivity")]
-    public async Task<UpsertVolumesOutput> Run([ActivityTrigger] UpsertVolumesInput input)
+    public Task<UpsertVolumesOutput> Run(UpsertVolumesInput input) => Run(input, CancellationToken.None);
+
+    public async Task<UpsertVolumesOutput> Run(UpsertVolumesInput input, CancellationToken ct)
     {
         var upserted = 0;
         var thumbnailPending = new List<ThumbnailPendingItem>();
@@ -43,17 +43,17 @@ public partial class UpsertVolumesActivity(
                 var (releaseDate, isMonthOnly) = ParseSalesDate(item.SalesDate);
 
                 // Resolve authors (split raw "A／B/C、D" → individual normalized names → upsert)
-                var authorIds = await ResolveAuthorIdsAsync(item.AuthorRaw, authorCache);
+                var authorIds = await ResolveAuthorIdsAsync(item.AuthorRaw, authorCache, ct);
                 var primaryAuthorId = authorIds.Count > 0 ? authorIds[0] : (Guid?)null;
 
                 // Resolve publisher
                 Guid? publisherId = null;
                 if (!string.IsNullOrWhiteSpace(item.PublisherName))
                 {
-                    publisherId = await ResolvePublisherIdAsync(item.PublisherName, publisherCache);
+                    publisherId = await ResolvePublisherIdAsync(item.PublisherName, publisherCache, ct);
                 }
 
-                var existing = await volumeRepo.FindByIsbnAsync(item.Isbn13);
+                var existing = await volumeRepo.FindByIsbnAsync(item.Isbn13, ct);
 
                 if (existing is not null)
                 {
@@ -61,7 +61,7 @@ public partial class UpsertVolumesActivity(
                         thumbnailPending.Add(new ThumbnailPendingItem(existing.VolumeId, item.LargeImageUrl, existing.CoverHash));
 
                     existing.UpdateRakutenItemUrl(item.ItemUrl);
-                    await volumeRepo.UpsertAsync(existing);
+                    await volumeRepo.UpsertAsync(existing, ct);
                 }
                 else
                 {
@@ -79,7 +79,7 @@ public partial class UpsertVolumesActivity(
                     else
                     {
                         seriesId = DeriveId("series|" + seriesKey);
-                        var existingSeries = await seriesRepo.FindByIdAsync(seriesId);
+                        var existingSeries = await seriesRepo.FindByIdAsync(seriesId, ct);
                         if (existingSeries is null)
                         {
                             var newSeries = Series.CreateWithId(seriesId, item.RawTitle, normalizedTitle, publisherId);
@@ -90,14 +90,14 @@ public partial class UpsertVolumesActivity(
                                 var role = i == 0 ? SeriesAuthorRole.Primary : SeriesAuthorRole.Co;
                                 newSeries.AddSeriesAuthor(SeriesAuthor.Create(seriesId, authorIds[i], role));
                             }
-                            await seriesRepo.UpsertAsync(newSeries);
+                            await seriesRepo.UpsertAsync(newSeries, ct);
                         }
                         seriesCache[seriesKey] = seriesId;
                     }
 
                     var volume = Volume.Create(seriesId, item.Isbn13, volumeNumber, releaseDate, isMonthOnly);
                     volume.UpdateRakutenItemUrl(item.ItemUrl);
-                    await volumeRepo.UpsertAsync(volume);
+                    await volumeRepo.UpsertAsync(volume, ct);
 
                     if (item.LargeImageUrl is not null)
                         thumbnailPending.Add(new ThumbnailPendingItem(volume.VolumeId, item.LargeImageUrl, null));
@@ -105,14 +105,14 @@ public partial class UpsertVolumesActivity(
 
                 upserted++;
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 LogUpsertFailed(logger, item.Isbn13 ?? "(null)", ex);
                 var itemKey = string.IsNullOrWhiteSpace(item.Isbn13) ? "(no-isbn)" : item.Isbn13;
                 if (!string.IsNullOrWhiteSpace(item.Isbn13))
                     failedIsbns.Add(item.Isbn13);
                 await batchRunRepo.AddFailedItemAsync(
-                    FailedItem.Create(input.BatchRunId, itemKey, ex.Message));
+                    FailedItem.Create(input.BatchRunId, itemKey, ex.Message), ct);
             }
         }
 
@@ -120,7 +120,7 @@ public partial class UpsertVolumesActivity(
     }
 
     private async Task<List<Guid>> ResolveAuthorIdsAsync(
-        string? authorRaw, Dictionary<string, Guid> cache)
+        string? authorRaw, Dictionary<string, Guid> cache, CancellationToken ct)
     {
         var ids = new List<Guid>();
         if (string.IsNullOrWhiteSpace(authorRaw)) return ids;
@@ -142,7 +142,7 @@ public partial class UpsertVolumesActivity(
 
             if (cache.TryGetValue(normalized, out var cached)) { ids.Add(cached); continue; }
 
-            var existing = await authorRepo.FindByNormalizedNameAsync(normalized);
+            var existing = await authorRepo.FindByNormalizedNameAsync(normalized, ct);
             Guid id;
             if (existing is not null)
             {
@@ -151,7 +151,7 @@ public partial class UpsertVolumesActivity(
             else
             {
                 var newAuthor = Author.CreateWithId(DeriveId("author|" + normalized), name, normalized);
-                id = await authorRepo.UpsertAsync(newAuthor);
+                id = await authorRepo.UpsertAsync(newAuthor, ct);
             }
             cache[normalized] = id;
             ids.Add(id);
@@ -160,13 +160,13 @@ public partial class UpsertVolumesActivity(
     }
 
     private async Task<Guid> ResolvePublisherIdAsync(
-        string publisherName, Dictionary<string, Guid> cache)
+        string publisherName, Dictionary<string, Guid> cache, CancellationToken ct)
     {
         var name = publisherName.Length > 128 ? publisherName[..128] : publisherName;
         var normalized = TitleNormalizer.Normalize(name);
         if (cache.TryGetValue(normalized, out var cached)) return cached;
 
-        var existing = await publisherRepo.FindByNormalizedNameAsync(normalized);
+        var existing = await publisherRepo.FindByNormalizedNameAsync(normalized, ct);
         Guid id;
         if (existing is not null)
         {
@@ -175,7 +175,7 @@ public partial class UpsertVolumesActivity(
         else
         {
             var newPub = Publisher.CreateWithId(DeriveId("publisher|" + normalized), name, normalized);
-            id = await publisherRepo.UpsertAsync(newPub);
+            id = await publisherRepo.UpsertAsync(newPub, ct);
         }
         cache[normalized] = id;
         return id;

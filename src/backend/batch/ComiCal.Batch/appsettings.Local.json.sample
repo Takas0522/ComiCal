@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy to the Batch data directory as appsettings.Local.json. Remove keys you do not override. COMICAL_ environment variables take precedence (use __ for nested keys). Empty Rakuten and Application Insights settings fall back to Key Vault.",
+  "Azure": {
+    "KeyVaultUri": ""
+  },
+  "SqlConnectionString": "",
+  "StorageAccountUri": "",
+  "BlobBaseUrl": "",
+  "RakutenApplicationId": "",
+  "RakutenAccessKey": "",
+  "RakutenAffiliateId": "",
+  "APPLICATIONINSIGHTS_CONNECTION_STRING": "",
+  "Batch": {
+    "_comment": "TimeoutMinutes and StaleAfterMinutes default to 240 and 360. An empty LogDirectory uses the Batch data directory's logs folder. IP, webhook and heartbeat checks are enabled by setting their values.",
+    "ExpectedPublicIp": "",
+    "TimeoutMinutes": "",
+    "StaleAfterMinutes": "",
+    "LogDirectory": "",
+    "FailureWebhookUrl": "",
+    "HeartbeatUrl": ""
+  }
+}

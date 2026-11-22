@@ -1,13 +1,12 @@
-using ComiCal.Batch.Triggers;
+using ComiCal.Batch.Hosting;
 using ComiCal.Infrastructure.Sql;
-using Microsoft.Azure.Functions.Worker;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Xunit;
 
-namespace ComiCal.Batch.Tests.Triggers;
+namespace ComiCal.Batch.Tests.Hosting;
 
-public sealed class WarmupTriggerTests
+public sealed class SqlWarmupTests
 {
     [Fact]
     public async Task RunAsync_WhenDatabaseUnreachable_DoesNotThrow()
@@ -19,12 +18,11 @@ public sealed class WarmupTriggerTests
                 "Server=tcp:unreachable-host-for-test.invalid,1433;Database=test;Connect Timeout=1;Encrypt=True;TrustServerCertificate=True;")
             .Options;
         using var dbContext = new ComiCalDbContext(options);
-        var logger = new RecordingLogger<WarmupTrigger>();
-        var sut = new WarmupTrigger(dbContext, logger);
-        var timerInfo = new TimerInfo();
+        var logger = new RecordingLogger<SqlWarmup>();
+        var sut = new SqlWarmup(dbContext, logger);
 
         // Act & Assert: 例外が伝播しない（握りつぶされる）こと。
-        var exception = await Record.ExceptionAsync(() => sut.RunAsync(timerInfo, CancellationToken.None));
+        var exception = await Record.ExceptionAsync(() => sut.RunAsync(CancellationToken.None));
         Assert.Null(exception);
     }
 
@@ -36,13 +34,12 @@ public sealed class WarmupTriggerTests
                 "Server=tcp:unreachable-host-for-test.invalid,1433;Database=test;Connect Timeout=1;Encrypt=True;TrustServerCertificate=True;")
             .Options;
         using var dbContext = new ComiCalDbContext(options);
-        var logger = new RecordingLogger<WarmupTrigger>();
-        var sut = new WarmupTrigger(dbContext, logger);
-        var timerInfo = new TimerInfo();
+        var logger = new RecordingLogger<SqlWarmup>();
+        var sut = new SqlWarmup(dbContext, logger);
 
-        await sut.RunAsync(timerInfo, CancellationToken.None);
+        await sut.RunAsync(CancellationToken.None);
 
-        // Warning レベルでログが出力されること（DailyFetchOrchestrator へは影響させないが、
+        // Warning レベルでログが出力されること（DailyFetchJob へは影響させないが、
         // 運用上の可観測性のため記録する）。
         Assert.Contains(logger.Entries, e => e.Level == LogLevel.Warning);
     }

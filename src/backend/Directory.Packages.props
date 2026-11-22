@@ -7,14 +7,7 @@
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.7" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http.AspNetCore" Version="2.1.0" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Timer" Version="4.3.1" />
     <PackageVersion Include="Microsoft.Azure.Functions.Worker.ApplicationInsights" Version="2.51.0" />
-  </ItemGroup>
-  <ItemGroup Label="Durable Functions">
-    <PackageVersion Include="Microsoft.DurableTask.Client" Version="1.24.2" />
-    <PackageVersion Include="Microsoft.DurableTask.Worker" Version="1.24.2" />
-    <PackageVersion Include="Microsoft.DurableTask.Worker.Grpc" Version="1.24.2" />
-    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.DurableTask" Version="1.18.0" />
   </ItemGroup>
   <ItemGroup Label="EF Core">
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.8" />
@@ -32,7 +25,14 @@
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
     <PackageVersion Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
   </ItemGroup>
+  <ItemGroup Label="Hosting">
+    <PackageVersion Include="Serilog.Extensions.Hosting" Version="10.0.0" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
+    <PackageVersion Include="Serilog.Sinks.Console" Version="6.1.1" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
+    <PackageVersion Include="Serilog.Sinks.File" Version="7.0.0" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.7" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
+  </ItemGroup>
   <ItemGroup Label="Resilience">
+    <PackageVersion Include="Polly.Core" Version="8.4.2" Condition="'$(MSBuildProjectName)' == 'ComiCal.Batch'" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.5.0" />
   </ItemGroup>
   <ItemGroup Label="API">
