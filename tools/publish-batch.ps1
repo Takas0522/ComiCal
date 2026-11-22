@@ -4,6 +4,9 @@
 .DESCRIPTION
   Use -List to inspect releases or -Rollback to switch to the preceding release.
   Use the same -TaskName as register-batch-task.ps1 if you changed the default.
+  -Root only relocates the binaries (releases/current), e.g. for testing. ComiCal.Batch always reads
+  appsettings.Local.json and writes logs under its fixed data folder (BatchPaths.Root), so the settings
+  file is created there regardless of -Root.
 #>
 [CmdletBinding(DefaultParameterSetName = 'Publish')]
 param(
@@ -95,10 +98,10 @@ if ($MyInvocation.InvocationName -eq '.') { return }
 
 $ErrorActionPreference = 'Stop'
 $onWindows = $env:OS -eq 'Windows_NT'
-if (-not $Root) {
-  $data = if ($onWindows) { [Environment]::GetFolderPath('LocalApplicationData') } else { Join-Path $HOME '.local/share' }
-  $Root = Join-Path $data 'ComiCal/Batch'
-}
+# Must match src/backend/batch/ComiCal.Batch/Hosting/BatchPaths.cs.
+$data = if ($onWindows) { [Environment]::GetFolderPath('LocalApplicationData') } else { Join-Path $HOME '.local/share' }
+$dataRoot = Join-Path $data 'ComiCal/Batch'
+if (-not $Root) { $Root = $dataRoot }
 $Root = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Root)
 $releasesPath = Join-Path $Root 'releases'
 $currentPath = Join-Path $Root 'current'
@@ -152,8 +155,9 @@ try {
         -p:RestorePackagesWithLockFile=false -p:NuGetLockFilePath=obj/batch-publish.lock.json -o $staging
       if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed ($LASTEXITCODE)." }
 
-      $settings = Join-Path $Root 'appsettings.Local.json'
+      $settings = Join-Path $dataRoot 'appsettings.Local.json'
       if (-not (Test-Path -LiteralPath $settings)) {
+        New-Item -ItemType Directory -Path $dataRoot -Force | Out-Null
         [IO.File]::Copy((Join-Path $project 'appsettings.Local.json.sample'), $settings)
         Write-Warning "Review and edit $settings before running Batch."
       }

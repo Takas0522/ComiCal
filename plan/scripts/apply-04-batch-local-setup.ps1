@@ -16,6 +16,7 @@ $Script:AssumeYes = [bool]$Yes
 $log = Start-ApplyLog 'apply-04'
 $prevAdmin = $null
 $batchStopped = $false
+$cutoverStarted = $false
 $cutoverDone = $false
 try {
   Assert-AzLogin
@@ -99,6 +100,11 @@ try {
   $Script:AssumeYes = $false
   if (-not (Confirm-Action "楽天に $ip を登録しましたか？ Azure 側 Batch を停止し、ローカルで試走します")) { return }
 
+  # 再実行時に既存のローカルタスクが残っていると、切り替えに失敗して Azure Batch を再開したとき
+  # 両方のスケジューラが動いてしまう。切り替え中は無効化し、登録が成功したときだけ有効な状態にする。
+  $null = Disable-BatchTask
+  $cutoverStarted = $true
+
   if (Test-AzResource 'Microsoft.Web/sites' $Names.Rg $Names.FuncBatch) {
     $state = (Invoke-Az functionapp show -g $Names.Rg -n $Names.FuncBatch --query state -o tsv | Out-String).Trim()
     if ($state -eq 'Running') {
@@ -114,6 +120,7 @@ try {
   if (Confirm-Action 'タスク スケジューラに毎日 03:00 で登録しますか？（登録しない場合は Azure 側 Batch を再開します）') {
     & (Join-Path $RepoRoot 'tools/register-batch-task.ps1') -Root $root -TaskName $Names.BatchTask
     $task = Get-ScheduledTask -TaskName $Names.BatchTask -TaskPath '\'
+    if ($task.State -eq 'Disabled') { $task = Enable-ScheduledTask -TaskName $Names.BatchTask -TaskPath '\' }
     if ($task.State -eq 'Disabled' -or $task.Actions.Execute -ne $exe -or $task.Actions.Arguments -ne 'run') {
       throw "タスク $($Names.BatchTask) の登録を確認できません。"
     }
@@ -123,9 +130,16 @@ try {
 }
 finally {
   try {
-    if ($batchStopped -and -not $cutoverDone) {
-      Write-Step "ロールバック: Azure 側 $($Names.FuncBatch) を再開"
-      $null = Invoke-Az functionapp start -g $Names.Rg -n $Names.FuncBatch -o none
+    if ($cutoverStarted -and -not $cutoverDone) {
+      # 切り替え未完了: ローカルタスクは無効のままにし（登録後に失敗した場合も含む）、Azure Batch だけを動かす。
+      if (Get-ScheduledTask -TaskName $Names.BatchTask -ErrorAction SilentlyContinue) {
+        $null = Disable-ScheduledTask -TaskName $Names.BatchTask -ErrorAction Continue
+        Write-Warning "ローカルタスク $($Names.BatchTask) は無効のままです（切り替え完了時に有効化されます）。"
+      }
+      if ($batchStopped) {
+        Write-Step "ロールバック: Azure 側 $($Names.FuncBatch) を再開"
+        $null = Invoke-Az functionapp start -g $Names.Rg -n $Names.FuncBatch -o none
+      }
     }
   } finally {
     Restore-SqlEntraAdmin $prevAdmin
