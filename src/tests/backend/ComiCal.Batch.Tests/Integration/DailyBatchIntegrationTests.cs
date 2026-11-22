@@ -83,6 +83,11 @@ public sealed class DailyBatchIntegrationTests(BatchStorageFixture storage, ITes
         work.FetchAsync(Arg.Any<CancellationToken>()).Returns(call =>
             provider.GetRequiredService<DailyFetchJob>().RunAsync(call.Arg<CancellationToken>()));
 
+        // 実際の Mutex（Global\ComiCal.Batch）は並列実行される SingleInstanceGuardTests と競合するため、
+        // ここでは action をそのまま実行するスタブを使う（排他は専用テストで検証済み）。
+        var guard = Substitute.For<ISingleInstanceGuard>();
+        guard.RunExclusive(Arg.Any<Func<int>>()).Returns(call => call.Arg<Func<int>>()());
+
         var command = BatchCommand.Parse(["run"]);
         Assert.Equal(ExitCodes.Success, Runner(TimeProvider.System).Execute(command, TextWriter.Null, CancellationToken.None));
 
@@ -111,8 +116,10 @@ public sealed class DailyBatchIntegrationTests(BatchStorageFixture storage, ITes
             Assert.Equal(Cover, blob.Value.Content.ToArray());
         }
 
-        // Use the persisted start time to exercise the same JST day even if the test crosses midnight.
-        var sameDay = new FixedTimeProvider(new DateTimeOffset(DateTime.SpecifyKind(run.StartedAt, DateTimeKind.Utc)));
+        // HasSucceededAsync は CompletedAt を JST の当日範囲と比較するので、完了時刻で時計を固定する
+        // （1 回目の実行が JST の午前 0 時をまたいでも 2 回目が同じ日として判定される）。
+        var completedAt = Assert.NotNull(run.CompletedAt);
+        var sameDay = new FixedTimeProvider(new DateTimeOffset(DateTime.SpecifyKind(completedAt, DateTimeKind.Utc)));
         Assert.Equal(ExitCodes.Success, Runner(sameDay).Execute(command, TextWriter.Null, CancellationToken.None));
         await work.Received(1).FetchAsync(Arg.Any<CancellationToken>());
         await work.Received(1).WarmupAsync(Arg.Any<CancellationToken>());
@@ -124,7 +131,7 @@ public sealed class DailyBatchIntegrationTests(BatchStorageFixture storage, ITes
         RakutenBookItem Book(string isbn, string title) => new(isbn, title, "著者", "出版社",
             DateTime.UtcNow.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture), imageBase + isbn, "https://books.example/" + isbn);
 
-        BatchRunner Runner(TimeProvider clock) => new(new SingleInstanceGuard(),
+        BatchRunner Runner(TimeProvider clock) => new(guard,
             new Lazy<IStaleBatchRunCleaner>(() => ActivatorUtilities.CreateInstance<StaleBatchRunCleaner>(scoped)),
             new Lazy<IBatchRunRepository>(scoped.GetRequiredService<IBatchRunRepository>),
             new Preflight(checks, provider.GetRequiredService<ILogger<Preflight>>()), work,
